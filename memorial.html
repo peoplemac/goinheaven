@@ -177,6 +177,14 @@ label{font-size:13px;color:var(--mid);display:block;margin-bottom:5px}
   padding-top:1.25rem;border-top:1px solid var(--stone)}
 .mem-stat-n{font-size:18px;font-weight:500}
 .mem-stat-l{font-size:11px;color:var(--ash);margin-top:2px}
+/* ── 공유 버튼 ── */
+.mem-share-row{display:flex;gap:8px;justify-content:center;margin-top:1rem;padding:0 .5rem}
+.mem-share-btn{flex:1;max-width:155px;height:38px;font-size:13px;border-radius:20px;
+  border:1px solid var(--ash);background:var(--white);color:var(--deep);cursor:pointer;
+  font-family:inherit;display:flex;align-items:center;justify-content:center;gap:5px;
+  transition:opacity .15s;-webkit-appearance:none}
+.mem-share-btn:active{opacity:.65}
+.mem-share-kakao{background:#FEE500;border-color:#D4C000;color:#3C1E1E;font-weight:600}
 
 /* 하단 탭바 */
 .bottom-nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);
@@ -480,6 +488,16 @@ label{font-size:13px;color:var(--mid);display:block;margin-bottom:5px}
       <div class="mem-stat"><div class="mem-stat-n" id="st-posts">0</div><div class="mem-stat-l">게시물</div></div>
       <div class="mem-stat"><div class="mem-stat-n" id="st-likes">0</div><div class="mem-stat-l">♡ 추모</div></div>
       <div class="mem-stat"><div class="mem-stat-n" id="st-visit">0</div><div class="mem-stat-l">방문</div></div>
+    </div>
+    <div class="mem-share-row">
+      <button class="mem-share-btn" onclick="shareMemorial()">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.6" y1="13.5" x2="15.4" y2="17.5"/><line x1="15.4" y1="6.5" x2="8.6" y2="10.5"/></svg>
+        공유하기
+      </button>
+      <button class="mem-share-btn mem-share-kakao" onclick="shareKakao()">
+        <svg width="16" height="16" viewBox="0 0 48 48" fill="#3C1E1E"><path d="M24 6C13.5 6 5 13.2 5 22.1c0 5.5 3.4 10.4 8.7 13.3l-2 7.4 8.2-5.1c1.3.2 2.7.3 4.1.3 10.5 0 19-7.2 19-16.1S34.5 6 24 6z"/></svg>
+        카카오톡
+      </button>
     </div>
   </div>
 
@@ -838,6 +856,33 @@ function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').repl
 function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,5);}
 function toast(msg){var t=$('toast');t.textContent=msg;t.classList.add('show');setTimeout(function(){t.classList.remove('show');},2200);}
 function curg(){return db.groups.find(function(g){return g.id===curGid;})||null;}
+function _copyText(text){
+  if(navigator.clipboard){navigator.clipboard.writeText(text).then(function(){toast('링크가 복사되었습니다.');}).catch(function(){_copyFallback(text);});}
+  else{_copyFallback(text);}
+}
+function _copyFallback(text){
+  var ta=document.createElement('textarea');ta.value=text;ta.style.cssText='position:fixed;opacity:0';
+  document.body.appendChild(ta);ta.select();
+  try{document.execCommand('copy');toast('링크가 복사되었습니다.');}catch(e){}
+  document.body.removeChild(ta);
+}
+function shareMemorial(){
+  var g=curg();if(!g)return;
+  var url=loginURL(g.id);
+  var names=g.members.map(function(m){return m.name;}).join('·');
+  if(navigator.share){
+    navigator.share({title:names+' 사이버 추모관',text:names+' 추모관에 방문해 주세요.',url:url}).catch(function(){});
+  } else {_copyText(url);}
+}
+function shareKakao(){
+  var g=curg();if(!g)return;
+  var url=loginURL(g.id);
+  var names=g.members.map(function(m){return m.name;}).join('·');
+  var text='[사이버 추모관] '+names+'\n함께 고인을 추모해 주세요.\n\n'+url;
+  if(navigator.share){
+    navigator.share({title:names+' 사이버 추모관',text:text,url:url}).catch(function(){});
+  } else {_copyText(url);}
+}
 
 /* ══════════════════════
    HOME

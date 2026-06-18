@@ -714,6 +714,7 @@ function renderOverview(skipLoad){
 
   if(!gs.length){
     wrap.innerHTML='<p style="text-align:center;color:var(--ash);font-size:13px;padding:1rem 0">개설된 추모관이 없습니다</p>';
+    _refreshAllList();
     return;
   }
 
@@ -739,6 +740,13 @@ function renderOverview(skipLoad){
     return new Date((a.subscription||{}).endDate).getTime()-new Date((b.subscription||{}).endDate).getTime();
   });
   appendSection(wrap,'⏰ 구독 만료 예정 · 최근 만료',expiring,'만료 예정 추모관이 없습니다');
+  _refreshAllList();
+}
+function _refreshAllList(){
+  var allWrap=$('ov-all-wrap');
+  if(!allWrap||allWrap.style.display==='none')return;
+  var sq=$('ov-search')?($('ov-search').value||''):'';
+  filterAllList(sq,true);
 }
 
 /* ── 배지 ── */
@@ -799,8 +807,8 @@ function toggleAllList(){
     setTimeout(function(){wrap.scrollIntoView({behavior:'smooth',block:'nearest'});},80);
   }
 }
-function filterAllList(q){
-  loadDB();
+function filterAllList(q,skipLoad){
+  if(!skipLoad)loadDB();
   var sq=(q||'').trim().toLowerCase();
   $('ov-search-clear').style.display=sq?'inline':'none';
   var gs=db.groups.slice();
