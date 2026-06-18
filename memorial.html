@@ -830,8 +830,9 @@ function goTo(id){
   });
   var el=$(id);
   el.classList.add('active');
-  /* s-landing 은 flex 레이아웃 */
-  el.style.display=(id==='s-landing')?'flex':'block';
+  /* flex 레이아웃이 필요한 화면 */
+  var flexScreens={'s-landing':true,'s-login':true};
+  el.style.display=flexScreens[id]?'flex':'block';
 }
 function setupBack(){if(curGid)showLogin(curGid);else goTo('s-landing');}
 function homeFromMemorial(){if(curGid)showLogin(curGid);else goTo('s-landing');}
