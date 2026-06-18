@@ -1,0 +1,1334 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>사이버 추모관</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{
+  --ivory:#F8F5F0;--stone:#E8E3DB;--ash:#C4BDB4;
+  --deep:#3D3530;--mid:#6B5F58;--warm:#8B7355;
+  --gold:#B8965A;--gold2:#9a7a45;--white:#FFFFFF;--r:480px;
+}
+html{height:100%;background:#ddd8d0}
+body{min-height:100%;background:var(--ivory);color:var(--deep);
+  font-family:-apple-system,'Apple SD Gothic Neo','Noto Sans KR',sans-serif;
+  max-width:var(--r);margin:0 auto;box-shadow:0 0 40px rgba(0,0,0,.1)}
+
+/* ── 공통 ── */
+.btn{font-size:14px;cursor:pointer;border:1px solid var(--ash);border-radius:8px;
+  padding:11px 22px;background:var(--white);color:var(--deep);
+  transition:background .15s;font-family:inherit;-webkit-appearance:none}
+.btn:active{background:var(--stone)}
+.btn-gold{background:var(--gold);color:#fff;border-color:var(--gold)}
+.btn-gold:active{background:var(--gold2)}
+.btn-block{width:100%;display:block}
+.btn-sm{padding:7px 14px;font-size:13px;border-radius:6px}
+input,textarea{font-family:inherit;font-size:15px;border:1px solid var(--ash);
+  border-radius:8px;padding:11px 14px;background:var(--white);color:var(--deep);
+  width:100%;-webkit-appearance:none}
+input:focus,textarea:focus{outline:none;border-color:var(--gold)}
+textarea{resize:none;line-height:1.65}
+label{font-size:13px;color:var(--mid);display:block;margin-bottom:5px}
+.fg{margin-bottom:1rem}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+
+/* ── 화면 ── */
+.screen{display:none;min-height:100vh}
+.screen.active{display:block}
+
+/* ── LANDING ── */
+#s-landing{display:none;flex-direction:column;align-items:center;
+  justify-content:center;min-height:100vh;text-align:center;padding:2rem 1.5rem}
+#s-landing.active{display:flex}
+.land-orn{font-size:18px;color:var(--gold);letter-spacing:.4em;opacity:.6;margin-bottom:1.5rem}
+.land-title{font-size:26px;font-weight:300;letter-spacing:.12em}
+.land-sub{font-size:13px;color:var(--mid);margin:.75rem 0 2rem;line-height:1.9}
+.candle{animation:flicker 2s ease-in-out infinite;display:inline-block}
+@keyframes flicker{0%,100%{opacity:1}50%{opacity:.5;transform:scale(.91) translateY(-1px)}}
+
+/* ── HOME ── */
+#s-home{padding:0 0 4rem}
+.home-topbar{display:flex;align-items:center;padding:14px 16px;
+  background:var(--white);border-bottom:1px solid var(--stone);position:sticky;top:0;z-index:50}
+.home-topbar h2{flex:1;text-align:center;font-size:16px;font-weight:500;letter-spacing:.05em}
+.home-topbar-back{font-size:22px;color:var(--mid);background:none;border:none;cursor:pointer;padding:0 8px 0 0}
+.home-topbar-add{font-size:13px;color:var(--gold);background:none;border:none;cursor:pointer;font-weight:600;font-family:inherit}
+.memorial-cards{display:flex;flex-direction:column;gap:14px;padding:1.25rem 1rem}
+
+/* 추모관 카드 */
+.mem-select-card{background:var(--white);border:1px solid var(--stone);border-radius:14px;
+  display:flex;align-items:center;gap:12px;padding:14px 16px;cursor:pointer;
+  transition:box-shadow .15s,transform .12s;position:relative;overflow:hidden}
+.mem-select-card:active{transform:scale(.98)}
+.mem-select-card:hover{box-shadow:0 4px 16px rgba(0,0,0,.08)}
+.msc-portraits{display:flex;flex-shrink:0}
+.msc-portrait{width:58px;height:58px;border-radius:50%;border:3px solid var(--gold);
+  overflow:hidden;background:var(--stone);
+  display:flex;align-items:center;justify-content:center;font-size:22px;color:var(--ash)}
+.msc-portrait img{width:100%;height:100%;object-fit:cover}
+.msc-portrait.p2{margin-left:-14px;border-color:#c8a87a}
+.msc-info{flex:1;min-width:0}
+.msc-name{font-size:16px;font-weight:600;letter-spacing:.04em;color:var(--deep)}
+.msc-dates{font-size:11px;color:var(--mid);margin-top:3px;line-height:1.6}
+.msc-bio{font-size:11px;color:var(--ash);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.msc-arrow{font-size:22px;color:var(--ash);flex-shrink:0;margin-left:4px}
+.msc-menu{position:absolute;top:8px;right:8px;background:rgba(0,0,0,.06);border:none;
+  border-radius:50%;width:26px;height:26px;font-size:13px;color:var(--ash);
+  cursor:pointer;padding:0;display:flex;align-items:center;justify-content:center;
+  transition:background .15s,color .15s}
+.msc-menu:active{background:rgba(192,57,43,.15);color:#c0392b}
+
+.add-mem-card{border:2px dashed var(--ash);border-radius:14px;padding:20px;
+  display:flex;align-items:center;justify-content:center;gap:10px;
+  cursor:pointer;color:var(--mid);font-size:14px;transition:border-color .15s,color .15s}
+.add-mem-card:active{border-color:var(--gold);color:var(--gold)}
+.add-icon{font-size:22px;color:var(--ash)}
+
+/* ── SETUP ── */
+#s-setup{padding:0 0 3rem}
+.top-bar{display:flex;align-items:center;padding:14px 16px;
+  border-bottom:1px solid var(--stone);background:var(--white);position:sticky;top:0;z-index:50}
+.top-bar h2{flex:1;text-align:center;font-size:16px;font-weight:500;letter-spacing:.05em}
+.top-bar-back{font-size:22px;color:var(--mid);background:none;border:none;cursor:pointer;padding:0 8px 0 0}
+.top-bar-action{font-size:14px;color:var(--gold);background:none;border:none;cursor:pointer;font-weight:600;font-family:inherit}
+.setup-body{padding:1.25rem 1rem}
+.section-title{font-size:13px;font-weight:600;color:var(--gold);letter-spacing:.06em;
+  margin:1.5rem 0 1rem;padding-bottom:.5rem;border-bottom:1px solid var(--stone)}
+
+/* 초상사진 업로드 */
+.portrait-row{display:flex;gap:1rem;justify-content:center;margin-bottom:.5rem}
+.portrait-slot{display:flex;flex-direction:column;align-items:center;gap:6px}
+.portrait-upload{width:86px;height:86px;border-radius:50%;border:2px dashed var(--ash);
+  cursor:pointer;display:flex;align-items:center;justify-content:center;
+  overflow:hidden;background:var(--stone);font-size:28px;color:var(--ash);transition:border-color .15s}
+.portrait-upload:active{border-color:var(--gold)}
+.portrait-upload img{width:100%;height:100%;object-fit:cover}
+.portrait-slot-label{font-size:11px;color:var(--ash)}
+
+/* 2번째 고인 토글 */
+.add-person-btn{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--gold);
+  background:none;border:1px dashed var(--gold);border-radius:8px;padding:10px 16px;
+  cursor:pointer;font-family:inherit;width:100%;justify-content:center;margin-bottom:1rem}
+.person2-section{display:none}
+.person2-section.open{display:block}
+.remove-person-btn{font-size:12px;color:var(--ash);background:none;border:none;cursor:pointer;font-family:inherit;text-decoration:underline;margin-left:auto;display:block}
+
+/* ── LOGIN ── */
+#s-login{display:none;flex-direction:column;align-items:center;
+  justify-content:center;min-height:100vh;padding:2rem 1.25rem;background:var(--ivory)}
+#s-login.active{display:flex}
+.lv-box{background:var(--white);border:1px solid var(--stone);border-radius:16px;
+  padding:2rem 1.5rem;width:100%;max-width:340px;text-align:center}
+.lv-portraits{display:flex;justify-content:center;gap:10px;margin-bottom:1rem}
+.lv-avatar{width:80px;height:80px;border-radius:50%;border:3px solid var(--gold);
+  overflow:hidden;background:var(--stone);
+  display:flex;align-items:center;justify-content:center;font-size:28px;color:var(--ash)}
+.lv-avatar img{width:100%;height:100%;object-fit:cover}
+.lv-name{font-size:19px;font-weight:400;letter-spacing:.08em;margin-bottom:1rem}
+/* 인물별 날짜 블록 */
+.lv-members{display:flex;flex-direction:column;gap:10px;margin:.5rem 0 1.5rem;width:100%}
+.lv-member{
+  background:var(--ivory);border-radius:10px;
+  padding:11px 14px;text-align:left
+}
+.lv-member-name{
+  font-size:15px;font-weight:600;color:var(--deep);
+  margin-bottom:6px;letter-spacing:.04em
+}
+.lv-member-row{
+  display:flex;align-items:baseline;gap:6px;
+  font-size:12px;color:var(--mid);line-height:1.8
+}
+.lv-member-row-label{
+  font-size:11px;color:var(--ash);flex-shrink:0;
+  min-width:46px
+}
+.pw-err{font-size:12px;color:#c0392b;margin-top:5px;display:none;text-align:left}
+
+/* ── MEMORIAL ── */
+#s-memorial{padding-bottom:70px}
+.mem-profile{background:var(--white);text-align:center;padding:1.75rem 1rem 1.5rem;border-bottom:1px solid var(--stone)}
+.mem-portraits-wrap{display:flex;justify-content:center;gap:16px;margin-bottom:1rem}
+.mem-portrait{width:150px;height:150px;border-radius:50%;border:4px solid var(--gold);
+  overflow:hidden;background:var(--stone);
+  display:flex;align-items:center;justify-content:center;font-size:52px;color:var(--ash)}
+.mem-portrait.dual{width:110px;height:110px;font-size:36px;border-width:3px}
+.mem-portrait img{width:100%;height:100%;object-fit:cover}
+.mem-names-wrap{display:flex;justify-content:center;gap:1.5rem;flex-wrap:wrap}
+.mem-name-item{text-align:center}
+.mem-name{font-size:22px;font-weight:400;letter-spacing:.08em}
+.mem-name.dual{font-size:17px}
+.mem-dates{font-size:12px;color:var(--mid);margin-top:.25rem}
+.mem-bio{margin-top:.9rem;padding:0 .75rem}
+.mem-bio-block{background:var(--stone);border-radius:10px;padding:9px 14px;text-align:left}
+.mem-bio-block+.mem-bio-block{margin-top:6px}
+.mem-bio-name{display:block;font-size:12px;font-weight:700;color:var(--gold);letter-spacing:.05em;margin-bottom:4px}
+.mem-bio-text{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;font-size:13px;color:var(--mid);line-height:1.7}
+.mem-stats{display:flex;justify-content:center;gap:2rem;margin-top:1.25rem;
+  padding-top:1.25rem;border-top:1px solid var(--stone)}
+.mem-stat-n{font-size:18px;font-weight:500}
+.mem-stat-l{font-size:11px;color:var(--ash);margin-top:2px}
+
+/* 하단 탭바 */
+.bottom-nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);
+  width:100%;max-width:var(--r);background:var(--white);border-top:1px solid var(--stone);
+  display:flex;z-index:100;padding-bottom:env(safe-area-inset-bottom,0)}
+.bnav-item{flex:1;display:flex;flex-direction:column;align-items:center;
+  padding:9px 0 7px;cursor:pointer;color:var(--ash);font-size:10px;
+  border:none;background:none;font-family:inherit;gap:3px}
+.bnav-item.active{color:var(--gold)}
+.bnav-icon{font-size:20px;line-height:1}
+
+/* ── FEED ── */
+.feed-panel{display:none}.feed-panel.active{display:block}
+
+/* 글쓰기 바 */
+.compose-bar{margin:14px 14px 6px;background:var(--gold);border-radius:14px;
+  padding:14px 16px;display:flex;align-items:center;gap:12px;cursor:pointer;
+  box-shadow:0 3px 12px rgba(184,150,90,.35);transition:transform .12s,box-shadow .12s}
+.compose-bar:active{transform:scale(.98);box-shadow:0 1px 6px rgba(184,150,90,.2)}
+.compose-av{width:38px;height:38px;border-radius:50%;border:2px solid rgba(255,255,255,.55);
+  overflow:hidden;background:rgba(255,255,255,.2);flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;font-size:18px;color:#fff}
+.compose-av img{width:100%;height:100%;object-fit:cover}
+.compose-fake-inner{flex:1}
+.compose-fake-label{font-size:11px;color:rgba(255,255,255,.7);margin-bottom:2px;letter-spacing:.04em}
+.compose-fake-text{font-size:14px;color:#fff;font-weight:500}
+.compose-fake-icon{font-size:22px;color:rgba(255,255,255,.75);flex-shrink:0}
+
+/* 포스트 카드 */
+.post-card{background:var(--white);border-bottom:1px solid var(--stone)}
+.post-header{display:flex;align-items:center;gap:10px;padding:10px 12px}
+.post-avatar{width:36px;height:36px;border-radius:50%;overflow:hidden;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:600}
+.av-c0{background:#D4E8C2;color:#3A6B1A}.av-c1{background:#C2D8E8;color:#1A4A6B}
+.av-c2{background:#E8D0C2;color:#6B3A1A}.av-c3{background:#D8C2E8;color:#4A1A6B}
+.av-c4{background:#E8E2C2;color:#5A4A0A}.av-c5{background:#C2E8E0;color:#0A5A4A}
+.av-c6{background:#E8C2C8;color:#6B1A2A}.av-c7{background:#C2C8E8;color:#1A2A6B}
+.post-meta{flex:1}
+.post-author{font-size:13px;font-weight:600;color:var(--deep)}
+.post-rel{font-size:11px;color:var(--warm)}
+.post-date{font-size:11px;color:var(--ash)}
+.post-del{font-size:18px;color:var(--ash);background:none;border:none;cursor:pointer;padding:4px}
+.post-media{width:100%;background:#000;position:relative}
+.post-media img{width:100%;max-height:420px;object-fit:contain;display:block}
+.post-media video{width:100%;max-height:420px;object-fit:contain;display:block;background:#000}
+
+/* 슬라이더 */
+.slider-wrap{position:relative;width:100%;background:#000;overflow:hidden}
+.slider-track{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;scroll-behavior:smooth}
+.slider-track::-webkit-scrollbar{display:none}
+.slider-slide{min-width:100%;scroll-snap-align:start;flex-shrink:0}
+.slider-slide img,.slider-slide video{width:100%;max-height:400px;object-fit:contain;display:block;background:#000}
+.slider-arrow{position:absolute;top:50%;transform:translateY(-50%);width:32px;height:32px;
+  border-radius:50%;background:rgba(0,0,0,.45);color:#fff;border:none;cursor:pointer;
+  font-size:16px;display:flex;align-items:center;justify-content:center;z-index:10}
+.slider-arrow:active{background:rgba(0,0,0,.7)}
+.slider-arrow.prev{left:8px}.slider-arrow.next{right:8px}.slider-arrow.hidden{display:none}
+.slider-dots{position:absolute;bottom:8px;left:50%;transform:translateX(-50%);display:flex;gap:5px;z-index:10}
+.slider-dot{width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,.45);transition:background .2s}
+.slider-dot.active{background:#fff}
+
+/* 액션 */
+.post-actions{display:flex;align-items:center;gap:4px;padding:8px 10px 4px}
+.post-like-btn{background:none;border:none;cursor:pointer;font-size:22px;padding:4px 6px;transition:transform .15s;color:var(--ash)}
+.post-like-btn.liked{color:#e05a5a}
+.post-like-btn:active{transform:scale(.85)}
+.post-like-count{font-size:13px;color:var(--mid);margin-right:4px}
+.post-comment-btn{background:none;border:none;cursor:pointer;font-size:20px;padding:4px 6px;color:var(--ash)}
+.post-body{padding:2px 12px 8px}
+.post-caption{font-size:14px;color:var(--deep);line-height:1.7;white-space:pre-wrap}
+.post-caption .author-tag{font-weight:600}
+
+/* 댓글 영역 */
+.post-comments{padding:0 12px 4px}
+.comment-item{display:flex;gap:6px;margin-bottom:6px;align-items:flex-start}
+.comment-name{font-size:13px;font-weight:600;color:var(--deep);flex-shrink:0}
+.comment-text{font-size:13px;color:var(--mid);line-height:1.55;flex:1}
+.comment-del{font-size:16px;color:var(--ash);background:none;border:none;cursor:pointer;padding:0 0 0 4px;flex-shrink:0}
+.view-more-btn{font-size:13px;color:var(--ash);padding:0 12px 6px;cursor:pointer;display:block;background:none;border:none;font-family:inherit}
+
+/* 댓글 입력 폼 — 작성자 + 내용 분리 */
+.comment-form{border-top:1px solid var(--stone);padding:10px 12px 12px}
+.comment-form-row{display:flex;gap:8px;margin-bottom:7px;align-items:center}
+.comment-form-author{width:90px;flex-shrink:0;font-size:13px;border-radius:8px;padding:7px 10px;border-color:var(--stone)}
+.comment-form-body{display:flex;gap:8px;align-items:flex-end}
+.comment-form-text{flex:1;font-size:13px;border-radius:8px;padding:7px 10px;border-color:var(--stone);resize:none;line-height:1.4}
+.comment-form-submit{background:var(--gold);border:none;border-radius:8px;
+  cursor:pointer;color:#fff;font-size:13px;font-weight:600;font-family:inherit;
+  padding:7px 12px;white-space:nowrap;flex-shrink:0;height:36px}
+.comment-form-submit:active{background:var(--gold2)}
+
+/* 빈 피드 */
+.feed-empty{text-align:center;padding:4rem 2rem;color:var(--ash);font-size:14px}
+.feed-empty-icon{font-size:40px;margin-bottom:1rem;opacity:.5}
+
+/* ── QR ── */
+#fp-qr{padding:1.5rem 1rem;text-align:center}
+.qr-card{background:var(--white);border:1px solid var(--stone);border-radius:14px;padding:2rem 1.5rem;display:inline-block;margin:1rem auto}
+.qr-url{font-size:11px;color:var(--ash);margin-top:.75rem;word-break:break-all;max-width:240px;margin-left:auto;margin-right:auto}
+.qr-desc{font-size:13px;color:var(--mid);line-height:1.85;max-width:300px;margin:0 auto}
+.qr-btns{display:flex;gap:8px;justify-content:center;margin-top:1rem;flex-wrap:wrap}
+
+/* ── 관리 ── */
+#fp-admin{padding:1rem}
+.adm-section{display:flex;flex-direction:column;gap:1rem}
+.adm-card{background:var(--white);border:1px solid var(--stone);border-radius:12px;padding:1.25rem}
+.adm-card h4{font-size:14px;font-weight:600;color:var(--deep);margin-bottom:.9rem}
+.stat-row{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;text-align:center}
+.stat-b{background:var(--ivory);border-radius:8px;padding:.85rem .5rem}
+.stat-n{font-size:22px;font-weight:500}
+.stat-l{font-size:11px;color:var(--mid);margin-top:3px}
+.person-tabs{display:flex;gap:8px;margin-bottom:1rem}
+.person-tab{flex:1;padding:8px;border:1px solid var(--stone);border-radius:8px;
+  background:var(--white);font-size:13px;cursor:pointer;font-family:inherit;color:var(--mid)}
+.person-tab.active{border-color:var(--gold);color:var(--gold);font-weight:600}
+.adm-auth-wall{padding:3rem 1.5rem;text-align:center}
+.adm-auth-icon{font-size:38px;margin-bottom:.9rem}
+.adm-auth-desc{font-size:13px;color:var(--mid);line-height:1.9;margin-bottom:1.5rem}
+.adm-pw-label{font-size:12px;font-weight:600;color:var(--mid);margin-bottom:.75rem}
+/* 구독 */
+.sub-dday{display:flex;align-items:center;gap:8px;padding:10px 14px;border-radius:10px;
+  margin-bottom:.85rem;font-size:13px;font-weight:600;line-height:1.4}
+.sub-dday-ok{background:#d4edda;color:#155724}
+.sub-dday-warn{background:#fff3cd;color:#856404}
+.sub-dday-urgent{background:#ffe0e0;color:#c0392b}
+.sub-dday-expired{background:#f8d7da;color:#721c24}
+.sub-dday-trial{background:#fff3cd;color:#856404}
+.sub-itbl{width:100%;border-collapse:collapse;margin-bottom:.85rem}
+.sub-itbl td{padding:5px 0;font-size:12px;border-bottom:1px solid var(--stone)}
+.sub-itbl tr:last-child td{border-bottom:none}
+.sub-itbl .sl{color:var(--mid);width:44%}
+.sub-itbl .sv{font-weight:500;color:var(--deep);text-align:right}
+
+/* ── bottom sheet (글쓰기) ── */
+.sheet-backdrop{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:200}
+.sheet-backdrop.open{display:block}
+.sheet{position:fixed;bottom:0;left:50%;transform:translateX(-50%) translateY(100%);
+  width:100%;max-width:var(--r);background:var(--white);border-radius:18px 18px 0 0;
+  z-index:201;transition:transform .3s cubic-bezier(.32,0,.67,0);
+  padding-bottom:env(safe-area-inset-bottom,16px);max-height:90vh;overflow-y:auto}
+.sheet.open{transform:translateX(-50%) translateY(0)}
+.sheet-handle{width:36px;height:4px;background:var(--stone);border-radius:2px;margin:10px auto 0}
+.sheet-header{display:flex;align-items:center;padding:12px 16px 8px}
+.sheet-title{flex:1;font-size:15px;font-weight:500;text-align:center;letter-spacing:.04em}
+.sheet-close{background:none;border:none;font-size:22px;color:var(--mid);cursor:pointer;padding:0}
+.sheet-submit{background:none;border:none;font-size:14px;color:var(--gold);font-weight:600;cursor:pointer;font-family:inherit}
+.sheet-body{padding:8px 16px 16px}
+.compose-media-prev{display:flex;gap:6px;overflow-x:auto;padding-bottom:6px;margin-bottom:10px;scrollbar-width:none}
+.compose-media-prev::-webkit-scrollbar{display:none}
+.cmp-thumb{width:80px;height:80px;flex-shrink:0;border-radius:8px;background:var(--stone);overflow:hidden;position:relative}
+.cmp-thumb img,.cmp-thumb video{width:100%;height:100%;object-fit:cover}
+.cmp-thumb-del{position:absolute;top:2px;right:2px;width:18px;height:18px;
+  background:rgba(0,0,0,.6);border-radius:50%;border:none;cursor:pointer;
+  color:#fff;font-size:11px;display:flex;align-items:center;justify-content:center}
+.add-media-btn{width:80px;height:80px;flex-shrink:0;border-radius:8px;
+  border:1.5px dashed var(--ash);background:var(--ivory);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:4px;font-size:11px;color:var(--ash);cursor:pointer}
+.add-media-icon{font-size:22px}
+
+/* ── 라이트박스 ── */
+#lightbox{display:none;position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:500;align-items:center;justify-content:center}
+#lightbox.open{display:flex}
+#lb-close{position:absolute;top:16px;right:16px;background:rgba(255,255,255,.15);border:none;border-radius:50%;width:36px;height:36px;cursor:pointer;font-size:18px;color:#fff;display:flex;align-items:center;justify-content:center}
+#lb-content img,#lb-content video{max-width:96vw;max-height:90vh;border-radius:6px;display:block}
+
+/* ── 관리 탭 사진 슬롯 ── */
+.adm-portrait-row{display:flex;gap:1.5rem;margin-bottom:1.25rem;flex-wrap:wrap}
+.adm-portrait-slot{display:flex;flex-direction:column;align-items:center;gap:7px}
+.adm-portrait-circle{
+  width:90px;height:90px;border-radius:50%;
+  border:3px solid var(--gold);overflow:hidden;
+  background:var(--stone);cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  font-size:30px;color:var(--ash);position:relative;
+  transition:opacity .15s
+}
+.adm-portrait-circle:active{opacity:.75}
+.adm-portrait-circle img{width:100%;height:100%;object-fit:cover;display:block}
+.adm-portrait-overlay{
+  position:absolute;bottom:0;left:0;right:0;
+  background:rgba(0,0,0,.42);color:#fff;
+  font-size:10px;text-align:center;padding:4px 0
+}
+.adm-portrait-name{font-size:12px;color:var(--mid);font-weight:500}
+.adm-portrait-del{font-size:11px;color:var(--ash);background:none;border:none;
+  cursor:pointer;text-decoration:underline;font-family:inherit;padding:0;margin-top:2px}
+
+/* 토스트 */
+.toast{position:fixed;top:20px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.82);color:#fff;padding:10px 22px;border-radius:20px;font-size:13px;z-index:999;opacity:0;transition:opacity .25s;pointer-events:none;white-space:nowrap}
+.toast.show{opacity:1}
+
+</style>
+</head>
+<body>
+
+<!-- ① LANDING -->
+<div id="s-landing" class="screen active">
+  <div class="land-orn">✦ &nbsp;✦ &nbsp;✦</div>
+  <h1 class="land-title">사이버 추모관</h1>
+  <p class="land-sub">고인의 삶을 기억하고,<br>그 마음을 함께 나눕니다.</p>
+  <div style="display:flex;flex-direction:column;gap:12px;width:100%;max-width:280px">
+    <button class="btn btn-gold btn-block" onclick="goTo('s-home')">추모관 입장 · 개설</button>
+  </div>
+  <p style="margin-top:2rem;font-size:12px;color:var(--ash)"><span class="candle">🕯</span> 삼가 고인의 명복을 빕니다</p>
+</div>
+
+<!-- ② HOME -->
+<div id="s-home" class="screen">
+  <div class="home-topbar">
+    <button class="home-topbar-back top-bar-back" onclick="goTo('s-landing')">‹</button>
+    <h2>추모관 목록</h2>
+    <button class="home-topbar-add" onclick="openSetup(null)">＋ 개설</button>
+  </div>
+  <div class="memorial-cards" id="memorial-cards-wrap"></div>
+</div>
+
+<!-- ③ SETUP -->
+<div id="s-setup" class="screen">
+  <div class="top-bar">
+    <button class="top-bar-back" onclick="setupBack()">‹</button>
+    <h2 id="setup-title">추모관 개설</h2>
+    <button class="top-bar-action" onclick="saveMemorial()">완료</button>
+  </div>
+  <div class="setup-body">
+
+    <!-- 첫 번째 고인 -->
+    <div class="section-title">고인 정보</div>
+    <div class="portrait-row">
+      <div class="portrait-slot">
+        <div class="portrait-upload" id="su-p1-wrap" onclick="$('su-p1-file').click()">
+          <div id="su-p1-prev">☺</div>
+        </div>
+        <span class="portrait-slot-label" id="su-p1-label">첫 번째 고인</span>
+      </div>
+      <div class="portrait-slot" id="su-p2-slot">
+        <div class="portrait-upload" id="su-p2-wrap" onclick="$('su-p2-file').click()">
+          <div id="su-p2-prev">☺</div>
+        </div>
+        <span class="portrait-slot-label">두 번째 고인</span>
+      </div>
+    </div>
+    <input type="file" id="su-p1-file" accept="image/*" style="display:none" onchange="previewP(this,1)">
+    <input type="file" id="su-p2-file" accept="image/*" style="display:none" onchange="previewP(this,2)">
+
+    <div class="fg"><label>성함 *</label><input type="text" id="su-n1" placeholder="홍길동" maxlength="30"></div>
+    <div class="row2">
+      <div class="fg"><label>생년월일</label><input type="date" id="su-b1"></div>
+      <div class="fg"><label>기일</label><input type="date" id="su-d1"></div>
+    </div>
+    <div class="fg"><label>약력 · 소개</label><textarea id="su-bio1" rows="2" placeholder="고인의 삶을 간략히 적어주세요."></textarea></div>
+
+    <!-- 두 번째 고인 추가 토글 -->
+    <button class="add-person-btn" id="btn-add-p2" onclick="toggleP2(true)" style="display:none">＋ 두 번째 고인 추가 (예: 아버지·어머니)</button>
+
+    <div class="person2-section open" id="person2-section">
+      <div class="section-title" style="display:flex;align-items:center">
+        두 번째 고인
+        <button class="remove-person-btn" onclick="toggleP2(false)">제거</button>
+      </div>
+      <div class="fg"><label>성함 *</label><input type="text" id="su-n2" placeholder="홍어머니" maxlength="30"></div>
+      <div class="row2">
+        <div class="fg"><label>생년월일</label><input type="date" id="su-b2"></div>
+        <div class="fg"><label>기일</label><input type="date" id="su-d2"></div>
+      </div>
+      <div class="fg"><label>약력 · 소개</label><textarea id="su-bio2" rows="2" placeholder="두 번째 고인의 소개를 적어주세요."></textarea></div>
+    </div>
+
+    <!-- 비밀번호 -->
+    <div class="section-title">입장 비밀번호</div>
+    <div class="fg">
+      <label>비밀번호 * <span style="font-size:11px;color:var(--ash)">(유가족 공유용)</span></label>
+      <input type="password" id="su-pw" placeholder="4~20자" maxlength="20">
+    </div>
+    <div class="fg"><label>비밀번호 확인 *</label><input type="password" id="su-pw2" placeholder="재입력" maxlength="20"></div>
+
+    <!-- 관리자 비밀번호 -->
+    <div class="section-title">관리자 비밀번호 <span style="font-size:11px;color:var(--ash);font-weight:400">(유가족 대표 전용)</span></div>
+    <div class="fg">
+      <label>관리자 비밀번호 * <span style="font-size:11px;color:var(--ash)">(⚙️ 관리 탭 전용, 입장 비번과 다르게 설정)</span></label>
+      <input type="password" id="su-apw" placeholder="4~20자" maxlength="20">
+    </div>
+    <div class="fg"><label>관리자 비밀번호 확인 *</label><input type="password" id="su-apw2" placeholder="재입력" maxlength="20"></div>
+
+    <button class="btn btn-gold btn-block" onclick="saveMemorial()" style="margin-top:.5rem">저장 완료</button>
+  </div>
+</div>
+
+<!-- ④ LOGIN -->
+<div id="s-login" class="screen">
+  <div class="lv-box">
+    <div class="lv-portraits" id="lv-portraits"></div>
+    <div class="lv-name" id="lv-name">추모관 입장</div>
+    <div class="lv-members" id="lv-members"></div>
+    <div class="fg" style="text-align:left">
+      <label>비밀번호</label>
+      <input type="password" id="lv-pw" placeholder="입장 비밀번호" onkeydown="if(event.key==='Enter')enterMemorial()">
+      <div class="pw-err" id="lv-err">비밀번호가 올바르지 않습니다.</div>
+    </div>
+    <button class="btn btn-gold btn-block" onclick="enterMemorial()">입장하기</button>
+  </div>
+</div>
+
+<!-- ⑤ MEMORIAL -->
+<div id="s-memorial" class="screen">
+  <div class="mem-profile">
+    <div class="mem-portraits-wrap" id="m-portraits-wrap"></div>
+    <div class="mem-names-wrap" id="m-names-wrap"></div>
+    <div class="mem-bio" id="m-bio"></div>
+    <div class="mem-stats">
+      <div class="mem-stat"><div class="mem-stat-n" id="st-posts">0</div><div class="mem-stat-l">게시물</div></div>
+      <div class="mem-stat"><div class="mem-stat-n" id="st-likes">0</div><div class="mem-stat-l">♡ 추모</div></div>
+      <div class="mem-stat"><div class="mem-stat-n" id="st-visit">0</div><div class="mem-stat-l">방문</div></div>
+    </div>
+  </div>
+
+  <div id="fp-feed" class="feed-panel active">
+    <div class="compose-bar" onclick="openSheet()">
+      <div class="compose-av" id="compose-av">☺</div>
+      <div class="compose-fake-inner">
+        <div class="compose-fake-label">✦ 추모의 글</div>
+        <div class="compose-fake-text">마음을 담아 글을 남겨보세요</div>
+      </div>
+      <div class="compose-fake-icon">✏️</div>
+    </div>
+    <div id="post-list"></div>
+    <div id="feed-empty" class="feed-empty">
+      <div class="feed-empty-icon">🕯</div>
+      <div>아직 게시물이 없습니다.<br>첫 번째 추모글을 남겨보세요.</div>
+    </div>
+  </div>
+
+  <div id="fp-qr" class="feed-panel">
+    <p class="qr-desc">QR코드를 스캔하면 이 추모관 입장 화면으로 바로 이동합니다. 입장 시 비밀번호가 필요합니다.</p>
+    <div class="qr-card"><div id="qr-container" style="width:200px;height:200px"></div><div class="qr-url" id="qr-url-text"></div></div>
+    <div class="qr-btns">
+      <button class="btn btn-sm" onclick="downloadQR()">QR 저장</button>
+      <button class="btn btn-sm" onclick="copyQRLink()">링크 복사</button>
+    </div>
+    <p style="margin-top:1.25rem;font-size:12px;color:var(--ash);line-height:1.9">✦ QR코드를 인쇄하여 영정사진 옆에 두거나<br>부고 문자에 링크를 첨부하세요.</p>
+  </div>
+
+  <div id="fp-admin" class="feed-panel">
+    <!-- 관리자 인증 벽 -->
+    <div id="adm-auth-wall" class="adm-auth-wall">
+      <div class="adm-auth-icon">🔐</div>
+      <p class="adm-auth-desc">유가족 대표 관리자만<br>접근할 수 있습니다.</p>
+      <div class="fg" style="text-align:left">
+        <label>관리자 비밀번호</label>
+        <input type="password" id="adm-auth-pw" placeholder="관리자 비밀번호" onkeydown="if(event.key==='Enter')submitAdminAuth()">
+        <div class="pw-err" id="adm-auth-err">비밀번호가 올바르지 않습니다.</div>
+      </div>
+      <button class="btn btn-gold btn-block" onclick="submitAdminAuth()">관리자 입장</button>
+    </div>
+    <!-- 관리자 콘텐츠 -->
+    <div id="adm-section" class="adm-section" style="display:none">
+      <div class="adm-card">
+        <h4>추모관 현황</h4>
+        <div class="stat-row">
+          <div class="stat-b"><div class="stat-n" id="adm-posts">0</div><div class="stat-l">게시물</div></div>
+          <div class="stat-b"><div class="stat-n" id="adm-likes">0</div><div class="stat-l">♡ 추모</div></div>
+          <div class="stat-b"><div class="stat-n" id="adm-visit">0</div><div class="stat-l">방문</div></div>
+        </div>
+      </div>
+      <div class="adm-card">
+        <h4>고인 정보 수정</h4>
+        <div class="person-tabs" id="adm-person-tabs"></div>
+        <div class="adm-portrait-row" id="adm-portrait-row"></div>
+        <input type="file" id="adm-p-file" accept="image/*" style="display:none" onchange="adPortraitChange(this)">
+        <div class="fg"><label>성함</label><input type="text" id="ad-name" maxlength="30" placeholder="고인 성함"></div>
+        <div class="row2">
+          <div class="fg"><label>생년월일</label><input type="date" id="ad-birth"></div>
+          <div class="fg"><label>기일</label><input type="date" id="ad-death"></div>
+        </div>
+        <div class="fg"><label>약력 · 소개</label><textarea id="ad-bio" rows="3"></textarea></div>
+        <button class="btn btn-sm btn-gold" onclick="saveBio()">저장</button>
+      </div>
+      <div class="adm-card">
+        <h4>비밀번호 변경</h4>
+        <p class="adm-pw-label">입장 비밀번호</p>
+        <div class="fg"><label>현재 비밀번호</label><input type="password" id="ad-cur"></div>
+        <div class="row2">
+          <div class="fg"><label>새 비밀번호</label><input type="password" id="ad-new"></div>
+          <div class="fg"><label>확인</label><input type="password" id="ad-new2"></div>
+        </div>
+        <button class="btn btn-sm" onclick="changePw()">변경</button>
+        <p class="adm-pw-label" style="margin-top:1.25rem">관리자 비밀번호</p>
+        <div class="fg"><label>현재 관리자 비밀번호</label><input type="password" id="ad-acur"></div>
+        <div class="row2">
+          <div class="fg"><label>새 비밀번호</label><input type="password" id="ad-anew"></div>
+          <div class="fg"><label>확인</label><input type="password" id="ad-anew2"></div>
+        </div>
+        <button class="btn btn-sm" onclick="changeAdminPw()">변경</button>
+      </div>
+      <div class="adm-card">
+        <h4>구독 정보</h4>
+        <div id="adm-sub-info"></div>
+        <div class="fg">
+          <label>플랜 선택</label>
+          <select id="ad-plan">
+            <option value="trial">무료체험</option>
+            <option value="monthly">월 구독</option>
+            <option value="yearly">연 구독</option>
+            <option value="unlimited">무제한</option>
+          </select>
+        </div>
+        <button class="btn btn-sm btn-gold" style="margin-top:.25rem" onclick="savePlan()">플랜 저장</button>
+      </div>
+    </div>
+  </div>
+
+  <nav class="bottom-nav">
+    <button class="bnav-item" onclick="homeFromMemorial()">
+      <span class="bnav-icon">🏠</span><span>홈</span>
+    </button>
+    <button class="bnav-item active" data-panel="feed" onclick="switchPanel(this)">
+      <span class="bnav-icon">📜</span><span>피드</span>
+    </button>
+    <button class="bnav-item" data-panel="qr" onclick="switchPanel(this)">
+      <span class="bnav-icon">⬜</span><span>QR</span>
+    </button>
+    <button class="bnav-item" data-panel="admin" onclick="switchPanel(this)">
+      <span class="bnav-icon">⚙️</span><span>관리</span>
+    </button>
+  </nav>
+</div>
+
+<!-- 글쓰기 Sheet -->
+<div class="sheet-backdrop" id="sheet-backdrop" onclick="closeSheet()"></div>
+<div class="sheet" id="sheet">
+  <div class="sheet-handle"></div>
+  <div class="sheet-header">
+    <button class="sheet-close" onclick="closeSheet()">✕</button>
+    <span class="sheet-title">추모글 작성</span>
+    <button class="sheet-submit" onclick="submitPost()">게시</button>
+  </div>
+  <div class="sheet-body">
+    <div class="row2" style="margin-bottom:10px">
+      <div class="fg" style="margin-bottom:0"><label>이름 *</label><input type="text" id="p-author" placeholder="홍길동" maxlength="20"></div>
+      <div class="fg" style="margin-bottom:0"><label>관계</label><input type="text" id="p-rel" placeholder="예) 장남, 친구" maxlength="20"></div>
+    </div>
+    <div class="compose-media-prev" id="compose-prev">
+      <div class="add-media-btn" onclick="$('p-media-file').click()">
+        <span class="add-media-icon">＋</span><span>사진/영상</span>
+      </div>
+    </div>
+    <input type="file" id="p-media-file" multiple accept="image/*,video/*" style="display:none" onchange="addComposeMedia(this)">
+    <div class="fg" style="margin-bottom:0"><label>추모의 글</label><textarea id="p-text" rows="4" placeholder="고인을 향한 마음을 적어주세요..."></textarea></div>
+  </div>
+</div>
+
+<!-- 라이트박스 -->
+<div id="lightbox" onclick="closeLB()">
+  <button id="lb-close" onclick="closeLB()">✕</button>
+  <div id="lb-content"></div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+/* ══════════════════════
+   DB 구조
+   groups: [{
+     id, pw, visits,
+     members: [{id,name,birth,death,bio,portrait}],  // 1~2명
+     posts: [{id,author,rel,text,date,likes,liked,comments:[{name,text}],media:[{src,type,name}]}]
+   }]
+══════════════════════ */
+var DB_KEY='cmv4';
+var db={groups:[]};
+var curGid=null;
+var _qrDone=false;
+var _adMemberIdx=0;
+var _adminAuthed=false;
+
+/* ── 저장/로드
+   portrait 는 그룹 JSON 에 직접 포함 (별도 키 분리 없음 → 추모관 수 늘어도 안전)
+   media src 는 용량이 커서 별도 키 (_pm_) 로 분리
+── */
+function saveDB(){
+  try{
+    /* portrait 포함 메인 JSON */
+    var data={groups:db.groups.map(function(g){
+      return {id:g.id,pw:g.pw,adminPw:g.adminPw||'',visits:g.visits,
+        members:g.members.map(function(m){
+          return {id:m.id,name:m.name,birth:m.birth,death:m.death,bio:m.bio,portrait:m.portrait||null};
+        }),
+        posts:g.posts.map(function(p){
+          return {id:p.id,author:p.author,rel:p.rel,text:p.text,date:p.date,
+            likes:p.likes,liked:p.liked,comments:p.comments,
+            media:p.media.map(function(m){return {type:m.type,name:m.name};})};
+        }),
+        contact:g.contact||{}, subscription:g.subscription||{}, note:g.note||''
+      };
+    })};
+    try{
+      localStorage.setItem(DB_KEY,JSON.stringify(data));
+    }catch(e){
+      /* 용량 부족 시 portrait 제거 후 재시도 */
+      var slim=JSON.parse(JSON.stringify(data));
+      slim.groups.forEach(function(g){g.members.forEach(function(m){m.portrait=null;});});
+      localStorage.setItem(DB_KEY,JSON.stringify(slim));
+      toast('저장 공간 부족으로 일부 사진이 저장되지 않을 수 있습니다.');
+    }
+    /* media src 별도 키 */
+    db.groups.forEach(function(g){
+      g.posts.forEach(function(p){
+        p.media.forEach(function(m,i){
+          try{localStorage.setItem(DB_KEY+'_pm_'+p.id+'_'+i,m.src);}catch(e){}
+        });
+      });
+    });
+  }catch(e){}
+}
+function loadDB(){
+  try{
+    var raw=localStorage.getItem(DB_KEY); if(!raw)return;
+    var d=JSON.parse(raw);
+    db.groups=(d.groups||[]).map(function(g){
+      /* portrait 은 JSON 에 포함되어 있음 */
+      g.members=(g.members||[]).map(function(m){ return m; });
+      g.posts=(g.posts||[]).map(function(p){
+        p.media=(p.media||[]).map(function(m,i){
+          return {src:localStorage.getItem(DB_KEY+'_pm_'+p.id+'_'+i)||'',type:m.type,name:m.name};
+        }).filter(function(m){return m.src;});
+        return p;
+      });
+      return g;
+    });
+  }catch(e){}
+}
+
+/* ── URL ── */
+function baseURL(){return location.href.split('?')[0].split('#')[0];}
+function loginURL(gid){return baseURL()+'?gid='+gid;}
+function getParam(k){return new URLSearchParams(location.search).get(k);}
+
+/* ── 부트 ── */
+window.addEventListener('load',function(){
+  loadDB();
+  var gid=getParam('gid');
+  if(gid&&db.groups.find(function(g){return g.id==gid;})){showLogin(gid);return;}
+  goTo('s-landing');
+});
+
+/* ── 유틸 ── */
+function $(id){return document.getElementById(id);}
+function goTo(id){
+  document.querySelectorAll('.screen').forEach(function(s){s.classList.remove('active');});
+  $(id).classList.add('active');
+  if(id==='s-home')renderHome();
+}
+function setupBack(){goTo('s-home');}
+function homeFromMemorial(){if(curGid)showLogin(curGid);else goTo('s-landing');}
+function fmtDate(d){if(!d)return'';var p=d.split('-');return p[0]+'년 '+parseInt(p[1])+'월 '+parseInt(p[2])+'일';}
+function fmtRel(ds){var d=new Date(ds),n=new Date(),df=Math.floor((n-d)/1000);if(df<60)return'방금';if(df<3600)return Math.floor(df/60)+'분 전';if(df<86400)return Math.floor(df/3600)+'시간 전';if(df<604800)return Math.floor(df/86400)+'일 전';return d.toLocaleDateString('ko-KR');}
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,5);}
+function toast(msg){var t=$('toast');t.textContent=msg;t.classList.add('show');setTimeout(function(){t.classList.remove('show');},2200);}
+function curg(){return db.groups.find(function(g){return g.id===curGid;})||null;}
+
+/* ══════════════════════
+   HOME
+══════════════════════ */
+function renderHome(){
+  var wrap=$('memorial-cards-wrap'); wrap.innerHTML='';
+  db.groups.forEach(function(g){
+    var card=document.createElement('div'); card.className='mem-select-card';
+    card.addEventListener('click',function(){showLogin(g.id);});
+
+    // 초상 사진들
+    var pp=document.createElement('div'); pp.className='msc-portraits';
+    g.members.forEach(function(m,mi){
+      var av=document.createElement('div'); av.className='msc-portrait'+(mi>0?' p2':'');
+      if(g.members.length>1){av.style.cssText='width:50px;height:50px;font-size:18px';}
+      av.innerHTML=m.portrait?'<img src="'+m.portrait+'">':'☺';
+      pp.appendChild(av);
+    });
+
+    var info=document.createElement('div'); info.className='msc-info';
+    var names=g.members.map(function(m){return m.name;}).join(' · ');
+    var datesHtml=g.members.map(function(m){var d='';if(m.birth)d+=fmtDate(m.birth);if(m.death)d+=(d?' ~ ':'')+fmtDate(m.death);return d?('<span>'+esc(m.name)+' '+esc(d)+'</span>'):'';}).filter(Boolean).join('<br>');
+    info.innerHTML='<div class="msc-name">'+esc(names)+'</div>'+(datesHtml?'<div class="msc-dates">'+datesHtml+'</div>':'');
+
+    var arrow=document.createElement('div'); arrow.className='msc-arrow'; arrow.textContent='›';
+
+    card.appendChild(pp); card.appendChild(info); card.appendChild(arrow);
+    wrap.appendChild(card);
+  });
+
+  // 추가 버튼 (개수 무제한)
+  var addCard=document.createElement('div'); addCard.className='add-mem-card';
+  addCard.innerHTML='<span class="add-icon">＋</span><span>새 추모관 개설</span>';
+  addCard.addEventListener('click',function(){openSetup(null);});
+  wrap.appendChild(addCard);
+
+  if(db.groups.length===0){
+    var emp=document.createElement('p');
+    emp.style.cssText='text-align:center;padding:2.5rem 1rem;color:var(--ash);font-size:14px;line-height:1.9';
+    emp.innerHTML='등록된 추모관이 없습니다.<br>아래 버튼을 눌러 개설해 주세요.';
+    wrap.insertBefore(emp,addCard);
+  }
+}
+
+function deleteGroup(gid){
+  var g=db.groups.find(function(x){return x.id===gid;});if(!g)return;
+  g.posts.forEach(function(p){p.media.forEach(function(m,i){localStorage.removeItem(DB_KEY+'_pm_'+p.id+'_'+i);});});
+  db.groups=db.groups.filter(function(x){return x.id!==gid;});
+  saveDB(); renderHome();
+}
+
+/* ══════════════════════
+   SETUP
+══════════════════════ */
+var _setupGid=null;
+var _p1data=null,_p2data=null;
+
+function openSetup(gid){
+  _setupGid=gid; _p1data=null; _p2data=null;
+  if(gid){
+    var g=db.groups.find(function(x){return x.id===gid;});
+    $('setup-title').textContent='추모관 수정';
+    var m1=g.members[0];
+    $('su-n1').value=m1.name; $('su-b1').value=m1.birth||''; $('su-d1').value=m1.death||''; $('su-bio1').value=m1.bio||'';
+    $('su-p1-prev').innerHTML=m1.portrait?'<img src="'+m1.portrait+'" style="width:100%;height:100%;object-fit:cover">':'☺';
+    if(g.members.length>1){
+      var m2=g.members[1];
+      $('su-n2').value=m2.name; $('su-b2').value=m2.birth||''; $('su-d2').value=m2.death||''; $('su-bio2').value=m2.bio||'';
+      $('su-p2-prev').innerHTML=m2.portrait?'<img src="'+m2.portrait+'" style="width:100%;height:100%;object-fit:cover">':'☺';
+      toggleP2(true);
+    } else { toggleP2(false); $('su-n2').value=''; $('su-b2').value=''; $('su-d2').value=''; $('su-bio2').value=''; $('su-p2-prev').innerHTML='☺'; }
+    $('su-pw').value=''; $('su-pw2').value='';
+  } else {
+    $('setup-title').textContent='추모관 개설';
+    ['su-n1','su-b1','su-d1','su-bio1','su-n2','su-b2','su-d2','su-bio2','su-pw','su-pw2','su-apw','su-apw2'].forEach(function(id){$(id).value='';});
+    $('su-p1-prev').innerHTML='☺'; $('su-p2-prev').innerHTML='☺';
+    toggleP2(true);
+  }
+  goTo('s-setup');
+}
+
+function toggleP2(open){
+  $('person2-section').classList.toggle('open',open);
+  $('btn-add-p2').style.display=open?'none':'';
+  $('su-p2-slot').style.display=open?'':'none';
+  $('su-p1-label').textContent=open?'첫 번째 고인':'사진 선택';
+}
+
+function previewP(input,idx){
+  if(!input.files[0])return;
+  var r=new FileReader(); r.onload=function(e){
+    if(idx===1){_p1data=e.target.result;$('su-p1-prev').innerHTML='<img src="'+e.target.result+'" style="width:100%;height:100%;object-fit:cover">';}
+    else{_p2data=e.target.result;$('su-p2-prev').innerHTML='<img src="'+e.target.result+'" style="width:100%;height:100%;object-fit:cover">';}
+  }; r.readAsDataURL(input.files[0]);
+}
+
+function saveMemorial(){
+  var name1=$('su-n1').value.trim();
+  var pw=$('su-pw').value, pw2=$('su-pw2').value;
+  if(!name1)return toast('첫 번째 고인 성함을 입력해 주세요.');
+  var p2open=$('person2-section').classList.contains('open')&&!!$('su-n2').value.trim();
+  var apw=$('su-apw').value, apw2=$('su-apw2').value;
+  if(!_setupGid){
+    if(!pw||pw.length<4)return toast('비밀번호를 4자 이상 입력해 주세요.');
+    if(pw!==pw2)return toast('비밀번호가 일치하지 않습니다.');
+    if(!apw||apw.length<4)return toast('관리자 비밀번호를 4자 이상 입력해 주세요.');
+    if(apw!==apw2)return toast('관리자 비밀번호가 일치하지 않습니다.');
+  } else {
+    if(pw&&pw.length<4)return toast('비밀번호를 4자 이상 입력해 주세요.');
+    if(pw&&pw!==pw2)return toast('비밀번호가 일치하지 않습니다.');
+    if(apw&&apw.length<4)return toast('관리자 비밀번호를 4자 이상 입력해 주세요.');
+    if(apw&&apw!==apw2)return toast('관리자 비밀번호가 일치하지 않습니다.');
+  }
+  if(!_setupGid){
+    /* 신규: 새 id 발급 */
+    var m1={id:uid(),name:name1,birth:$('su-b1').value,death:$('su-d1').value,bio:$('su-bio1').value.trim(),portrait:_p1data};
+    var members=[m1];
+    if(p2open){members.push({id:uid(),name:$('su-n2').value.trim(),birth:$('su-b2').value,death:$('su-d2').value,bio:$('su-bio2').value.trim(),portrait:_p2data});}
+    var newG={id:uid(),pw:pw,adminPw:apw,visits:0,members:members,posts:[]};
+    db.groups.push(newG);
+  } else {
+    /* 수정: 기존 id 유지하여 portrait 키 보존 */
+    var g=db.groups.find(function(x){return x.id===_setupGid;});
+    var existM1=g.members[0]||{};
+    var existM2=g.members[1]||{};
+    g.members[0]={
+      id:existM1.id||uid(),
+      name:name1, birth:$('su-b1').value, death:$('su-d1').value, bio:$('su-bio1').value.trim(),
+      portrait:_p1data!==null?_p1data:existM1.portrait
+    };
+    if(p2open){
+      g.members[1]={
+        id:existM2.id||uid(),
+        name:$('su-n2').value.trim(), birth:$('su-b2').value, death:$('su-d2').value, bio:$('su-bio2').value.trim(),
+        portrait:_p2data!==null?_p2data:existM2.portrait
+      };
+      g.members=g.members.slice(0,2);
+    } else {
+      g.members=g.members.slice(0,1);
+    }
+    if(pw) g.pw=pw;
+    if(apw) g.adminPw=apw;
+  }
+  saveDB(); toast('저장되었습니다.');
+  setTimeout(function(){goTo('s-home');},500);
+}
+
+/* ══════════════════════
+   LOGIN
+══════════════════════ */
+function showLogin(gid){
+  curGid=gid; var g=curg(); if(!g)return goTo('s-home');
+
+  var pp=$('lv-portraits'); pp.innerHTML='';
+  g.members.forEach(function(m){
+    var av=document.createElement('div'); av.className='lv-avatar';
+    av.innerHTML=m.portrait?'<img src="'+m.portrait+'">':'☺';
+    pp.appendChild(av);
+  });
+
+  $('lv-name').textContent=g.members.map(function(m){return m.name;}).join(' · ');
+
+  var mb=$('lv-members'); mb.innerHTML='';
+  g.members.forEach(function(m){
+    var hasDate=m.birth||m.death;
+    if(!hasDate) return;
+    var block=document.createElement('div'); block.className='lv-member';
+    var nameEl=document.createElement('div'); nameEl.className='lv-member-name';
+    nameEl.textContent=m.name;
+    block.appendChild(nameEl);
+    if(m.birth){
+      var br=document.createElement('div'); br.className='lv-member-row';
+      br.innerHTML='<span class="lv-member-row-label">🎂 출생</span><span>'+fmtDate(m.birth)+'</span>';
+      block.appendChild(br);
+    }
+    if(m.death){
+      var dr=document.createElement('div'); dr.className='lv-member-row';
+      dr.innerHTML='<span class="lv-member-row-label">🕯 기일</span><span>'+fmtDate(m.death)+'</span>';
+      block.appendChild(dr);
+    }
+    mb.appendChild(block);
+  });
+  if(!mb.children.length){
+    mb.innerHTML='<p style="font-size:12px;color:var(--ash);text-align:center">비밀번호를 입력해 주세요</p>';
+  }
+
+  $('lv-err').style.display='none'; $('lv-pw').value='';
+  goTo('s-login');
+  setTimeout(function(){$('lv-pw').focus();},200);
+}
+function enterMemorial(){
+  var g=curg(); if(!g)return;
+  if($('lv-pw').value===g.pw){
+    $('lv-err').style.display='none'; $('lv-pw').value='';
+    g.visits++; saveDB(); openMemorial();
+  } else { $('lv-err').style.display='block'; $('lv-pw').select(); }
+}
+
+/* ══════════════════════
+   MEMORIAL
+══════════════════════ */
+function openMemorial(){
+  var g=curg(); if(!g)return;
+  _adminAuthed=false;
+  goTo('s-memorial');
+  _qrDone=false; $('qr-container').innerHTML='';
+  renderProfile(g); switchPanelByName('feed');
+  renderFeed(); renderStats(); renderAdminTabs(g);
+}
+
+function renderProfile(g){
+  var pw=$('m-portraits-wrap'), nw=$('m-names-wrap');
+  pw.innerHTML=''; nw.innerHTML='';
+  var dual=g.members.length>1;
+  g.members.forEach(function(m){
+    var p=document.createElement('div'); p.className='mem-portrait'+(dual?' dual':'');
+    p.innerHTML=m.portrait?'<img src="'+m.portrait+'">':'☺';
+    pw.appendChild(p);
+    var ni=document.createElement('div'); ni.className='mem-name-item';
+    var d=''; if(m.birth)d+=fmtDate(m.birth); if(m.death)d+=(d?' ~ ':'')+fmtDate(m.death);
+    ni.innerHTML='<div class="mem-name'+(dual?' dual':'')+'">'+esc(m.name)+'</div>'+(d?'<div class="mem-dates">'+esc(d)+'</div>':'');
+    nw.appendChild(ni);
+  });
+  var bioEl=$('m-bio'); bioEl.innerHTML='';
+  g.members.forEach(function(m){
+    if(!m.bio) return;
+    var bl=document.createElement('div'); bl.className='mem-bio-block';
+    bl.innerHTML=(dual?'<span class="mem-bio-name">'+esc(m.name)+'</span>':'')+'<span class="mem-bio-text">'+esc(m.bio)+'</span>';
+    bioEl.appendChild(bl);
+  });
+}
+
+/* ══════════════════════
+   패널
+══════════════════════ */
+function switchPanel(el){
+  if(!el.getAttribute('data-panel'))return;
+  document.querySelectorAll('.bnav-item').forEach(function(b){b.classList.remove('active');});
+  el.classList.add('active');
+  switchPanelByName(el.getAttribute('data-panel'));
+}
+function switchPanelByName(name){
+  document.querySelectorAll('.feed-panel').forEach(function(p){p.classList.remove('active');});
+  $('fp-'+name).classList.add('active');
+  if(name==='qr')renderQR();
+  if(name==='admin')checkAdminAuth();
+  document.querySelectorAll('[data-panel]').forEach(function(b){b.classList.toggle('active',b.getAttribute('data-panel')===name);});
+}
+function checkAdminAuth(){
+  var g=curg();
+  if(!g||!g.adminPw||_adminAuthed){
+    $('adm-auth-wall').style.display='none';
+    $('adm-section').style.display='';
+    if(g){renderStats();renderAdminSub();}
+  } else {
+    $('adm-auth-wall').style.display='';
+    $('adm-section').style.display='none';
+    $('adm-auth-err').style.display='none';
+    $('adm-auth-pw').value='';
+    setTimeout(function(){$('adm-auth-pw').focus();},200);
+  }
+}
+function submitAdminAuth(){
+  var g=curg(); if(!g)return;
+  if($('adm-auth-pw').value===g.adminPw){
+    _adminAuthed=true;
+    $('adm-auth-pw').value='';
+    checkAdminAuth();
+  } else {
+    $('adm-auth-err').style.display='block';
+    $('adm-auth-pw').select();
+  }
+}
+function changeAdminPw(){
+  var g=curg();if(!g)return;
+  var cur=$('ad-acur').value,nw=$('ad-anew').value,nw2=$('ad-anew2').value;
+  if(cur!==g.adminPw)return toast('현재 관리자 비밀번호가 틀렸습니다.');
+  if(!nw||nw.length<4)return toast('새 관리자 비밀번호 4자 이상');
+  if(nw!==nw2)return toast('새 관리자 비밀번호 불일치');
+  g.adminPw=nw;saveDB();
+  $('ad-acur').value='';$('ad-anew').value='';$('ad-anew2').value='';
+  toast('관리자 비밀번호가 변경되었습니다.');
+}
+function calcDday(d){if(!d)return null;return Math.ceil((new Date(d).getTime()-Date.now())/86400000);}
+function renderAdminSub(){
+  var g=curg();if(!g)return;
+  var sub=g.subscription||{},plan=sub.plan||'trial',status=sub.status||'trial';
+  var pn={trial:'무료체험',monthly:'월 구독',yearly:'연 구독',unlimited:'무제한'};
+  var sn={trial:'체험중',active:'활성',expired:'만료'};
+  var ps=$('ad-plan');if(ps)ps.value=plan;
+  var el=$('adm-sub-info');if(!el)return;
+  var diff=calcDday(sub.endDate);
+  var cls='sub-dday-trial',txt='🌱 무료체험 중';
+  if(status==='active'&&diff!==null){
+    if(diff>30){cls='sub-dday-ok';txt='✓ 구독 활성 · D-'+diff;}
+    else if(diff>7){cls='sub-dday-warn';txt='⚠ 만료 임박 · D-'+diff;}
+    else if(diff>=0){cls='sub-dday-urgent';txt='⚠ '+(diff===0?'오늘 만료':'만료 임박 · D-'+diff);}
+    else{cls='sub-dday-expired';txt='⛔ 구독 만료 (D+'+Math.abs(diff)+')';}
+  } else if(status==='expired'){
+    cls='sub-dday-expired';txt='⛔ 구독 만료'+(diff!==null?' (D+'+Math.abs(diff)+')':'');
+  }
+  var rows='<tr><td class="sl">플랜</td><td class="sv">'+esc(pn[plan]||plan)+'</td></tr>'
+    +'<tr><td class="sl">상태</td><td class="sv">'+esc(sn[status]||status)+'</td></tr>'
+    +(sub.startDate?'<tr><td class="sl">시작일</td><td class="sv">'+fmtDate(sub.startDate)+'</td></tr>':'')
+    +(sub.endDate?'<tr><td class="sl">만료일</td><td class="sv">'+fmtDate(sub.endDate)+'</td></tr>':'');
+  el.innerHTML='<div class="sub-dday '+cls+'">'+txt+'</div><table class="sub-itbl">'+rows+'</table>';
+}
+function savePlan(){
+  var g=curg();if(!g)return;
+  if(!g.subscription)g.subscription={};
+  g.subscription.plan=$('ad-plan').value;
+  saveDB();toast('플랜이 저장되었습니다.');
+}
+
+/* ══════════════════════
+   글쓰기
+══════════════════════ */
+var _csrcs=[];
+function openSheet(){$('sheet-backdrop').classList.add('open');$('sheet').classList.add('open');setTimeout(function(){$('p-text').focus();},350);}
+function closeSheet(){$('sheet-backdrop').classList.remove('open');$('sheet').classList.remove('open');}
+function addComposeMedia(input){
+  if(!input.files.length)return;
+  Array.from(input.files).forEach(function(f){
+    if(f.size>52428800){toast(f.name+' 50MB 초과');return;}
+    var r=new FileReader(); r.onload=function(e){_csrcs.push({src:e.target.result,type:f.type.startsWith('video')?'video':'image',name:f.name});renderCPrev();}; r.readAsDataURL(f);
+  }); input.value='';
+}
+function renderCPrev(){
+  var w=$('compose-prev'); w.innerHTML='';
+  _csrcs.forEach(function(m,i){
+    var d=document.createElement('div'); d.className='cmp-thumb';
+    d.innerHTML=m.type==='video'?'<video src="'+m.src+'" style="width:100%;height:100%;object-fit:cover"></video>':'<img src="'+m.src+'" alt="">';
+    var x=document.createElement('button'); x.className='cmp-thumb-del'; x.textContent='✕';
+    x.onclick=function(){_csrcs.splice(i,1);renderCPrev();}; d.appendChild(x); w.appendChild(d);
+  });
+  var a=document.createElement('div'); a.className='add-media-btn';
+  a.innerHTML='<span class="add-media-icon">＋</span><span>사진/영상</span>';
+  a.onclick=function(){$('p-media-file').click();}; w.appendChild(a);
+}
+function submitPost(){
+  var g=curg(); if(!g)return;
+  var author=$('p-author').value.trim(), text=$('p-text').value.trim();
+  if(!author)return toast('이름을 입력해 주세요.');
+  if(!text&&_csrcs.length===0)return toast('글 또는 사진/영상을 추가해 주세요.');
+  g.posts.unshift({id:uid(),author:author,rel:$('p-rel').value.trim(),text:text,date:new Date().toISOString(),likes:0,liked:false,comments:[],media:_csrcs.slice()});
+  saveDB();
+  $('p-author').value='';$('p-rel').value='';$('p-text').value='';
+  _csrcs=[];renderCPrev();closeSheet();renderFeed();renderStats();toast('게시물이 등록되었습니다.');
+}
+
+/* ══════════════════════
+   FEED
+══════════════════════ */
+function renderFeed(){
+  var g=curg(); if(!g)return;
+  var list=$('post-list'); list.innerHTML='';
+  $('feed-empty').style.display=g.posts.length?'none':'block';
+  g.posts.forEach(function(p){list.appendChild(buildPost(p,g));});
+}
+
+function buildPost(p,g){
+  var card=document.createElement('div'); card.className='post-card'; card.id='post-'+p.id;
+
+  var hdr=document.createElement('div'); hdr.className='post-header';
+  var av=document.createElement('div'); av.className='post-avatar av-c'+(p.author.charCodeAt(0)%8); av.textContent=p.author.charAt(0)||'?';
+  var meta=document.createElement('div'); meta.className='post-meta';
+  meta.innerHTML='<div class="post-author">'+esc(p.author)+'</div>'+(p.rel?'<div class="post-rel">'+esc(p.rel)+'</div>':'')+'<div class="post-date">'+fmtRel(p.date)+'</div>';
+  var del=document.createElement('button'); del.className='post-del'; del.textContent='···';
+  del.onclick=function(){if(confirm('게시물을 삭제할까요?'))delPost(p.id,g);};
+  hdr.appendChild(av); hdr.appendChild(meta); hdr.appendChild(del); card.appendChild(hdr);
+
+  if(p.media&&p.media.length){
+    var mw=document.createElement('div'); mw.className='post-media';
+    if(p.media.length===1){
+      var m0=p.media[0];
+      if(m0.type==='video'){var v=document.createElement('video');v.src=m0.src;v.controls=true;v.setAttribute('playsinline','');mw.appendChild(v);}
+      else{var im=document.createElement('img');im.src=m0.src;im.alt='';im.style.cssText='width:100%;max-height:400px;object-fit:contain;display:block;background:#000;cursor:zoom-in';im.addEventListener('click',function(){lbShow(m0.src,'image');});mw.appendChild(im);}
+    } else {
+      var sw=document.createElement('div');sw.className='slider-wrap';
+      var tr=document.createElement('div');tr.className='slider-track';
+      p.media.forEach(function(mm){
+        var sl=document.createElement('div');sl.className='slider-slide';
+        if(mm.type==='video'){var vv=document.createElement('video');vv.src=mm.src;vv.controls=true;vv.setAttribute('playsinline','');sl.appendChild(vv);}
+        else{var ii=document.createElement('img');ii.src=mm.src;ii.alt='';ii.style.cssText='cursor:zoom-in';(function(s){ii.addEventListener('click',function(){lbShow(s,'image');});})(mm.src);sl.appendChild(ii);}
+        tr.appendChild(sl);
+      });
+      sw.appendChild(tr);
+      var dots=document.createElement('div');dots.className='slider-dots';
+      p.media.forEach(function(_,i){var d=document.createElement('div');d.className='slider-dot'+(i===0?' active':'');dots.appendChild(d);});
+      sw.appendChild(dots);
+      var bp=document.createElement('button');bp.className='slider-arrow prev';bp.textContent='‹';
+      var bn=document.createElement('button');bn.className='slider-arrow next';bn.textContent='›';
+      sw.appendChild(bp);sw.appendChild(bn);
+      var cur=0;
+      function upd(){bp.classList.toggle('hidden',cur===0);bn.classList.toggle('hidden',cur===p.media.length-1);dots.querySelectorAll('.slider-dot').forEach(function(d,i){d.classList.toggle('active',i===cur);});}
+      upd();
+      bp.addEventListener('click',function(){if(cur>0){cur--;tr.children[cur].scrollIntoView({behavior:'smooth',block:'nearest',inline:'start'});upd();}});
+      bn.addEventListener('click',function(){if(cur<p.media.length-1){cur++;tr.children[cur].scrollIntoView({behavior:'smooth',block:'nearest',inline:'start'});upd();}});
+      tr.addEventListener('scroll',function(){var idx=Math.round(tr.scrollLeft/tr.offsetWidth);if(idx!==cur){cur=idx;upd();}},{passive:true});
+      mw.appendChild(sw);
+    }
+    card.appendChild(mw);
+  }
+
+  var ac=document.createElement('div');ac.className='post-actions';
+  var lb=document.createElement('button');lb.className='post-like-btn'+(p.liked?' liked':'');lb.textContent=p.liked?'♥':'♡';
+  lb.onclick=function(){tLike(p,g);};
+  var lc=document.createElement('span');lc.className='post-like-count';lc.textContent=p.likes||'';
+  var cb=document.createElement('button');cb.className='post-comment-btn';cb.textContent='💬';
+  cb.onclick=function(){var inp=card.querySelector('.comment-form-author');if(inp)inp.focus();};
+  ac.appendChild(lb);ac.appendChild(lc);ac.appendChild(cb);card.appendChild(ac);
+
+  if(p.text){var bo=document.createElement('div');bo.className='post-body';bo.innerHTML='<span class="post-caption"><span class="author-tag">'+esc(p.author)+'</span> '+esc(p.text).replace(/\n/g,'<br>')+'</span>';card.appendChild(bo);}
+
+  var cw=document.createElement('div');cw.className='post-comments';
+  var MAX=2;
+  if(p.comments.length>MAX){
+    var vm=document.createElement('button');vm.className='view-more-btn';vm.textContent='댓글 '+p.comments.length+'개 모두 보기';
+    vm.onclick=function(){rebC(p,cw,999);vm.remove();};
+    cw.appendChild(vm);
+  }
+  function rebC(pp,wrap,maxShow){
+    wrap.querySelectorAll('.comment-item').forEach(function(e){e.remove();});
+    var from=pp.comments.length>maxShow?pp.comments.length-maxShow:0;
+    pp.comments.slice(from).forEach(function(c,ci){
+      var ri=from+ci;
+      var it=document.createElement('div');it.className='comment-item';
+      it.innerHTML='<span class="comment-name">'+esc(c.name)+'</span><span class="comment-text">'+esc(c.text).replace(/\n/g,'<br>')+'</span>';
+      var cd=document.createElement('button');cd.className='comment-del';cd.textContent='✕';
+      cd.onclick=function(){pp.comments.splice(ri,1);saveDB();rebC(pp,wrap,999);renderStats();};
+      it.appendChild(cd);wrap.appendChild(it);
+    });
+  }
+  rebC(p,cw,MAX);
+  card.appendChild(cw);
+
+  var cf=document.createElement('div');cf.className='comment-form';
+  var row1=document.createElement('div');row1.className='comment-form-row';
+  var caLabel=document.createElement('label');caLabel.textContent='작성자';caLabel.style.cssText='font-size:12px;color:var(--mid);margin-bottom:0;white-space:nowrap';
+  var caInput=document.createElement('input');caInput.type='text';caInput.className='comment-form-author';caInput.placeholder='이름을 입력하세요';caInput.maxLength=20;caInput.style.cssText='font-size:13px;border-radius:8px;padding:7px 10px;border-color:var(--stone)';
+  row1.appendChild(caLabel);row1.appendChild(caInput);
+  cf.appendChild(row1);
+  var row2=document.createElement('div');row2.className='comment-form-body';
+  var ctInput=document.createElement('textarea');ctInput.className='comment-form-text';ctInput.placeholder='댓글 내용을 입력하세요...';ctInput.maxLength=300;ctInput.rows=2;
+  var csBtn=document.createElement('button');csBtn.className='comment-form-submit';csBtn.textContent='게시';
+  csBtn.onclick=function(){
+    var nm=caInput.value.trim(), tx=ctInput.value.trim();
+    if(!nm)return toast('작성자 이름을 입력해 주세요.');
+    if(!tx)return toast('댓글 내용을 입력해 주세요.');
+    p.comments.push({name:nm,text:tx});
+    saveDB();caInput.value='';ctInput.value='';rebC(p,cw,999);renderStats();
+  };
+  row2.appendChild(ctInput);row2.appendChild(csBtn);
+  cf.appendChild(row2);
+  card.appendChild(cf);
+
+  return card;
+}
+
+function tLike(p,g){
+  p.liked=!p.liked;p.likes=(p.likes||0)+(p.liked?1:-1);saveDB();
+  var card=$('post-'+p.id);
+  if(card){var b=card.querySelector('.post-like-btn');var c=card.querySelector('.post-like-count');b.textContent=p.liked?'♥':'♡';b.className='post-like-btn'+(p.liked?' liked':'');c.textContent=p.likes||'';}
+  renderStats();
+}
+function delPost(id,g){
+  var idx=g.posts.findIndex(function(x){return x.id===id;});if(idx===-1)return;
+  g.posts[idx].media.forEach(function(m,i){localStorage.removeItem(DB_KEY+'_pm_'+id+'_'+i);});
+  g.posts.splice(idx,1);saveDB();renderFeed();renderStats();
+}
+
+/* ══════════════════════
+   통계
+══════════════════════ */
+function renderStats(){
+  var g=curg();if(!g)return;
+  var tl=g.posts.reduce(function(a,p){return a+(p.likes||0);},0);
+  ['st-posts','adm-posts'].forEach(function(id){$(id).textContent=g.posts.length;});
+  ['st-likes','adm-likes'].forEach(function(id){$(id).textContent=tl;});
+  ['st-visit','adm-visit'].forEach(function(id){$(id).textContent=g.visits;});
+}
+
+/* ══════════════════════
+   라이트박스
+══════════════════════ */
+function lbShow(src,type){$('lb-content').innerHTML=type==='video'?'<video src="'+src+'" controls autoplay playsinline></video>':'<img src="'+src+'" alt="">';$('lightbox').classList.add('open');}
+function closeLB(){$('lightbox').classList.remove('open');$('lb-content').innerHTML='';}
+
+/* ══════════════════════
+   QR
+══════════════════════ */
+function renderQR(){
+  var g=curg();if(!g)return;
+  var url=loginURL(g.id);$('qr-url-text').textContent=url;
+  if(_qrDone)return;_qrDone=true;
+  $('qr-container').innerHTML='';
+  try{new QRCode($('qr-container'),{text:url,width:200,height:200,colorDark:'#3D3530',colorLight:'#FFFFFF',correctLevel:QRCode.CorrectLevel.M});}
+  catch(e){$('qr-container').innerHTML='<div style="width:200px;height:200px;display:flex;align-items:center;justify-content:center;font-size:12px;color:var(--mid);text-align:center">QR 생성 실패.<br>링크를 직접 공유하세요.</div>';}
+}
+function downloadQR(){var c=$('qr-container');var cv=c.querySelector('canvas');var im=c.querySelector('img');var a=document.createElement('a');var g=curg();a.download=(g?g.members[0].name:'memorial')+'_QR.png';a.href=cv?cv.toDataURL():im?im.src:'';if(!a.href)return toast('QR을 먼저 생성해 주세요.');a.click();toast('QR 저장 중...');}
+function copyQRLink(){var g=curg();if(!g)return;var url=loginURL(g.id);if(navigator.clipboard){navigator.clipboard.writeText(url).then(function(){toast('링크 복사됨');}).catch(function(){fbCopy(url);});}else fbCopy(url);}
+function fbCopy(t){var ta=document.createElement('textarea');ta.value=t;ta.style.cssText='position:fixed;opacity:0';document.body.appendChild(ta);ta.select();try{document.execCommand('copy');toast('링크 복사됨');}catch(e){toast('링크: '+t);}document.body.removeChild(ta);}
+
+/* ══════════════════════
+   관리
+══════════════════════ */
+var _adPortraitPending={};
+var _adPortraitTarget=0;
+
+function renderAdminTabs(g){
+  var tabs=$('adm-person-tabs'); tabs.innerHTML='';
+  if(g.members.length<=1){
+    tabs.style.display='none';
+  } else {
+    tabs.style.display='flex';
+    g.members.forEach(function(m,i){
+      var t=document.createElement('button');
+      t.className='person-tab'+(i===_adMemberIdx?' active':'');
+      t.textContent=m.name;
+      t.onclick=function(){
+        _adMemberIdx=i;
+        tabs.querySelectorAll('.person-tab').forEach(function(b,bi){b.classList.toggle('active',bi===i);});
+        $('ad-name').value=g.members[i].name||'';
+        $('ad-bio').value=g.members[i].bio||'';
+        $('ad-birth').value=g.members[i].birth||'';
+        $('ad-death').value=g.members[i].death||'';
+        renderAdminPortraitRow(g);
+      };
+      tabs.appendChild(t);
+    });
+  }
+  var adm=g.members[_adMemberIdx]||g.members[0];
+  $('ad-name').value=adm.name||'';
+  $('ad-bio').value=adm.bio||'';
+  $('ad-birth').value=adm.birth||'';
+  $('ad-death').value=adm.death||'';
+  renderAdminPortraitRow(g);
+}
+
+function renderAdminPortraitRow(g){
+  var row=$('adm-portrait-row');
+  if(!row) return;
+  row.innerHTML='';
+  g.members.forEach(function(m,i){
+    var slot=document.createElement('div'); slot.className='adm-portrait-slot';
+    var circle=document.createElement('div'); circle.className='adm-portrait-circle';
+    var src=(_adPortraitPending[i]!==undefined)?_adPortraitPending[i]:m.portrait;
+    if(src){
+      circle.innerHTML='<img src="'+src+'"><div class="adm-portrait-overlay">사진 변경</div>';
+    } else {
+      circle.innerHTML='☺<div class="adm-portrait-overlay">사진 등록</div>';
+    }
+    (function(idx){ circle.addEventListener('click',function(){ _adPortraitTarget=idx; $('adm-p-file').click(); }); })(i);
+    var name=document.createElement('div'); name.className='adm-portrait-name'; name.textContent=m.name;
+    var delBtn=document.createElement('button'); delBtn.className='adm-portrait-del'; delBtn.textContent='사진 삭제';
+    (function(idx){
+      delBtn.addEventListener('click',function(){
+        if(!confirm(m.name+' 사진을 삭제할까요?')) return;
+        _adPortraitPending[idx]=null;
+        renderAdminPortraitRow(g);
+      });
+    })(i);
+    slot.appendChild(circle); slot.appendChild(name); slot.appendChild(delBtn);
+    row.appendChild(slot);
+  });
+}
+
+function adPortraitChange(input){
+  if(!input.files[0]) return;
+  var r=new FileReader();
+  r.onload=function(e){
+    _adPortraitPending[_adPortraitTarget]=e.target.result;
+    var g=curg(); if(g) renderAdminPortraitRow(g);
+  };
+  r.readAsDataURL(input.files[0]);
+  input.value='';
+}
+
+function saveBio(){
+  var g=curg(); if(!g) return;
+  Object.keys(_adPortraitPending).forEach(function(idx){
+    var i=parseInt(idx);
+    if(g.members[i]!==undefined){
+      g.members[i].portrait=_adPortraitPending[i];
+    }
+  });
+  _adPortraitPending={};
+  var newName=$('ad-name').value.trim();
+  if(!newName)return toast('성함을 입력해 주세요.');
+  g.members[_adMemberIdx].name=newName;
+  g.members[_adMemberIdx].bio=$('ad-bio').value.trim();
+  g.members[_adMemberIdx].birth=$('ad-birth').value;
+  g.members[_adMemberIdx].death=$('ad-death').value;
+  saveDB(); renderProfile(g); renderAdminTabs(g);
+  toast('저장되었습니다.');
+}
+function changePw(){var g=curg();if(!g)return;var cur=$('ad-cur').value,nw=$('ad-new').value,nw2=$('ad-new2').value;if(cur!==g.pw)return toast('현재 비밀번호가 틀렸습니다.');if(!nw||nw.length<4)return toast('새 비밀번호 4자 이상');if(nw!==nw2)return toast('새 비밀번호 불일치');g.pw=nw;saveDB();$('ad-cur').value='';$('ad-new').value='';$('ad-new2').value='';toast('비밀번호가 변경되었습니다.');}
+
+</script>
+</body>
+</html>
