@@ -374,7 +374,7 @@ label{font-size:13px;color:var(--mid);display:block;margin-bottom:5px}
 <body>
 
 <!-- ① LANDING → 접근 불가 안내 화면 (QR·링크 없이 직접 접속 시 표시) -->
-<div id="s-landing" class="screen active" style="display:none;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;text-align:center;padding:2rem 1.5rem">
+<div id="s-landing" class="screen">
   <div style="font-size:52px;margin-bottom:1.5rem">🔒</div>
   <h2 style="font-size:20px;font-weight:400;color:var(--deep);letter-spacing:.06em;margin-bottom:1rem">접근이 제한된 페이지입니다</h2>
   <p style="font-size:13px;color:var(--mid);line-height:2">추모관 QR코드 또는 개인 링크를 통해<br>접속해 주세요.</p>
@@ -822,17 +822,9 @@ window.addEventListener('load',function(){
 /* ── 유틸 ── */
 function $(id){return document.getElementById(id);}
 function goTo(id){
-  /* s-home · s-landing 은 QR 없이 직접 접근 불가 — s-landing(잠금화면)으로 대체 */
   if(id==='s-home')id='s-landing';
-  document.querySelectorAll('.screen').forEach(function(s){
-    s.classList.remove('active');
-    s.style.display='none';
-  });
-  var el=$(id);
-  el.classList.add('active');
-  /* flex 레이아웃이 필요한 화면 */
-  var flexScreens={'s-landing':true,'s-login':true};
-  el.style.display=flexScreens[id]?'flex':'block';
+  document.querySelectorAll('.screen').forEach(function(s){s.classList.remove('active');});
+  $(id).classList.add('active');
 }
 function setupBack(){if(curGid)showLogin(curGid);else goTo('s-landing');}
 function homeFromMemorial(){if(curGid)showLogin(curGid);else goTo('s-landing');}
