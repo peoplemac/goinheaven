@@ -373,26 +373,16 @@ label{font-size:13px;color:var(--mid);display:block;margin-bottom:5px}
 </head>
 <body>
 
-<!-- ① LANDING -->
-<div id="s-landing" class="screen active">
-  <div class="land-orn">✦ &nbsp;✦ &nbsp;✦</div>
-  <h1 class="land-title">사이버 추모관</h1>
-  <p class="land-sub">고인의 삶을 기억하고,<br>그 마음을 함께 나눕니다.</p>
-  <div style="display:flex;flex-direction:column;gap:12px;width:100%;max-width:280px">
-    <button class="btn btn-gold btn-block" onclick="goTo('s-home')">추모관 입장 · 개설</button>
-  </div>
-  <p style="margin-top:2rem;font-size:12px;color:var(--ash)"><span class="candle">🕯</span> 삼가 고인의 명복을 빕니다</p>
+<!-- ① LANDING → 접근 불가 안내 화면 (QR·링크 없이 직접 접속 시 표시) -->
+<div id="s-landing" class="screen active" style="display:none;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;text-align:center;padding:2rem 1.5rem">
+  <div style="font-size:52px;margin-bottom:1.5rem">🔒</div>
+  <h2 style="font-size:20px;font-weight:400;color:var(--deep);letter-spacing:.06em;margin-bottom:1rem">접근이 제한된 페이지입니다</h2>
+  <p style="font-size:13px;color:var(--mid);line-height:2">추모관 QR코드 또는 개인 링크를 통해<br>접속해 주세요.</p>
+  <p style="margin-top:2.5rem;font-size:12px;color:var(--ash)"><span class="candle">🕯</span> 삼가 고인의 명복을 빕니다</p>
 </div>
 
-<!-- ② HOME -->
-<div id="s-home" class="screen">
-  <div class="home-topbar">
-    <button class="home-topbar-back top-bar-back" onclick="goTo('s-landing')">‹</button>
-    <h2>추모관 목록</h2>
-    <button class="home-topbar-add" onclick="openSetup(null)">＋ 개설</button>
-  </div>
-  <div class="memorial-cards" id="memorial-cards-wrap"></div>
-</div>
+<!-- ② HOME → 비활성화 (직접 접근 불가) -->
+<div id="s-home" class="screen" style="display:none!important"></div>
 
 <!-- ③ SETUP -->
 <div id="s-setup" class="screen">
@@ -809,34 +799,41 @@ window.addEventListener('load',function(){
   var gid=getParam('gid');
   var hasLocal=gid&&db.groups.find(function(g){return g.id==gid;});
 
-  if(hasLocal){
-    /* 로컬 데이터 있으면 즉시 로그인 화면 진입, Firebase는 백그라운드 */
+  if(!gid){
+    /* gid 없이 직접 접속 → 잠금 화면 */
+    goTo('s-landing');
+  } else if(hasLocal){
+    /* 로컬 데이터 있으면 즉시 로그인 화면, Firebase는 백그라운드 갱신 */
     showLogin(gid);
     if(_fbReady)_fbLoad().catch(function(){});
-  } else if(gid&&_fbReady){
-    /* 로컬 없고 gid 있으면 Firebase에서 데이터 가져온 뒤 로그인 화면 */
+  } else if(_fbReady){
+    /* 로컬 없고 Firebase 있으면 데이터 로드 후 로그인 화면 */
     toast('추모관 정보를 불러오는 중...');
     _fbLoad().then(function(ok){
       if(ok&&db.groups.find(function(g){return g.id==gid;})){showLogin(gid);}
       else goTo('s-landing');
     }).catch(function(){goTo('s-landing');});
   } else {
+    /* Firebase 없고 로컬도 없으면 잠금 화면 */
     goTo('s-landing');
-    /* 홈 화면에 표시할 목록도 Firebase에서 갱신 */
-    if(_fbReady)_fbLoad().then(function(ok){
-      if(ok&&$('s-home').classList.contains('active'))renderHome();
-    }).catch(function(){});
   }
 });
 
 /* ── 유틸 ── */
 function $(id){return document.getElementById(id);}
 function goTo(id){
-  document.querySelectorAll('.screen').forEach(function(s){s.classList.remove('active');});
-  $(id).classList.add('active');
-  if(id==='s-home')renderHome();
+  /* s-home · s-landing 은 QR 없이 직접 접근 불가 — s-landing(잠금화면)으로 대체 */
+  if(id==='s-home')id='s-landing';
+  document.querySelectorAll('.screen').forEach(function(s){
+    s.classList.remove('active');
+    s.style.display='none';
+  });
+  var el=$(id);
+  el.classList.add('active');
+  /* s-landing 은 flex 레이아웃 */
+  el.style.display=(id==='s-landing')?'flex':'block';
 }
-function setupBack(){goTo('s-home');}
+function setupBack(){if(curGid)showLogin(curGid);else goTo('s-landing');}
 function homeFromMemorial(){if(curGid)showLogin(curGid);else goTo('s-landing');}
 function fmtDate(d){if(!d)return'';var p=d.split('-');return p[0]+'년 '+parseInt(p[1])+'월 '+parseInt(p[2])+'일';}
 function fmtRel(ds){var d=new Date(ds),n=new Date(),df=Math.floor((n-d)/1000);if(df<60)return'방금';if(df<3600)return Math.floor(df/60)+'분 전';if(df<86400)return Math.floor(df/3600)+'시간 전';if(df<604800)return Math.floor(df/86400)+'일 전';return d.toLocaleDateString('ko-KR');}
