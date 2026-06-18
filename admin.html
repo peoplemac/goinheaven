@@ -5,6 +5,11 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>사이버 추모관 - 관리자</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage-compat.js"></script>
+<script src="firebase-config.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 :root{
@@ -511,29 +516,86 @@ function _fallback(text){
   document.body.removeChild(ta);
 }
 
+/* ── Firebase ── */
+var _fbReady=false;
+function _fbInit(){
+  try{
+    if(typeof FIREBASE_CONFIG==='undefined'||!FIREBASE_CONFIG.apiKey||FIREBASE_CONFIG.apiKey.indexOf('YOUR')===0)return;
+    if(!firebase.apps.length)firebase.initializeApp(FIREBASE_CONFIG);
+    _fbReady=true;
+  }catch(e){}
+}
+async function _fbSave(){
+  if(!_fbReady)return;
+  var fs=firebase.firestore();
+  for(var i=0;i<db.groups.length;i++){
+    var g=db.groups[i];
+    var mems=(g.members||[]).map(function(m){
+      /* base64 이미지는 Firestore 용량 초과 방지를 위해 저장 안 함 (URL만 저장) */
+      var pu=m.portrait||null;
+      if(pu&&pu.startsWith('data:'))pu=null;
+      return{id:m.id,name:m.name||'',birth:m.birth||'',death:m.death||'',bio:m.bio||'',portraitUrl:pu};
+    });
+    await fs.collection('groups').doc(g.id).set({
+      id:g.id,pw:g.pw,adminPw:g.adminPw||'',visits:g.visits||0,
+      members:mems,contact:g.contact||{},subscription:g.subscription||{},note:g.note||''
+    });
+  }
+}
+async function _fbLoad(){
+  if(!_fbReady)return false;
+  try{
+    var fs=firebase.firestore();
+    var snap=await fs.collection('groups').get();
+    if(snap.empty)return false;
+    var gs=[];
+    for(var i=0;i<snap.docs.length;i++){
+      var g=snap.docs[i].data();
+      var ps=await fs.collection('groups').doc(g.id).collection('posts').get();
+      g.posts=ps.docs.map(function(d){
+        var p=d.data();
+        p.media=(p.media||[]).map(function(m){return{src:m.url||'',type:m.type,name:m.name||''};});
+        return p;
+      });
+      g.members=(g.members||[]).map(function(m){m.portrait=m.portraitUrl||null;return m;});
+      gs.push(g);
+    }
+    db.groups=gs;
+    /* localStorage 캐시 갱신 */
+    try{
+      var slim={groups:db.groups.map(function(g){
+        return{id:g.id,pw:g.pw,adminPw:g.adminPw||'',visits:g.visits||0,
+          members:g.members.map(function(m){return{id:m.id,name:m.name,birth:m.birth,death:m.death,bio:m.bio,portrait:m.portrait||null};}),
+          posts:(g.posts||[]).map(function(p){return{id:p.id,author:p.author,rel:p.rel,text:p.text,date:p.date,likes:p.likes,liked:p.liked||false,comments:p.comments||[],media:(p.media||[]).map(function(m){return{type:m.type,name:m.name};})};}),
+          contact:g.contact||{},subscription:g.subscription||{},note:g.note||''};
+      })};
+      localStorage.setItem(DB_KEY,JSON.stringify(slim));
+    }catch(e){}
+    return true;
+  }catch(e){return false;}
+}
+
 /* ── DB ── */
 function loadDB(){
   try{var r=localStorage.getItem(DB_KEY);if(r){var d=JSON.parse(r);db.groups=d.groups||[];}}
   catch(e){db={groups:[]};}
+  /* Firebase 백그라운드 갱신 */
+  if(_fbReady)_fbLoad().catch(function(){});
 }
 function saveDB(){
   try{
     var data={groups:db.groups.map(function(g){
-      return {
-        id:g.id, pw:g.pw, adminPw:g.adminPw||'', visits:g.visits||0,
-        members:g.members.map(function(m){
-          return {id:m.id,name:m.name,birth:m.birth,death:m.death,bio:m.bio,portrait:m.portrait||null};
-        }),
-        posts:(g.posts||[]).map(function(p){
-          return {id:p.id,author:p.author,rel:p.rel,text:p.text,date:p.date,
-            likes:p.likes,liked:p.liked,comments:p.comments,
-            media:(p.media||[]).map(function(m){return {type:m.type,name:m.name};})};
-        }),
-        contact:g.contact||{}, subscription:g.subscription||{}, note:g.note||''
+      return{
+        id:g.id,pw:g.pw,adminPw:g.adminPw||'',visits:g.visits||0,
+        members:g.members.map(function(m){return{id:m.id,name:m.name,birth:m.birth,death:m.death,bio:m.bio,portrait:m.portrait||null};}),
+        posts:(g.posts||[]).map(function(p){return{id:p.id,author:p.author,rel:p.rel,text:p.text,date:p.date,likes:p.likes,liked:p.liked,comments:p.comments,media:(p.media||[]).map(function(m){return{type:m.type,name:m.name};})};}),
+        contact:g.contact||{},subscription:g.subscription||{},note:g.note||''
       };
     })};
     localStorage.setItem(DB_KEY,JSON.stringify(data));
-  } catch(e){toast('저장 오류: 저장 공간이 부족할 수 있습니다.');}
+  }catch(e){toast('저장 오류: 저장 공간이 부족할 수 있습니다.');}
+  /* Firebase 백그라운드 동기화 */
+  if(_fbReady)_fbSave().catch(function(){});
 }
 function loadSvcAdm(){try{var r=localStorage.getItem(ADM_KEY);if(r)svcAdm=JSON.parse(r);}catch(e){}}
 function saveSvcAdm(){localStorage.setItem(ADM_KEY,JSON.stringify(svcAdm));}
@@ -1164,6 +1226,7 @@ function changePw(){
 
 /* ── 초기화 ── */
 (function init(){
+  _fbInit();
   loadSvcAdm();
   showScreen('s-login');
   document.addEventListener('keydown',function(e){

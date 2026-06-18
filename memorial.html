@@ -6,6 +6,11 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <title>사이버 추모관</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage-compat.js"></script>
+<script src="firebase-config.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 :root{
@@ -631,6 +636,126 @@ label{font-size:13px;color:var(--mid);display:block;margin-bottom:5px}
 <div class="toast" id="toast"></div>
 
 <script>
+/* ══════════════════════════════════════════
+   Firebase 연동
+   - firebase-config.js 에 설정이 있으면 자동 활성화
+   - 설정 없으면 localStorage 전용으로 동작
+══════════════════════════════════════════ */
+var _fbReady=false;
+function _fbInit(){
+  try{
+    if(typeof FIREBASE_CONFIG==='undefined'||!FIREBASE_CONFIG.apiKey||FIREBASE_CONFIG.apiKey.indexOf('YOUR')===0)return;
+    if(!firebase.apps.length)firebase.initializeApp(FIREBASE_CONFIG);
+    _fbReady=true;
+  }catch(e){}
+}
+
+/* Firebase → 메모리: 모든 그룹 + 게시물 로드 */
+async function _fbLoad(){
+  if(!_fbReady)return false;
+  try{
+    var fs=firebase.firestore();
+    var snap=await fs.collection('groups').get();
+    if(snap.empty)return false;
+    var gs=[];
+    for(var i=0;i<snap.docs.length;i++){
+      var g=snap.docs[i].data();
+      var ps=await fs.collection('groups').doc(g.id).collection('posts').get();
+      var localG=db.groups.find(function(x){return x.id===g.id;});
+      g.posts=ps.docs.map(function(d){
+        var p=d.data();
+        p.media=(p.media||[]).map(function(m){return{src:m.url||'',type:m.type,name:m.name||''};});
+        /* liked 는 기기별 localStorage 유지 */
+        var lp=(localG&&localG.posts||[]).find(function(lpp){return lpp.id===p.id;});
+        p.liked=(lp&&lp.liked)||false;
+        return p;
+      });
+      g.posts.sort(function(a,b){return new Date(b.date)-new Date(a.date);});
+      g.members=(g.members||[]).map(function(m){m.portrait=m.portraitUrl||null;return m;});
+      gs.push(g);
+    }
+    db.groups=gs;
+    /* localStorage 캐시 갱신 */
+    _localSave();
+    return true;
+  }catch(e){return false;}
+}
+
+/* 메모리 → Firebase: 변경된 그룹 저장
+   - Storage 사용 가능(Blaze 플랜): 이미지 업로드 후 URL 저장
+   - Storage 미사용(Spark 플랜): 텍스트 데이터만 저장, 이미지는 기기 localStorage 유지 */
+async function _fbSave(){
+  if(!_fbReady)return;
+  var fs=firebase.firestore();
+  var storageOk=false;
+  var st=null;
+  try{st=firebase.storage();storageOk=true;}catch(e){}
+
+  for(var i=0;i<db.groups.length;i++){
+    var g=db.groups[i];
+    var mems=[];
+    for(var j=0;j<g.members.length;j++){
+      var m=g.members[j];
+      var pu=m.portrait||null;
+      if(storageOk&&pu&&pu.startsWith('data:')){
+        try{
+          var ref=st.ref('portraits/'+g.id+'/'+m.id);
+          await ref.putString(pu,'data_url');
+          pu=await ref.getDownloadURL();
+          m.portrait=pu;
+        }catch(e){pu=null;} /* Storage 실패 시 null(Firestore 용량 초과 방지) */
+      } else if(pu&&pu.startsWith('data:')){
+        pu=null; /* Spark 플랜: base64는 Firestore에 저장 안 함 */
+      }
+      mems.push({id:m.id,name:m.name||'',birth:m.birth||'',death:m.death||'',bio:m.bio||'',portraitUrl:pu});
+    }
+    await fs.collection('groups').doc(g.id).set({
+      id:g.id,pw:g.pw,adminPw:g.adminPw||'',visits:g.visits||0,
+      members:mems,contact:g.contact||{},subscription:g.subscription||{},note:g.note||''
+    });
+    for(var k=0;k<g.posts.length;k++){
+      var p=g.posts[k];
+      var med=[];
+      for(var l=0;l<p.media.length;l++){
+        var mm=p.media[l];var u=mm.src||'';
+        if(storageOk&&u&&u.startsWith('data:')){
+          try{
+            var mref=st.ref('posts/'+p.id+'/'+l);
+            await mref.putString(u,'data_url');
+            u=await mref.getDownloadURL();
+            mm.src=u;
+          }catch(e){u='';}
+        } else if(u&&u.startsWith('data:')){
+          u=''; /* Spark 플랜: 이미지는 Firestore에 저장 안 함 */
+        }
+        if(u)med.push({type:mm.type,name:mm.name||'',url:u});
+      }
+      await fs.collection('groups').doc(g.id).collection('posts').doc(p.id).set({
+        id:p.id,author:p.author,rel:p.rel||'',text:p.text||'',date:p.date,
+        likes:p.likes||0,comments:p.comments||[],media:med
+      });
+    }
+  }
+}
+
+/* localStorage 에만 저장 (캐시용) */
+function _localSave(){
+  try{
+    var data={groups:db.groups.map(function(g){
+      return{id:g.id,pw:g.pw,adminPw:g.adminPw||'',visits:g.visits,
+        members:g.members.map(function(m){return{id:m.id,name:m.name,birth:m.birth,death:m.death,bio:m.bio,portrait:m.portrait||null};}),
+        posts:g.posts.map(function(p){return{id:p.id,author:p.author,rel:p.rel,text:p.text,date:p.date,likes:p.likes,liked:p.liked,comments:p.comments,media:p.media.map(function(m){return{type:m.type,name:m.name};})};}),
+        contact:g.contact||{},subscription:g.subscription||{},note:g.note||''};
+    })};
+    try{localStorage.setItem(DB_KEY,JSON.stringify(data));}catch(e){
+      var slim=JSON.parse(JSON.stringify(data));
+      slim.groups.forEach(function(g){g.members.forEach(function(m){m.portrait=null;});});
+      localStorage.setItem(DB_KEY,JSON.stringify(slim));
+    }
+    db.groups.forEach(function(g){g.posts.forEach(function(p){p.media.forEach(function(m,i){try{localStorage.setItem(DB_KEY+'_pm_'+p.id+'_'+i,m.src);}catch(e){}});});});
+  }catch(e){}
+}
+
 /* ══════════════════════
    DB 구조
    groups: [{
@@ -651,47 +776,16 @@ var _adminAuthed=false;
    media src 는 용량이 커서 별도 키 (_pm_) 로 분리
 ── */
 function saveDB(){
-  try{
-    /* portrait 포함 메인 JSON */
-    var data={groups:db.groups.map(function(g){
-      return {id:g.id,pw:g.pw,adminPw:g.adminPw||'',visits:g.visits,
-        members:g.members.map(function(m){
-          return {id:m.id,name:m.name,birth:m.birth,death:m.death,bio:m.bio,portrait:m.portrait||null};
-        }),
-        posts:g.posts.map(function(p){
-          return {id:p.id,author:p.author,rel:p.rel,text:p.text,date:p.date,
-            likes:p.likes,liked:p.liked,comments:p.comments,
-            media:p.media.map(function(m){return {type:m.type,name:m.name};})};
-        }),
-        contact:g.contact||{}, subscription:g.subscription||{}, note:g.note||''
-      };
-    })};
-    try{
-      localStorage.setItem(DB_KEY,JSON.stringify(data));
-    }catch(e){
-      /* 용량 부족 시 portrait 제거 후 재시도 */
-      var slim=JSON.parse(JSON.stringify(data));
-      slim.groups.forEach(function(g){g.members.forEach(function(m){m.portrait=null;});});
-      localStorage.setItem(DB_KEY,JSON.stringify(slim));
-      toast('저장 공간 부족으로 일부 사진이 저장되지 않을 수 있습니다.');
-    }
-    /* media src 별도 키 */
-    db.groups.forEach(function(g){
-      g.posts.forEach(function(p){
-        p.media.forEach(function(m,i){
-          try{localStorage.setItem(DB_KEY+'_pm_'+p.id+'_'+i,m.src);}catch(e){}
-        });
-      });
-    });
-  }catch(e){}
+  _localSave();
+  /* Firebase 에 백그라운드 동기화 */
+  if(_fbReady)_fbSave().catch(function(){});
 }
 function loadDB(){
   try{
     var raw=localStorage.getItem(DB_KEY); if(!raw)return;
     var d=JSON.parse(raw);
     db.groups=(d.groups||[]).map(function(g){
-      /* portrait 은 JSON 에 포함되어 있음 */
-      g.members=(g.members||[]).map(function(m){ return m; });
+      g.members=(g.members||[]).map(function(m){return m;});
       g.posts=(g.posts||[]).map(function(p){
         p.media=(p.media||[]).map(function(m,i){
           return {src:localStorage.getItem(DB_KEY+'_pm_'+p.id+'_'+i)||'',type:m.type,name:m.name};
@@ -710,10 +804,29 @@ function getParam(k){return new URLSearchParams(location.search).get(k);}
 
 /* ── 부트 ── */
 window.addEventListener('load',function(){
+  _fbInit();
   loadDB();
   var gid=getParam('gid');
-  if(gid&&db.groups.find(function(g){return g.id==gid;})){showLogin(gid);return;}
-  goTo('s-landing');
+  var hasLocal=gid&&db.groups.find(function(g){return g.id==gid;});
+
+  if(hasLocal){
+    /* 로컬 데이터 있으면 즉시 로그인 화면 진입, Firebase는 백그라운드 */
+    showLogin(gid);
+    if(_fbReady)_fbLoad().catch(function(){});
+  } else if(gid&&_fbReady){
+    /* 로컬 없고 gid 있으면 Firebase에서 데이터 가져온 뒤 로그인 화면 */
+    toast('추모관 정보를 불러오는 중...');
+    _fbLoad().then(function(ok){
+      if(ok&&db.groups.find(function(g){return g.id==gid;})){showLogin(gid);}
+      else goTo('s-landing');
+    }).catch(function(){goTo('s-landing');});
+  } else {
+    goTo('s-landing');
+    /* 홈 화면에 표시할 목록도 Firebase에서 갱신 */
+    if(_fbReady)_fbLoad().then(function(ok){
+      if(ok&&$('s-home').classList.contains('active'))renderHome();
+    }).catch(function(){});
+  }
 });
 
 /* ── 유틸 ── */
