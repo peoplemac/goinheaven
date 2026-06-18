@@ -632,6 +632,7 @@ label{font-size:13px;color:var(--mid);display:block;margin-bottom:5px}
    - 설정 없으면 localStorage 전용으로 동작
 ══════════════════════════════════════════ */
 var _fbReady=false;
+var _fbLoading=false;
 function _fbInit(){
   try{
     if(typeof FIREBASE_CONFIG==='undefined'||!FIREBASE_CONFIG.apiKey||FIREBASE_CONFIG.apiKey.indexOf('YOUR')===0)return;
@@ -642,14 +643,16 @@ function _fbInit(){
 
 /* Firebase → 메모리: 모든 그룹 + 게시물 로드 */
 async function _fbLoad(){
-  if(!_fbReady)return false;
+  if(!_fbReady||_fbLoading)return false;
+  _fbLoading=true;
   try{
     var fs=firebase.firestore();
     var snap=await fs.collection('groups').get();
-    if(snap.empty)return false;
+    if(snap.empty){_fbLoading=false;return false;}
     var gs=[];
     for(var i=0;i<snap.docs.length;i++){
       var g=snap.docs[i].data();
+      if(g.deleted)continue; /* 소프트 삭제된 그룹 건너뜀 */
       var ps=await fs.collection('groups').doc(g.id).collection('posts').get();
       var localG=db.groups.find(function(x){return x.id===g.id;});
       g.posts=ps.docs.map(function(d){
@@ -667,8 +670,9 @@ async function _fbLoad(){
     db.groups=gs;
     /* localStorage 캐시 갱신 */
     _localSave();
+    _fbLoading=false;
     return true;
-  }catch(e){return false;}
+  }catch(e){_fbLoading=false;return false;}
 }
 
 /* 메모리 → Firebase: 변경된 그룹 저장
@@ -1087,7 +1091,15 @@ function checkAdminAuth(){
   if(!g||!g.adminPw||_adminAuthed){
     $('adm-auth-wall').style.display='none';
     $('adm-section').style.display='';
-    if(g){renderStats();renderAdminSub();}
+    if(g){
+      renderStats();renderAdminSub();
+      /* Firebase에서 최신 구독/설정 정보 갱신 */
+      if(_fbReady){
+        _fbLoad().then(function(ok){
+          if(ok){var g2=curg();if(g2){renderStats();renderAdminSub();}}
+        }).catch(function(){});
+      }
+    }
   } else {
     $('adm-auth-wall').style.display='';
     $('adm-section').style.display='none';

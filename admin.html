@@ -518,6 +518,7 @@ function _fallback(text){
 
 /* ── Firebase ── */
 var _fbReady=false;
+var _fbLoading=false;
 function _fbInit(){
   try{
     if(typeof FIREBASE_CONFIG==='undefined'||!FIREBASE_CONFIG.apiKey||FIREBASE_CONFIG.apiKey.indexOf('YOUR')===0)return;
@@ -551,6 +552,7 @@ async function _fbLoad(){
     var gs=[];
     for(var i=0;i<snap.docs.length;i++){
       var g=snap.docs[i].data();
+      if(g.deleted)continue; /* 소프트 삭제된 그룹 건너뜀 */
       var ps=await fs.collection('groups').doc(g.id).collection('posts').get();
       g.posts=ps.docs.map(function(d){
         var p=d.data();
@@ -574,13 +576,31 @@ async function _fbLoad(){
     return true;
   }catch(e){return false;}
 }
+async function _fbDeleteGroup(gid){
+  if(!_fbReady)return;
+  try{
+    /* 소프트 삭제: deleted:true 플래그 설정 (Firestore 규칙 변경 불필요) */
+    await firebase.firestore().collection('groups').doc(gid).update({deleted:true});
+  }catch(e){}
+}
 
 /* ── DB ── */
+function _refreshPanel(){
+  var ap=document.querySelector('.d-panel.active');
+  if(!ap)return;
+  if(ap.id==='dp-overview')renderOverview(true);
+  else if(ap.id==='dp-memorials')renderMemorials(true);
+}
 function loadDB(){
   try{var r=localStorage.getItem(DB_KEY);if(r){var d=JSON.parse(r);db.groups=d.groups||[];}}
   catch(e){db={groups:[]};}
-  /* Firebase 백그라운드 갱신 */
-  if(_fbReady)_fbLoad().catch(function(){});
+  if(_fbReady&&!_fbLoading){
+    _fbLoading=true;
+    _fbLoad().then(function(ok){
+      _fbLoading=false;
+      if(ok)_refreshPanel();
+    }).catch(function(){_fbLoading=false;});
+  }
 }
 function saveDB(){
   try{
@@ -679,8 +699,8 @@ function appendSection(wrap,title,rows,emptyMsg){
 }
 
 /* ── 개요 ── */
-function renderOverview(){
-  loadDB();
+function renderOverview(skipLoad){
+  if(!skipLoad)loadDB();
   var gs=db.groups;
   var now=Date.now();
   var DAY=86400000;
@@ -807,8 +827,8 @@ function clearOvSearch(){
 }
 
 /* ── 추모관 목록 ── */
-function renderMemorials(){
-  loadDB();
+function renderMemorials(skipLoad){
+  if(!skipLoad)loadDB();
   var wrap=$('mg-list'); wrap.innerHTML='';
   if(!db.groups.length){
     wrap.innerHTML='<p style="text-align:center;color:var(--ash);font-size:13px;padding:2rem">개설된 추모관이 없습니다.<br>위 버튼으로 개설해 주세요.</p>';
@@ -986,6 +1006,7 @@ function delGroup(gid){
   });
   db.groups=db.groups.filter(function(x){return x.id!==gid;});
   saveDB();
+  if(_fbReady)_fbDeleteGroup(gid).catch(function(){});
 }
 
 /* ── 추모관 URL ── */
