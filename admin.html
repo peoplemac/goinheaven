@@ -1,0 +1,1178 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>사이버 추모관 - 관리자</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{
+  --ivory:#F8F5F0;--stone:#E8E3DB;--ash:#C4BDB4;
+  --deep:#3D3530;--mid:#6B5F58;--warm:#8B7355;
+  --gold:#B8965A;--gold2:#9a7a45;--white:#FFFFFF;
+}
+html{min-height:100%;background:#ddd8d0}
+body{min-height:100vh;background:var(--ivory);color:var(--deep);
+  font-family:-apple-system,'Apple SD Gothic Neo','Noto Sans KR',sans-serif;
+  max-width:600px;margin:0 auto;box-shadow:0 0 40px rgba(0,0,0,.1)}
+
+/* ── 공통 ── */
+.btn{font-size:14px;cursor:pointer;border:1px solid var(--ash);border-radius:8px;
+  padding:11px 22px;background:var(--white);color:var(--deep);
+  transition:background .15s;font-family:inherit;-webkit-appearance:none}
+.btn:active{background:var(--stone)}
+.btn-gold{background:var(--gold);color:#fff;border-color:var(--gold)}
+.btn-gold:active{background:var(--gold2)}
+.btn-block{width:100%;display:block}
+.btn-sm{padding:7px 14px;font-size:13px;border-radius:6px}
+.btn-danger{color:#c0392b;border-color:#c0392b}
+.btn-danger:active{background:rgba(192,57,43,.08)}
+input,textarea,select{font-family:inherit;font-size:15px;border:1px solid var(--ash);
+  border-radius:8px;padding:11px 14px;background:var(--white);color:var(--deep);
+  width:100%;-webkit-appearance:none;box-sizing:border-box}
+input:focus,textarea:focus,select:focus{outline:none;border-color:var(--gold)}
+select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23aaa'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 12px center;padding-right:30px}
+textarea{resize:none;line-height:1.65}
+label{font-size:13px;color:var(--mid);display:block;margin-bottom:5px}
+.fg{margin-bottom:1rem}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.pw-err{font-size:12px;color:#c0392b;margin-top:5px;display:none}
+.section-title{font-size:13px;font-weight:600;color:var(--gold);letter-spacing:.06em;
+  margin:1.5rem 0 1rem;padding-bottom:.5rem;border-bottom:1px solid var(--stone)}
+
+/* ── 화면 ── */
+.screen{display:none;min-height:100vh}
+.screen.active{display:block}
+
+/* ── 로그인 ── */
+#s-login{display:none;flex-direction:column;align-items:center;
+  justify-content:center;min-height:100vh;padding:2rem 1.5rem;
+  background:linear-gradient(145deg,#3D3530 0%,#5a4f48 100%)}
+#s-login.active{display:flex}
+.login-box{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.15);
+  border-radius:20px;padding:2.5rem 2rem;width:100%;max-width:360px;
+  text-align:center;backdrop-filter:blur(8px)}
+.login-logo{font-size:22px;letter-spacing:.4em;color:var(--gold);margin-bottom:.6rem;opacity:.85}
+.login-title{font-size:21px;font-weight:300;color:#fff;letter-spacing:.1em;margin-bottom:.4rem}
+.login-sub{font-size:12px;color:rgba(255,255,255,.45);margin-bottom:2rem;line-height:1.9}
+.login-box label{color:rgba(255,255,255,.6);text-align:left}
+.login-box input{background:rgba(255,255,255,.1);border-color:rgba(255,255,255,.2);
+  color:#fff;margin-bottom:.75rem}
+.login-box input::placeholder{color:rgba(255,255,255,.3)}
+.login-box input:focus{border-color:var(--gold)}
+.login-box .pw-err{color:#ff9090;text-align:left;margin-bottom:.5rem}
+.login-ver{font-size:11px;color:rgba(255,255,255,.18);margin-top:2rem;letter-spacing:.04em}
+
+/* ── 대시보드 ── */
+#s-dash{display:none;flex-direction:column;min-height:100vh}
+#s-dash.active{display:flex}
+.dash-header{background:var(--deep);color:#fff;padding:14px 16px;
+  display:flex;align-items:center;gap:10px;position:sticky;top:0;z-index:100}
+.dash-logo{font-size:11px;font-weight:400;letter-spacing:.1em;color:var(--gold);flex:1;opacity:.85}
+.dash-header-name{font-size:15px;font-weight:500;letter-spacing:.04em;color:#fff}
+.dash-logout{font-size:12px;color:rgba(255,255,255,.45);background:none;border:none;
+  cursor:pointer;font-family:inherit;padding:4px 8px;border:1px solid rgba(255,255,255,.2);
+  border-radius:5px}
+.dash-tabs{display:flex;background:var(--white);border-bottom:2px solid var(--stone);overflow-x:auto;scrollbar-width:none}
+.dash-tabs::-webkit-scrollbar{display:none}
+.dash-tab{flex:1;padding:11px 4px;font-size:12px;background:none;border:none;cursor:pointer;
+  font-family:inherit;color:var(--mid);transition:color .15s;white-space:nowrap;
+  min-width:0;text-align:center;border-bottom:2px solid transparent;margin-bottom:-2px}
+.dash-tab.active{color:var(--gold);font-weight:600;border-bottom-color:var(--gold)}
+.dash-body{flex:1;background:var(--ivory)}
+
+/* 패널 */
+.d-panel{display:none;padding:1rem}
+.d-panel.active{display:block}
+
+/* 카드 */
+.d-card{background:var(--white);border-radius:12px;border:1px solid var(--stone);margin-bottom:12px}
+.d-card-pad{padding:1.25rem}
+
+/* 개요 그리드 */
+.ov-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
+.ov-card{background:var(--white);border:1px solid var(--stone);border-radius:12px;padding:16px;text-align:center}
+.ov-n{font-size:30px;font-weight:300;line-height:1}
+.ov-l{font-size:11px;color:var(--ash);margin-top:6px}
+.c-gold{color:var(--gold)}
+.c-green{color:#27ae60}
+.c-red{color:#c0392b}
+
+/* 배지 */
+.badge{display:inline-block;font-size:10px;font-weight:700;padding:2px 8px;
+  border-radius:20px;vertical-align:middle;margin-left:6px}
+.b-trial{background:#fff3cd;color:#856404}
+.b-active{background:#d4edda;color:#155724}
+.b-expired{background:#f8d7da;color:#721c24}
+
+/* 추모관 카드 */
+.mg-card{background:var(--white);border:1px solid var(--stone);border-radius:12px;margin-bottom:10px;overflow:hidden}
+.mg-head{display:flex;align-items:center;gap:10px;padding:14px 16px;cursor:pointer;transition:background .12s}
+.mg-head:active{background:var(--ivory)}
+.mg-avatar{width:46px;height:46px;border-radius:50%;background:var(--stone);border:2px solid var(--gold);
+  flex-shrink:0;overflow:hidden;display:flex;align-items:center;justify-content:center;font-size:18px;color:var(--ash)}
+.mg-avatar img{width:100%;height:100%;object-fit:cover}
+.mg-info{flex:1;min-width:0}
+.mg-name{font-size:14px;font-weight:600;color:var(--deep)}
+.mg-contact{font-size:11px;color:var(--mid);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mg-arr{font-size:20px;color:var(--ash);transition:transform .2s;flex-shrink:0}
+.mg-arr.open{transform:rotate(90deg)}
+.mg-body{display:none;border-top:1px solid var(--stone);padding:12px 14px}
+.mg-body.open{display:block}
+
+/* 링크 박스 */
+.link-box{background:#f5f0ea;border:1px solid var(--stone);border-radius:8px;
+  padding:9px 12px;display:flex;align-items:center;gap:8px;margin-bottom:7px}
+.link-text{font-size:11px;color:var(--mid);flex:1;word-break:break-all;line-height:1.6}
+.link-copy{font-size:11px;background:var(--gold);color:#fff;border:none;border-radius:6px;
+  padding:5px 10px;cursor:pointer;font-family:inherit;flex-shrink:0;white-space:nowrap}
+.link-copy:active{background:var(--gold2)}
+
+/* sub-sec */
+.sub-sec-title{font-size:11px;font-weight:700;color:var(--gold);letter-spacing:.05em;margin:.9rem 0 .5rem}
+.sub-row{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.sub-row label{margin:0;font-size:12px;color:var(--mid);min-width:56px;flex-shrink:0}
+.sub-row input,.sub-row select{flex:1;font-size:13px;padding:7px 10px;border:1px solid var(--stone);
+  border-radius:7px;background:var(--white);font-family:inherit;min-width:0;-webkit-appearance:none}
+.sub-row select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23aaa'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 8px center;padding-right:22px;appearance:none}
+
+/* 문자 */
+.sms-row{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--stone)}
+.sms-row:last-child{border-bottom:none}
+.sms-chk{width:18px;height:18px;accent-color:var(--gold);flex-shrink:0;cursor:pointer}
+.sms-rname{font-size:13px;font-weight:600;color:var(--deep)}
+.sms-rphone{font-size:11px;color:var(--mid)}
+
+/* 추모관 개설 모달 */
+.modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;
+  display:none;align-items:flex-end;justify-content:center}
+.modal-backdrop.open{display:flex}
+.modal{background:var(--ivory);border-radius:20px 20px 0 0;width:100%;max-width:600px;
+  max-height:92vh;display:flex;flex-direction:column;overflow:hidden}
+.modal-header{display:flex;align-items:center;padding:14px 16px;border-bottom:1px solid var(--stone);
+  background:var(--white);flex-shrink:0}
+.modal-title{flex:1;text-align:center;font-size:16px;font-weight:500;letter-spacing:.04em}
+.modal-close{font-size:20px;color:var(--mid);background:none;border:none;cursor:pointer;padding:0 8px;font-family:inherit}
+.modal-save{font-size:14px;color:var(--gold);background:none;border:none;cursor:pointer;font-weight:600;font-family:inherit}
+.modal-body{flex:1;overflow-y:auto;padding:1.25rem 1rem 3rem}
+
+/* 초상 업로드 */
+.portrait-row{display:flex;gap:1rem;justify-content:center;margin-bottom:1rem}
+.portrait-slot{display:flex;flex-direction:column;align-items:center;gap:6px}
+.portrait-upload{width:80px;height:80px;border-radius:50%;border:2px dashed var(--ash);
+  cursor:pointer;display:flex;align-items:center;justify-content:center;
+  overflow:hidden;background:var(--stone);font-size:26px;color:var(--ash);transition:border-color .15s}
+.portrait-upload:active{border-color:var(--gold)}
+.portrait-upload img{width:100%;height:100%;object-fit:cover}
+.portrait-slot-label{font-size:11px;color:var(--ash);text-align:center}
+.add-person-btn{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--gold);
+  background:none;border:1px dashed var(--gold);border-radius:8px;padding:10px 16px;
+  cursor:pointer;font-family:inherit;width:100%;justify-content:center;margin-bottom:1rem}
+.person2-section{display:none}
+.person2-section.open{display:block}
+.remove-person-btn{font-size:12px;color:var(--ash);background:none;border:none;
+  cursor:pointer;font-family:inherit;text-decoration:underline;margin-left:auto}
+
+/* 개설 완료 안내 모달 */
+.info-modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:300;
+  display:none;align-items:center;justify-content:center;padding:1rem}
+.info-modal-backdrop.open{display:flex}
+.info-modal{background:var(--white);border-radius:16px;width:100%;max-width:440px;padding:1.75rem 1.5rem;max-height:90vh;overflow-y:auto}
+.info-modal-title{font-size:19px;font-weight:500;text-align:center;margin-bottom:.5rem}
+.info-modal-sub{font-size:13px;color:var(--mid);text-align:center;margin-bottom:1.5rem;line-height:1.75}
+.info-label{font-size:12px;color:var(--ash);font-weight:600;margin-bottom:4px;margin-top:.75rem}
+
+/* D-day 표시 */
+.badge-dday{font-size:10px;font-weight:700;margin-left:5px;padding:2px 6px;border-radius:10px;background:#fff3cd;color:#856404;vertical-align:middle}
+.badge-dday.dday-warn{background:#ffe5cc;color:#c07010}
+.badge-dday.dday-urgent{background:#fde;color:#c0392b}
+.badge-dday.dday-expired{background:#f8d7da;color:#721c24}
+
+/* 개요 섹션 헤더 */
+.ov-sec-hd{font-size:12px;font-weight:700;color:var(--mid);letter-spacing:.04em;margin:.25rem 0 .5rem;display:flex;align-items:center;gap:6px}
+.ov-sec-hd::after{content:'';flex:1;height:1px;background:var(--stone)}
+.ov-row{display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--stone)}
+.ov-row:last-child{border-bottom:none}
+.ov-row-name{font-size:13px;color:var(--deep);font-weight:500}
+.ov-row-link{color:var(--gold);cursor:pointer;text-decoration:underline;text-underline-offset:2px}
+.ov-row-link:active{opacity:.7}
+.ov-row-sub{font-size:11px;color:var(--mid);margin-top:1px}
+
+/* QR 코드 */
+.qr-box{background:#fff;border:1px solid var(--stone);border-radius:8px;padding:8px;display:inline-flex;align-items:center;justify-content:center;min-width:60px;min-height:60px}
+.qr-box canvas,.qr-box img{display:block}
+
+/* 전체목록 검색 */
+.ov-card-click{cursor:pointer;transition:background .12s}
+.ov-card-click:active{background:var(--stone)}
+.ov-row-dates{font-size:10px;color:var(--ash);font-weight:normal}
+.ov-search-box{position:relative;margin-bottom:.75rem}
+.ov-search-box input{font-size:13px;padding:9px 36px 9px 12px}
+.ov-search-clear{position:absolute;right:10px;top:50%;transform:translateY(-50%);
+  background:none;border:none;cursor:pointer;font-size:15px;color:var(--ash);padding:0;
+  display:none;font-family:inherit;line-height:1}
+
+/* 토스트 */
+.toast{position:fixed;bottom:28px;left:50%;transform:translateX(-50%);
+  background:rgba(40,30,25,.92);color:#fff;padding:10px 22px;
+  border-radius:50px;font-size:13px;pointer-events:none;opacity:0;
+  transition:opacity .25s;white-space:nowrap;z-index:9999}
+.toast.show{opacity:1}
+/* 이메일 도메인 드롭다운 */
+.email-dd{display:none;position:fixed;z-index:10000;background:var(--white);
+  border:1px solid var(--stone);border-radius:10px;
+  box-shadow:0 6px 20px rgba(0,0,0,.14);overflow:hidden}
+.ed-item{display:block;width:100%;text-align:left;padding:10px 14px;
+  font-size:13px;background:none;border:none;border-bottom:1px solid var(--stone);
+  cursor:pointer;font-family:inherit;color:var(--deep);transition:background .1s}
+.ed-item:last-child{border-bottom:none}
+.ed-item:hover,.ed-item:focus{background:var(--ivory)}
+.ed-manual{color:var(--gold);font-weight:600}
+</style>
+</head>
+<body>
+
+<!-- 로그인 -->
+<div id="s-login" class="screen">
+  <div class="login-box">
+    <div class="login-logo">✦ ✦ ✦</div>
+    <div class="login-title">관리자 로그인</div>
+    <div class="login-sub">사이버 추모관 서비스 관리자<br>전용 페이지입니다.</div>
+    <div class="fg">
+      <label>관리자 ID</label>
+      <input type="text" id="l-id" placeholder="admin" autocomplete="username"
+        onkeydown="if(event.key==='Enter')submitLogin()">
+    </div>
+    <div class="fg">
+      <label>비밀번호</label>
+      <input type="password" id="l-pw" placeholder="비밀번호" autocomplete="current-password"
+        onkeydown="if(event.key==='Enter')submitLogin()">
+    </div>
+    <div class="pw-err" id="l-err">ID 또는 비밀번호가 올바르지 않습니다.</div>
+    <button class="btn btn-gold btn-block" onclick="submitLogin()">로그인</button>
+    <div class="login-ver">사이버 추모관 서비스 관리자 v1.0</div>
+  </div>
+</div>
+
+<!-- 대시보드 -->
+<div id="s-dash" class="screen">
+  <div class="dash-header">
+    <div class="dash-logo">✦ ADMIN</div>
+    <div class="dash-header-name">사이버 추모관</div>
+    <button class="dash-logout" onclick="logout()">로그아웃</button>
+  </div>
+  <div class="dash-tabs">
+    <button class="dash-tab active" data-tab="overview" onclick="switchTab('overview')">📊 개요</button>
+    <button class="dash-tab" data-tab="memorials" onclick="switchTab('memorials')">📋 추모관</button>
+    <button class="dash-tab" data-tab="sms" onclick="switchTab('sms')">💬 문자</button>
+    <button class="dash-tab" data-tab="settings" onclick="switchTab('settings')">⚙️ 설정</button>
+  </div>
+  <div class="dash-body">
+
+    <!-- 개요 탭 -->
+    <div class="d-panel active" id="dp-overview">
+      <div class="ov-grid">
+        <div class="ov-card ov-card-click" onclick="toggleAllList()"><div class="ov-n c-gold" id="ov-total">0</div><div class="ov-l">전체 추모관 ↕</div></div>
+        <div class="ov-card"><div class="ov-n c-green" id="ov-active">0</div><div class="ov-l">활성 구독</div></div>
+        <div class="ov-card"><div class="ov-n" id="ov-trial">0</div><div class="ov-l">체험중</div></div>
+        <div class="ov-card"><div class="ov-n c-red" id="ov-expired">0</div><div class="ov-l">만료</div></div>
+      </div>
+      <div class="d-card d-card-pad" id="ov-lists"></div>
+      <div class="d-card d-card-pad" id="ov-all-wrap" style="display:none;margin-top:8px">
+        <div class="ov-sec-hd">📋 전체 추모관</div>
+        <div class="ov-search-box">
+          <input type="search" id="ov-search" placeholder="고인 성함으로 검색..." oninput="filterAllList(this.value)" onsearch="filterAllList(this.value)">
+          <button class="ov-search-clear" id="ov-search-clear" onclick="clearOvSearch()">✕</button>
+        </div>
+        <div id="ov-all-list"></div>
+      </div>
+    </div>
+
+    <!-- 추모관 목록 탭 -->
+    <div class="d-panel" id="dp-memorials">
+      <div style="margin-bottom:12px">
+        <button class="btn btn-gold btn-block" onclick="openCreateModal()">＋ 새 추모관 개설</button>
+      </div>
+      <div id="mg-list"></div>
+    </div>
+
+    <!-- 문자 탭 -->
+    <div class="d-panel" id="dp-sms">
+      <div class="d-card d-card-pad" style="margin-bottom:10px">
+        <h4 style="font-size:13px;font-weight:600;color:var(--deep);margin-bottom:.75rem">수신자 선택</h4>
+        <div style="display:flex;gap:8px;margin-bottom:.75rem">
+          <button class="btn btn-sm" onclick="smsSelectAll(true)">전체선택</button>
+          <button class="btn btn-sm" onclick="smsSelectAll(false)">전체해제</button>
+        </div>
+        <div id="sms-recipients"></div>
+      </div>
+      <div class="d-card d-card-pad">
+        <h4 style="font-size:13px;font-weight:600;color:var(--deep);margin-bottom:.75rem">메시지 작성</h4>
+        <div class="fg">
+          <textarea id="sms-body" rows="5" placeholder="발송할 메시지를 입력하세요...&#10;&#10;예) [사이버 추모관] 안녕하세요. 추모관 서비스 관련 안내 드립니다."></textarea>
+        </div>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-gold" style="flex:1" onclick="sendSms()">📱 문자 앱으로 발송</button>
+          <button class="btn" onclick="copySmsInfo()">복사</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 설정 탭 -->
+    <div class="d-panel" id="dp-settings">
+      <div class="d-card d-card-pad" style="margin-bottom:10px">
+        <h4 style="font-size:13px;font-weight:600;color:var(--deep);margin-bottom:.75rem">관리자 계정</h4>
+        <div class="fg"><label>이름</label><input type="text" id="set-name" placeholder="관리자 이름"></div>
+        <div class="fg"><label>로그인 ID</label><input type="text" id="set-id" placeholder="admin" autocomplete="off"></div>
+        <button class="btn btn-sm btn-gold" onclick="saveAccount()">저장</button>
+      </div>
+      <div class="d-card d-card-pad">
+        <h4 style="font-size:13px;font-weight:600;color:var(--deep);margin-bottom:.75rem">비밀번호 변경</h4>
+        <div class="fg"><label>현재 비밀번호</label><input type="password" id="set-cur-pw"></div>
+        <div class="row2">
+          <div class="fg"><label>새 비밀번호</label><input type="password" id="set-new-pw"></div>
+          <div class="fg"><label>확인</label><input type="password" id="set-new-pw2"></div>
+        </div>
+        <button class="btn btn-sm" onclick="changePw()">변경</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- 추모관 개설 모달 -->
+<div class="modal-backdrop" id="create-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <button class="modal-close" onclick="closeCreateModal()">✕</button>
+      <div class="modal-title">새 추모관 개설</div>
+      <button class="modal-save" onclick="saveNewMemorial()">완료</button>
+    </div>
+    <div class="modal-body">
+
+      <div class="section-title">고인 정보</div>
+      <div class="portrait-row">
+        <div class="portrait-slot">
+          <div class="portrait-upload" onclick="$('m-p1-file').click()">
+            <div id="m-p1-prev">☺</div>
+          </div>
+          <span class="portrait-slot-label" id="m-p1-label">사진 선택</span>
+        </div>
+        <div class="portrait-slot" id="m-p2-slot" style="display:none">
+          <div class="portrait-upload" onclick="$('m-p2-file').click()">
+            <div id="m-p2-prev">☺</div>
+          </div>
+          <span class="portrait-slot-label">두 번째 고인</span>
+        </div>
+      </div>
+      <input type="file" id="m-p1-file" accept="image/*" style="display:none" onchange="prevPortrait(this,1)">
+      <input type="file" id="m-p2-file" accept="image/*" style="display:none" onchange="prevPortrait(this,2)">
+
+      <div class="fg"><label>성함 *</label><input type="text" id="m-n1" placeholder="홍길동" maxlength="30"></div>
+      <div class="row2">
+        <div class="fg"><label>생년월일</label><input type="date" id="m-b1"></div>
+        <div class="fg"><label>기일</label><input type="date" id="m-d1"></div>
+      </div>
+      <div class="fg"><label>약력 · 소개</label><textarea id="m-bio1" rows="2" placeholder="고인의 삶을 간략히 적어주세요."></textarea></div>
+
+      <button class="add-person-btn" id="btn-add-p2" onclick="toggleP2(true)">＋ 두 번째 고인 추가 (예: 아버지·어머니)</button>
+      <div class="person2-section" id="person2-section">
+        <div class="section-title" style="display:flex;align-items:center">
+          두 번째 고인 <button class="remove-person-btn" onclick="toggleP2(false)">제거</button>
+        </div>
+        <div class="fg"><label>성함 *</label><input type="text" id="m-n2" placeholder="홍어머니" maxlength="30"></div>
+        <div class="row2">
+          <div class="fg"><label>생년월일</label><input type="date" id="m-b2"></div>
+          <div class="fg"><label>기일</label><input type="date" id="m-d2"></div>
+        </div>
+        <div class="fg"><label>약력 · 소개</label><textarea id="m-bio2" rows="2" placeholder="두 번째 고인의 소개를 적어주세요."></textarea></div>
+      </div>
+
+      <div class="section-title">입장 비밀번호</div>
+      <div class="fg">
+        <label>비밀번호 * <span style="font-size:11px;color:var(--ash)">(유가족 전체 공유용)</span></label>
+        <input type="password" id="m-pw" placeholder="4~20자" maxlength="20">
+      </div>
+      <div class="fg"><label>비밀번호 확인 *</label><input type="password" id="m-pw2" placeholder="재입력" maxlength="20"></div>
+
+      <div class="section-title">관리자 비밀번호 <span style="font-size:11px;color:var(--ash);font-weight:400">(유가족 대표 전용)</span></div>
+      <div class="fg">
+        <label>관리자 비밀번호 * <span style="font-size:11px;color:var(--ash)">(추모관 ⚙️관리 탭 전용)</span></label>
+        <input type="password" id="m-apw" placeholder="4~20자" maxlength="20">
+      </div>
+      <div class="fg"><label>관리자 비밀번호 확인 *</label><input type="password" id="m-apw2" placeholder="재입력" maxlength="20"></div>
+
+      <div class="section-title">담당 유가족 연락처</div>
+      <div class="fg"><label>담당자 이름</label><input type="text" id="m-cname" placeholder="홍길순" maxlength="20"></div>
+      <div class="row2">
+        <div class="fg"><label>전화번호</label><input type="tel" id="m-cphone" placeholder="010-0000-0000"></div>
+        <div class="fg"><label>이메일</label><input type="email" id="m-cemail" placeholder="email@example.com"></div>
+      </div>
+
+      <div class="section-title">구독 설정</div>
+      <div class="row2">
+        <div class="fg"><label>플랜</label>
+          <select id="m-plan">
+            <option value="trial">무료체험</option>
+            <option value="monthly">월 구독</option>
+            <option value="yearly">연 구독</option>
+            <option value="unlimited">무제한</option>
+          </select>
+        </div>
+        <div class="fg"><label>상태</label>
+          <select id="m-status">
+            <option value="trial">체험중</option>
+            <option value="active">활성</option>
+            <option value="expired">만료</option>
+          </select>
+        </div>
+      </div>
+      <div class="row2">
+        <div class="fg"><label>시작일</label><input type="date" id="m-sdate"></div>
+        <div class="fg"><label>종료일</label><input type="date" id="m-edate"></div>
+      </div>
+      <div class="fg"><label>관리자 메모</label><textarea id="m-note" rows="2" placeholder="메모를 입력하세요..."></textarea></div>
+
+      <button class="btn btn-gold btn-block" onclick="saveNewMemorial()" style="margin-top:.5rem">개설 완료</button>
+    </div>
+  </div>
+</div>
+
+<!-- 개설 완료 안내 모달 -->
+<div class="info-modal-backdrop" id="info-modal">
+  <div class="info-modal">
+    <div class="info-modal-title">🎉 추모관 개설 완료</div>
+    <div class="info-modal-sub">아래 정보를 유가족 대표에게 전달해 주세요.</div>
+
+    <div class="info-label">추모관 링크</div>
+    <div class="link-box">
+      <div class="link-text" id="info-url"></div>
+      <button class="link-copy" onclick="copyInfo('url')">복사</button>
+    </div>
+
+    <div class="info-label">QR 코드</div>
+    <div style="display:flex;flex-direction:column;align-items:center;gap:8px;margin-bottom:.75rem">
+      <div id="info-qr" class="qr-box"></div>
+      <button class="btn btn-sm" onclick="downloadInfoQR()">⬇ QR 이미지 저장 (인쇄용)</button>
+    </div>
+
+    <div class="info-label">입장 비밀번호 (유가족 모두 공유)</div>
+    <div class="link-box">
+      <div class="link-text" id="info-pw"></div>
+      <button class="link-copy" onclick="copyInfo('pw')">복사</button>
+    </div>
+
+    <div class="info-label">관리자 비밀번호 (유가족 대표 전용)</div>
+    <div class="link-box">
+      <div class="link-text" id="info-apw"></div>
+      <button class="link-copy" onclick="copyInfo('apw')">복사</button>
+    </div>
+
+    <div class="info-label">안내 문자 메시지</div>
+    <div class="link-box" style="align-items:flex-start">
+      <div class="link-text" id="info-msg" style="white-space:pre-line;line-height:1.8"></div>
+      <button class="link-copy" onclick="copyInfo('msg')">복사</button>
+    </div>
+
+    <div style="display:flex;gap:8px;margin-top:1.25rem">
+      <button class="btn btn-sm" style="flex:1" onclick="sendInfoSms()">📱 문자 전송</button>
+      <button class="btn btn-gold btn-sm" style="flex:1" onclick="closeInfoModal()">확인</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+var DB_KEY='cmv4';
+var ADM_KEY='cmv4_svc_adm';
+var db={groups:[]};
+var svcAdm={id:'admin',pw:'admin1234',name:'관리자'};
+var _p1data=null,_p2data=null;
+var _infoData={};
+
+/* ── 헬퍼 ── */
+function $(id){return document.getElementById(id);}
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,7);}
+var _toastT=null;
+function toast(msg){var el=$('toast');el.textContent=msg;el.classList.add('show');clearTimeout(_toastT);_toastT=setTimeout(function(){el.classList.remove('show');},2200);}
+function copyToClipboard(text){
+  if(navigator.clipboard){
+    navigator.clipboard.writeText(text).then(function(){toast('복사되었습니다.');}).catch(function(){_fallback(text);});
+  } else {_fallback(text);}
+}
+function _fallback(text){
+  var ta=document.createElement('textarea');ta.value=text;ta.style.position='fixed';ta.style.opacity='0';
+  document.body.appendChild(ta);ta.focus();ta.select();
+  try{document.execCommand('copy');toast('복사되었습니다.');}catch(e){toast('복사에 실패했습니다.');}
+  document.body.removeChild(ta);
+}
+
+/* ── DB ── */
+function loadDB(){
+  try{var r=localStorage.getItem(DB_KEY);if(r){var d=JSON.parse(r);db.groups=d.groups||[];}}
+  catch(e){db={groups:[]};}
+}
+function saveDB(){
+  try{
+    var data={groups:db.groups.map(function(g){
+      return {
+        id:g.id, pw:g.pw, adminPw:g.adminPw||'', visits:g.visits||0,
+        members:g.members.map(function(m){
+          return {id:m.id,name:m.name,birth:m.birth,death:m.death,bio:m.bio,portrait:m.portrait||null};
+        }),
+        posts:(g.posts||[]).map(function(p){
+          return {id:p.id,author:p.author,rel:p.rel,text:p.text,date:p.date,
+            likes:p.likes,liked:p.liked,comments:p.comments,
+            media:(p.media||[]).map(function(m){return {type:m.type,name:m.name};})};
+        }),
+        contact:g.contact||{}, subscription:g.subscription||{}, note:g.note||''
+      };
+    })};
+    localStorage.setItem(DB_KEY,JSON.stringify(data));
+  } catch(e){toast('저장 오류: 저장 공간이 부족할 수 있습니다.');}
+}
+function loadSvcAdm(){try{var r=localStorage.getItem(ADM_KEY);if(r)svcAdm=JSON.parse(r);}catch(e){}}
+function saveSvcAdm(){localStorage.setItem(ADM_KEY,JSON.stringify(svcAdm));}
+
+/* ── 화면 ── */
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(function(s){s.classList.remove('active');});
+  $(id).classList.add('active');
+}
+
+/* ── 로그인 ── */
+function submitLogin(){
+  loadSvcAdm();
+  var id=$('l-id').value.trim(), pw=$('l-pw').value;
+  if(id===svcAdm.id && pw===svcAdm.pw){
+    $('l-err').style.display='none';
+    loadDB();
+    showScreen('s-dash');
+    switchTab('overview');
+  } else {
+    $('l-err').style.display='block';
+  }
+}
+function logout(){
+  $('l-id').value='';$('l-pw').value='';$('l-err').style.display='none';
+  showScreen('s-login');
+}
+
+/* ── 탭 ── */
+function switchTab(name){
+  document.querySelectorAll('.dash-tab').forEach(function(b){b.classList.toggle('active',b.dataset.tab===name);});
+  document.querySelectorAll('.d-panel').forEach(function(p){p.classList.toggle('active',p.id==='dp-'+name);});
+  if(name==='overview')renderOverview();
+  else if(name==='memorials')renderMemorials();
+  else if(name==='sms')renderSms();
+  else if(name==='settings')renderSettings();
+}
+
+/* ── 개요 헬퍼 ── */
+function getGroupCreatedAt(g){
+  try{var ts=parseInt(g.id.slice(0,g.id.length-5),36);return ts>1600000000000?ts:null;}
+  catch(e){return null;}
+}
+function fmtShortDate(d){
+  if(!d)return '';
+  var p=d.split('-');
+  if(p.length!==3)return d;
+  return p[0]+'.'+(parseInt(p[1])||'')+'.'+(parseInt(p[2])||'');
+}
+function buildOvRow(g){
+  var ct=g.contact||{};
+  var sub=g.subscription||{};
+  var namesHtml=g.members.map(function(m){
+    var dates='';
+    if(m.birth||m.death){
+      dates=' <span class="ov-row-dates">('
+        +(m.birth?fmtShortDate(m.birth):'?')+' ~ '
+        +(m.death?fmtShortDate(m.death):'?')+')</span>';
+    }
+    return esc(m.name||'')+dates;
+  }).join(' · ');
+  var row=document.createElement('div'); row.className='ov-row';
+  row.innerHTML='<div>'
+    +'<div class="ov-row-name ov-row-link" onclick="goToMemorial(\''+g.id+'\')">'+namesHtml+'</div>'
+    +(ct.phone?'<div class="ov-row-sub">'+(ct.name?esc(ct.name)+' · ':'')+esc(ct.phone)+'</div>':'')
+    +'</div>'
+    +'<div>'+badgeHtml(sub.status,sub.endDate)+'</div>';
+  return row;
+}
+function appendSection(wrap,title,rows,emptyMsg){
+  var hd=document.createElement('div'); hd.className='ov-sec-hd'; hd.textContent=title;
+  wrap.appendChild(hd);
+  if(!rows.length){
+    var emp=document.createElement('p');
+    emp.style.cssText='font-size:12px;color:var(--ash);text-align:center;padding:.4rem 0 .75rem';
+    emp.textContent=emptyMsg;
+    wrap.appendChild(emp);
+  } else {
+    rows.forEach(function(g){wrap.appendChild(buildOvRow(g));});
+  }
+}
+
+/* ── 개요 ── */
+function renderOverview(){
+  loadDB();
+  var gs=db.groups;
+  var now=Date.now();
+  var DAY=86400000;
+
+  $('ov-total').textContent=gs.length;
+  $('ov-active').textContent=gs.filter(function(g){return (g.subscription||{}).status==='active';}).length;
+  $('ov-trial').textContent=gs.filter(function(g){var s=(g.subscription||{}).status;return !s||s==='trial';}).length;
+  $('ov-expired').textContent=gs.filter(function(g){return (g.subscription||{}).status==='expired';}).length;
+
+  var wrap=$('ov-lists'); wrap.innerHTML='';
+
+  if(!gs.length){
+    wrap.innerHTML='<p style="text-align:center;color:var(--ash);font-size:13px;padding:1rem 0">개설된 추모관이 없습니다</p>';
+    return;
+  }
+
+  /* 최근 등록 (30일) — id 앞부분에서 생성 시각 추출 */
+  var recent=gs.filter(function(g){
+    var ts=getGroupCreatedAt(g);
+    return ts && (now-ts)<30*DAY;
+  }).slice().sort(function(a,b){
+    return (getGroupCreatedAt(b)||0)-(getGroupCreatedAt(a)||0);
+  });
+  appendSection(wrap,'📅 최근 등록 추모관 (30일)',recent,'최근 30일 내 등록된 추모관이 없습니다');
+
+  var spacer=document.createElement('div'); spacer.style.marginTop='.75rem';
+  wrap.appendChild(spacer);
+
+  /* 구독 만료 예정 / 최근 만료 — endDate 기준 D+30 이내 ~ D-60 */
+  var expiring=gs.filter(function(g){
+    var sub=g.subscription||{};
+    if(!sub.endDate)return false;
+    var diff=calcDday(sub.endDate);
+    return diff!==null && diff<=60 && diff>=-30;
+  }).slice().sort(function(a,b){
+    return new Date((a.subscription||{}).endDate).getTime()-new Date((b.subscription||{}).endDate).getTime();
+  });
+  appendSection(wrap,'⏰ 구독 만료 예정 · 최근 만료',expiring,'만료 예정 추모관이 없습니다');
+}
+
+/* ── 배지 ── */
+function calcDday(endDate){
+  if(!endDate)return null;
+  return Math.ceil((new Date(endDate).getTime()-Date.now())/86400000);
+}
+function ddayHtml(diff){
+  if(diff===null)return '';
+  if(diff>30)return '<span class="badge-dday">D-'+diff+'</span>';
+  if(diff>7)return '<span class="badge-dday dday-warn">D-'+diff+'</span>';
+  if(diff>0)return '<span class="badge-dday dday-urgent">D-'+diff+'</span>';
+  if(diff===0)return '<span class="badge-dday dday-urgent">D-day</span>';
+  return '<span class="badge-dday dday-expired">D+'+Math.abs(diff)+'</span>';
+}
+function badgeHtml(status,endDate){
+  var dd=ddayHtml(calcDday(endDate));
+  if(!status||status==='trial')return '<span class="badge b-trial">체험중</span>';
+  if(status==='active')return '<span class="badge b-active">활성</span>'+dd;
+  if(status==='expired')return '<span class="badge b-expired">만료</span>'+dd;
+  return '<span class="badge b-trial">'+esc(status)+'</span>';
+}
+
+/* ── 개요에서 추모관 카드로 이동 ── */
+function _openCardQR(gid,url){
+  var qrEl=document.getElementById('qr-'+gid);
+  if(qrEl&&!qrEl.children.length&&typeof QRCode!=='undefined'){
+    new QRCode(qrEl,{text:url||getMemorialUrl(gid),width:160,height:160,colorDark:'#3D3530',colorLight:'#ffffff',correctLevel:QRCode.CorrectLevel.H});
+  }
+}
+function goToMemorial(gid){
+  switchTab('memorials');
+  setTimeout(function(){
+    var card=document.getElementById('mg-card-'+gid);
+    if(!card)return;
+    var body=card.querySelector('.mg-body');
+    var arr=card.querySelector('.mg-arr');
+    if(body&&!body.classList.contains('open')){
+      body.classList.add('open');
+      if(arr)arr.classList.add('open');
+      _openCardQR(gid);
+    }
+    card.scrollIntoView({behavior:'smooth',block:'start'});
+    card.style.outline='2px solid var(--gold)';
+    setTimeout(function(){card.style.outline='';},1400);
+  },300);
+}
+
+/* ── 전체목록 토글 · 검색 ── */
+function toggleAllList(){
+  var wrap=$('ov-all-wrap');
+  var open=wrap.style.display!=='none';
+  wrap.style.display=open?'none':'block';
+  if(!open){
+    $('ov-search').value='';
+    $('ov-search-clear').style.display='none';
+    filterAllList('');
+    setTimeout(function(){wrap.scrollIntoView({behavior:'smooth',block:'nearest'});},80);
+  }
+}
+function filterAllList(q){
+  loadDB();
+  var sq=(q||'').trim().toLowerCase();
+  $('ov-search-clear').style.display=sq?'inline':'none';
+  var gs=db.groups.slice();
+  if(sq){
+    gs=gs.filter(function(g){
+      return g.members.some(function(m){return m.name&&m.name.toLowerCase().indexOf(sq)>=0;});
+    });
+  }
+  gs.sort(function(a,b){
+    var na=(a.members[0]||{}).name||''; var nb=(b.members[0]||{}).name||'';
+    return na.localeCompare(nb,'ko');
+  });
+  var wrap=$('ov-all-list'); wrap.innerHTML='';
+  if(!gs.length){
+    wrap.innerHTML='<p style="font-size:12px;color:var(--ash);text-align:center;padding:.5rem 0">'+(sq?'검색 결과가 없습니다':'개설된 추모관이 없습니다')+'</p>';
+    return;
+  }
+  gs.forEach(function(g){wrap.appendChild(buildOvRow(g));});
+}
+function clearOvSearch(){
+  $('ov-search').value='';
+  $('ov-search-clear').style.display='none';
+  filterAllList('');
+}
+
+/* ── 추모관 목록 ── */
+function renderMemorials(){
+  loadDB();
+  var wrap=$('mg-list'); wrap.innerHTML='';
+  if(!db.groups.length){
+    wrap.innerHTML='<p style="text-align:center;color:var(--ash);font-size:13px;padding:2rem">개설된 추모관이 없습니다.<br>위 버튼으로 개설해 주세요.</p>';
+    return;
+  }
+  db.groups.forEach(function(g){wrap.appendChild(buildMgCard(g));});
+}
+
+function buildMgCard(g){
+  var names=g.members.map(function(m){return m.name;}).join(' · ');
+  var ct=g.contact||{};
+  var sub=g.subscription||{};
+  var card=document.createElement('div'); card.className='mg-card'; card.id='mg-card-'+g.id;
+
+  /* 헤더 */
+  var head=document.createElement('div'); head.className='mg-head';
+  var av=document.createElement('div'); av.className='mg-avatar';
+  var m0=g.members[0];
+  av.innerHTML=(m0&&m0.portrait)?'<img src="'+m0.portrait+'">':'☺';
+  var info=document.createElement('div'); info.className='mg-info';
+  info.innerHTML='<div class="mg-name">'+esc(names)+badgeHtml(sub.status,sub.endDate)+'</div>'
+    +'<div class="mg-contact">'+(ct.name?esc(ct.name)+' · ':'')+(ct.phone?'📞 '+esc(ct.phone):'<span style="color:var(--ash)">연락처 미등록</span>')+'</div>';
+  var arr=document.createElement('span'); arr.className='mg-arr'; arr.textContent='›';
+  head.appendChild(av); head.appendChild(info); head.appendChild(arr);
+
+  /* 바디 */
+  var body=document.createElement('div'); body.className='mg-body';
+
+  /* 링크 / 비번 / QR */
+  var memUrl=getMemorialUrl(g.id);
+  var linkHtml='<div class="sub-sec-title">추모관 링크</div>'
+    +'<div class="link-box"><div class="link-text" style="font-size:10px">'+esc(memUrl)+'</div>'
+    +'<button class="link-copy" id="lc-url-'+g.id+'">링크복사</button></div>'
+    +'<div style="display:flex;flex-direction:column;align-items:center;gap:6px;padding:.5rem 0 .25rem">'
+    +'<div id="qr-'+g.id+'" class="qr-box"></div>'
+    +'<button class="btn btn-sm" id="qr-dl-'+g.id+'">⬇ QR 이미지 저장</button>'
+    +'</div>'
+    +'<div class="sub-sec-title">현재 비밀번호</div>'
+    +'<div style="display:flex;gap:6px;margin-bottom:6px">'
+    +'<div class="link-box" style="flex:1;margin:0"><div class="link-text">입장: <strong id="lc-pw-show-'+g.id+'">'+esc(g.pw)+'</strong></div><button class="link-copy" id="lc-pw-'+g.id+'">복사</button></div>'
+    +'<div class="link-box" style="flex:1;margin:0"><div class="link-text">관리자: <strong id="lc-apw-show-'+g.id+'">'+esc(g.adminPw||'—')+'</strong></div><button class="link-copy" id="lc-apw-'+g.id+'">복사</button></div>'
+    +'</div>'
+    +'<div class="sub-sec-title">비밀번호 변경</div>'
+    +'<div class="sub-row"><label>입장 PW</label><input type="password" class="mg-new-pw" placeholder="새 비밀번호 (변경 시만 입력)"></div>'
+    +'<div class="sub-row"><label>확인</label><input type="password" class="mg-new-pw2" placeholder="재입력"></div>'
+    +'<div class="sub-row"><label>관리자 PW</label><input type="password" class="mg-new-apw" placeholder="새 관리자 비번 (변경 시만 입력)"></div>'
+    +'<div class="sub-row"><label>확인</label><input type="password" class="mg-new-apw2" placeholder="재입력"></div>';
+
+  /* 연락처 */
+  var ctHtml='<div class="sub-sec-title">담당자 연락처</div>'
+    +'<div class="sub-row"><label>이름</label><input type="text" class="mg-cname" value="'+esc(ct.name||'')+'" placeholder="담당자 이름"></div>'
+    +'<div class="sub-row"><label>전화번호</label><input type="tel" class="mg-cphone" value="'+esc(ct.phone||'')+'" placeholder="010-0000-0000"></div>'
+    +'<div class="sub-row"><label>이메일</label><input type="email" class="mg-cemail" value="'+esc(ct.email||'')+'" placeholder="email@example.com"></div>';
+
+  /* 구독 */
+  var subHtml='<div class="sub-sec-title">구독 정보</div>'
+    +'<div class="sub-row"><label>플랜</label><select class="mg-plan">'
+    +'<option value="trial"'+(sub.plan==='trial'||!sub.plan?' selected':'')+'>무료체험</option>'
+    +'<option value="monthly"'+(sub.plan==='monthly'?' selected':'')+'>월 구독</option>'
+    +'<option value="yearly"'+(sub.plan==='yearly'?' selected':'')+'>연 구독</option>'
+    +'<option value="unlimited"'+(sub.plan==='unlimited'?' selected':'')+'>무제한</option>'
+    +'</select></div>'
+    +'<div class="sub-row"><label>상태</label><select class="mg-status">'
+    +'<option value="trial"'+((!sub.status||sub.status==='trial')?' selected':'')+'>체험중</option>'
+    +'<option value="active"'+(sub.status==='active'?' selected':'')+'>활성</option>'
+    +'<option value="expired"'+(sub.status==='expired'?' selected':'')+'>만료</option>'
+    +'</select></div>'
+    +'<div class="sub-row"><label>시작일</label><input type="date" class="mg-sdate" value="'+(sub.startDate||'')+'"></div>'
+    +'<div class="sub-row"><label>종료일</label><input type="date" class="mg-edate" value="'+(sub.endDate||'')+'"></div>';
+
+  var noteHtml='<div class="sub-sec-title">관리자 메모</div>'
+    +'<textarea class="mg-note" rows="2" style="font-size:13px;padding:8px;border:1px solid var(--stone);border-radius:8px;width:100%;resize:none;background:var(--white);font-family:inherit">'+esc(g.note||'')+'</textarea>';
+
+  body.innerHTML=linkHtml+ctHtml+subHtml+noteHtml;
+
+  /* 버튼 행 */
+  var btnRow=document.createElement('div'); btnRow.style.cssText='display:flex;gap:6px;flex-wrap:wrap;margin-top:.75rem';
+
+  var saveBtn=document.createElement('button'); saveBtn.className='btn btn-sm btn-gold'; saveBtn.textContent='저장';
+  saveBtn.onclick=function(){
+    /* 입장 비밀번호 변경 */
+    var nwPw=body.querySelector('.mg-new-pw').value;
+    var nwPw2=body.querySelector('.mg-new-pw2').value;
+    if(nwPw){
+      if(nwPw.length<4)return toast('입장 비밀번호 4자 이상 입력해 주세요.');
+      if(nwPw!==nwPw2)return toast('입장 비밀번호가 일치하지 않습니다.');
+      g.pw=nwPw;
+      body.querySelector('.mg-new-pw').value='';
+      body.querySelector('.mg-new-pw2').value='';
+      var pwShow=document.getElementById('lc-pw-show-'+g.id);
+      if(pwShow)pwShow.textContent=g.pw;
+    }
+    /* 관리자 비밀번호 변경 */
+    var nwApw=body.querySelector('.mg-new-apw').value;
+    var nwApw2=body.querySelector('.mg-new-apw2').value;
+    if(nwApw){
+      if(nwApw.length<4)return toast('관리자 비밀번호 4자 이상 입력해 주세요.');
+      if(nwApw!==nwApw2)return toast('관리자 비밀번호가 일치하지 않습니다.');
+      g.adminPw=nwApw;
+      body.querySelector('.mg-new-apw').value='';
+      body.querySelector('.mg-new-apw2').value='';
+      var apwShow=document.getElementById('lc-apw-show-'+g.id);
+      if(apwShow)apwShow.textContent=g.adminPw;
+    }
+    g.contact={
+      name:body.querySelector('.mg-cname').value.trim(),
+      phone:body.querySelector('.mg-cphone').value.trim(),
+      email:body.querySelector('.mg-cemail').value.trim()
+    };
+    g.subscription={
+      plan:body.querySelector('.mg-plan').value,
+      status:body.querySelector('.mg-status').value,
+      startDate:body.querySelector('.mg-sdate').value,
+      endDate:body.querySelector('.mg-edate').value
+    };
+    g.note=body.querySelector('.mg-note').value.trim();
+    saveDB(); renderOverview();
+    info.querySelector('.mg-name').innerHTML=esc(names)+badgeHtml(g.subscription.status,g.subscription.endDate);
+    toast('저장되었습니다.');
+  };
+
+  var smsBtn=document.createElement('button'); smsBtn.className='btn btn-sm'; smsBtn.textContent='💬 문자';
+  smsBtn.onclick=function(){
+    var phone=body.querySelector('.mg-cphone').value.trim()||ct.phone;
+    if(!phone)return toast('전화번호를 먼저 저장해 주세요.');
+    var url=getMemorialUrl(g.id);
+    var msg='[사이버 추모관 안내]\n'+names+' 추모관이 개설되었습니다.\n\n🔗 링크: '+url+'\n🔑 입장 비밀번호: '+g.pw+'\n\n링크를 클릭하여 추모관에 입장하실 수 있습니다.';
+    window.open('sms:'+phone+'?body='+encodeURIComponent(msg),'_self');
+  };
+
+  var infoBtn=document.createElement('button'); infoBtn.className='btn btn-sm'; infoBtn.textContent='🔗 링크 안내';
+  infoBtn.onclick=function(){showInfoModal(g);};
+
+  var delBtn=document.createElement('button'); delBtn.className='btn btn-sm btn-danger'; delBtn.textContent='삭제';
+  delBtn.onclick=function(){
+    if(confirm('"'+names+'" 추모관을 삭제할까요?\n\n이 작업은 되돌릴 수 없습니다.')){
+      delGroup(g.id); renderMemorials(); renderOverview(); toast('삭제되었습니다.');
+    }
+  };
+
+  btnRow.appendChild(saveBtn); btnRow.appendChild(smsBtn); btnRow.appendChild(infoBtn); btnRow.appendChild(delBtn);
+  body.appendChild(btnRow);
+
+  head.onclick=function(){
+    var open=body.classList.toggle('open');
+    arr.classList.toggle('open',open);
+    if(open)_openCardQR(g.id,memUrl);
+  };
+  card.appendChild(head); card.appendChild(body);
+
+  /* 버튼 이벤트 (HTML 인젝션 회피) */
+  setTimeout(function(){
+    var lcUrl=document.getElementById('lc-url-'+g.id);
+    var lcPw=document.getElementById('lc-pw-'+g.id);
+    var lcApw=document.getElementById('lc-apw-'+g.id);
+    var qrDl=document.getElementById('qr-dl-'+g.id);
+    if(lcUrl)lcUrl.onclick=function(){copyToClipboard(memUrl);};
+    if(lcPw)lcPw.onclick=function(){copyToClipboard(g.pw);};
+    if(lcApw)lcApw.onclick=function(){copyToClipboard(g.adminPw||'');};
+    if(qrDl)qrDl.onclick=function(){
+      var qrEl=document.getElementById('qr-'+g.id);
+      var canvas=qrEl?qrEl.querySelector('canvas'):null;
+      if(!canvas){toast('카드를 먼저 열어 QR을 생성해 주세요.');return;}
+      downloadQRPng(canvas, names);
+    };
+  },0);
+
+  return card;
+}
+
+function delGroup(gid){
+  var g=db.groups.find(function(x){return x.id===gid;});if(!g)return;
+  (g.posts||[]).forEach(function(p){
+    (p.media||[]).forEach(function(m,i){localStorage.removeItem(DB_KEY+'_pm_'+p.id+'_'+i);});
+  });
+  db.groups=db.groups.filter(function(x){return x.id!==gid;});
+  saveDB();
+}
+
+/* ── 추모관 URL ── */
+function getMemorialUrl(gid){
+  var href=window.location.href;
+  var base=href.replace(/[?#].*$/,'').replace(/\/[^\/]*$/, '/');
+  return base+'memorial.html?gid='+gid;
+}
+
+/* ── 개설 모달 ── */
+function openCreateModal(){
+  _p1data=null; _p2data=null;
+  ['m-n1','m-b1','m-d1','m-bio1','m-n2','m-b2','m-d2','m-bio2',
+   'm-pw','m-pw2','m-apw','m-apw2','m-cname','m-cphone','m-cemail','m-note'].forEach(function(id){$(id).value='';});
+  $('m-p1-prev').innerHTML='☺'; $('m-p2-prev').innerHTML='☺';
+  $('m-p1-label').textContent='사진 선택';
+  $('m-plan').value='trial'; $('m-status').value='trial';
+  $('m-sdate').value=''; $('m-edate').value='';
+  toggleP2(false);
+  $('create-modal').classList.add('open');
+  document.body.style.overflow='hidden';
+}
+function closeCreateModal(){
+  $('create-modal').classList.remove('open');
+  document.body.style.overflow='';
+}
+
+function prevPortrait(input,idx){
+  if(!input.files[0])return;
+  var r=new FileReader(); r.onload=function(e){
+    if(idx===1){_p1data=e.target.result;$('m-p1-prev').innerHTML='<img src="'+e.target.result+'" style="width:100%;height:100%;object-fit:cover">';}
+    else{_p2data=e.target.result;$('m-p2-prev').innerHTML='<img src="'+e.target.result+'" style="width:100%;height:100%;object-fit:cover">';}
+  }; r.readAsDataURL(input.files[0]);
+}
+
+function toggleP2(open){
+  $('person2-section').classList.toggle('open',open);
+  $('btn-add-p2').style.display=open?'none':'';
+  $('m-p2-slot').style.display=open?'':'none';
+  $('m-p1-label').textContent=open?'첫 번째 고인':'사진 선택';
+}
+
+function saveNewMemorial(){
+  var name1=$('m-n1').value.trim();
+  if(!name1)return toast('첫 번째 고인 성함을 입력해 주세요.');
+  var p2open=$('person2-section').classList.contains('open');
+  if(p2open&&!$('m-n2').value.trim())return toast('두 번째 고인 성함을 입력해 주세요.');
+  var pw=$('m-pw').value, pw2=$('m-pw2').value;
+  var apw=$('m-apw').value, apw2=$('m-apw2').value;
+  if(!pw||pw.length<4)return toast('입장 비밀번호를 4자 이상 입력해 주세요.');
+  if(pw!==pw2)return toast('입장 비밀번호가 일치하지 않습니다.');
+  if(!apw||apw.length<4)return toast('관리자 비밀번호를 4자 이상 입력해 주세요.');
+  if(apw!==apw2)return toast('관리자 비밀번호가 일치하지 않습니다.');
+
+  var m1={id:uid(),name:name1,birth:$('m-b1').value,death:$('m-d1').value,bio:$('m-bio1').value.trim(),portrait:_p1data};
+  var members=[m1];
+  if(p2open){
+    members.push({id:uid(),name:$('m-n2').value.trim(),birth:$('m-b2').value,death:$('m-d2').value,bio:$('m-bio2').value.trim(),portrait:_p2data});
+  }
+
+  var newG={
+    id:uid(), pw:pw, adminPw:apw, visits:0,
+    members:members, posts:[],
+    contact:{name:$('m-cname').value.trim(),phone:$('m-cphone').value.trim(),email:$('m-cemail').value.trim()},
+    subscription:{plan:$('m-plan').value,status:$('m-status').value,startDate:$('m-sdate').value,endDate:$('m-edate').value},
+    note:$('m-note').value.trim()
+  };
+
+  loadDB();
+  db.groups.push(newG);
+  saveDB();
+
+  closeCreateModal();
+  toast('추모관이 개설되었습니다!');
+  setTimeout(function(){showInfoModal(newG);},350);
+}
+
+/* ── QR 다운로드 ── */
+function downloadQRPng(srcCanvas, label){
+  var size=srcCanvas.width;
+  var pad=20;
+  var textH=52;
+  var c=document.createElement('canvas');
+  c.width=size+pad*2;
+  c.height=size+pad*2+textH;
+  var ctx=c.getContext('2d');
+  ctx.fillStyle='#FFFFFF';
+  ctx.fillRect(0,0,c.width,c.height);
+  ctx.drawImage(srcCanvas,pad,pad,size,size);
+  ctx.fillStyle='#3D3530';
+  ctx.textAlign='center';
+  ctx.font='bold 14px sans-serif';
+  ctx.fillText(label||'추모관 QR',c.width/2,size+pad*2+18);
+  ctx.font='11px sans-serif';
+  ctx.fillStyle='#6B5F58';
+  ctx.fillText('스캔하여 추모관 입장',c.width/2,size+pad*2+38);
+  var a=document.createElement('a');
+  a.download=(label||'추모관')+'_QR.png';
+  a.href=c.toDataURL('image/png');
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+}
+function downloadInfoQR(){
+  var qrEl=$('info-qr');
+  var canvas=qrEl?qrEl.querySelector('canvas'):null;
+  if(!canvas){toast('QR 코드가 아직 생성되지 않았습니다.');return;}
+  downloadQRPng(canvas, _infoData.names||'추모관');
+}
+
+/* ── 개설 완료 안내 ── */
+function showInfoModal(g){
+  var names=g.members.map(function(m){return m.name;}).join(' · ');
+  var url=getMemorialUrl(g.id);
+  var msg='[사이버 추모관 안내]\n'+names+' 추모관이 개설되었습니다.\n\n🔗 링크: '+url+'\n🔑 입장 비밀번호: '+g.pw+'\n\n링크를 클릭하여 추모관에 입장하실 수 있습니다.';
+
+  _infoData={url:url, pw:g.pw, apw:g.adminPw||'', msg:msg, names:names, phone:(g.contact||{}).phone||''};
+
+  $('info-url').textContent=url;
+  $('info-pw').textContent=g.pw;
+  $('info-apw').textContent=g.adminPw||'—';
+  $('info-msg').textContent=msg;
+
+  /* QR 생성 */
+  var qrEl=$('info-qr');
+  qrEl.innerHTML='';
+  if(typeof QRCode!=='undefined'){
+    setTimeout(function(){
+      new QRCode(qrEl,{text:url,width:180,height:180,colorDark:'#3D3530',colorLight:'#ffffff',correctLevel:QRCode.CorrectLevel.H});
+    },80);
+  }
+
+  $('info-modal').classList.add('open');
+}
+function closeInfoModal(){
+  $('info-modal').classList.remove('open');
+  switchTab('memorials');
+}
+function copyInfo(type){
+  var text=_infoData[type];
+  if(text)copyToClipboard(text);
+}
+function sendInfoSms(){
+  var phone=_infoData.phone;
+  if(!phone)return toast('등록된 전화번호가 없습니다.\n추모관 카드에서 연락처를 저장해 주세요.');
+  window.open('sms:'+phone+'?body='+encodeURIComponent(_infoData.msg),'_self');
+}
+
+/* ── 문자 ── */
+function renderSms(){
+  loadDB();
+  var wrap=$('sms-recipients'); wrap.innerHTML='';
+  var hasPh=false;
+  db.groups.forEach(function(g){
+    var ct=g.contact||{};
+    if(!ct.phone)return;
+    hasPh=true;
+    var names=g.members.map(function(m){return m.name;}).join(' · ');
+    var row=document.createElement('div'); row.className='sms-row';
+    var cb=document.createElement('input'); cb.type='checkbox'; cb.className='sms-chk';
+    cb.dataset.phone=ct.phone; cb.dataset.name=names;
+    var inf=document.createElement('div'); inf.style.flex='1';
+    inf.innerHTML='<div class="sms-rname">'+esc(names)+'</div><div class="sms-rphone">'+esc(ct.phone)+'</div>';
+    row.appendChild(cb); row.appendChild(inf);
+    wrap.appendChild(row);
+  });
+  if(!hasPh)wrap.innerHTML='<p style="color:var(--ash);font-size:13px;text-align:center;padding:1.25rem 0">전화번호가 등록된 추모관이 없습니다</p>';
+}
+function smsSelectAll(v){document.querySelectorAll('.sms-chk').forEach(function(c){c.checked=v;});}
+function sendSms(){
+  var checks=Array.from(document.querySelectorAll('.sms-chk:checked'));
+  if(!checks.length)return toast('수신자를 선택해 주세요.');
+  var msg=$('sms-body').value.trim();
+  if(!msg)return toast('메시지를 입력해 주세요.');
+  var phones=checks.map(function(c){return c.dataset.phone;});
+  window.open('sms:'+phones.join(',')+'?body='+encodeURIComponent(msg),'_self');
+}
+function copySmsInfo(){
+  var checks=Array.from(document.querySelectorAll('.sms-chk:checked'));
+  if(!checks.length)return toast('수신자를 선택해 주세요.');
+  var msg=$('sms-body').value.trim();
+  var text='[수신자]\n'+checks.map(function(c){return c.dataset.name+' '+c.dataset.phone;}).join('\n')+'\n\n'+msg;
+  copyToClipboard(text);
+}
+
+/* ── 설정 ── */
+function renderSettings(){
+  loadSvcAdm();
+  $('set-name').value=svcAdm.name||'';
+  $('set-id').value=svcAdm.id||'';
+  $('set-cur-pw').value=''; $('set-new-pw').value=''; $('set-new-pw2').value='';
+}
+function saveAccount(){
+  var n=$('set-name').value.trim(), id=$('set-id').value.trim();
+  if(!n||!id)return toast('이름과 ID를 입력해 주세요.');
+  svcAdm.name=n; svcAdm.id=id; saveSvcAdm(); toast('저장되었습니다.');
+}
+function changePw(){
+  loadSvcAdm();
+  var cur=$('set-cur-pw').value, nw=$('set-new-pw').value, nw2=$('set-new-pw2').value;
+  if(cur!==svcAdm.pw)return toast('현재 비밀번호가 틀렸습니다.');
+  if(!nw||nw.length<4)return toast('새 비밀번호 4자 이상 입력해 주세요.');
+  if(nw!==nw2)return toast('비밀번호가 일치하지 않습니다.');
+  svcAdm.pw=nw; saveSvcAdm();
+  $('set-cur-pw').value=''; $('set-new-pw').value=''; $('set-new-pw2').value='';
+  toast('비밀번호가 변경되었습니다.');
+}
+
+/* ── 이메일 도메인 드롭다운 ── */
+(function(){
+  var ED=['naver.com','daum.net','hanmail.net','nate.com','korea.com','hotmail.com','gmail.com'];
+  var dd=document.createElement('div');dd.className='email-dd';document.body.appendChild(dd);
+  var cur=null;
+  function render(inp){
+    cur=inp;
+    var val=inp.value||'',at=val.indexOf('@');
+    var suf=at>=0?val.slice(at+1).toLowerCase():'';
+    var list=suf?ED.filter(function(d){return d.indexOf(suf)===0;}):ED;
+    var rect=inp.getBoundingClientRect();
+    dd.innerHTML='';
+    dd.style.left=rect.left+'px';dd.style.top=(rect.bottom+2)+'px';dd.style.width=rect.width+'px';
+    dd.style.display=(list.length||!suf)?'block':'none';
+    list.forEach(function(d){
+      var b=document.createElement('button');b.type='button';b.className='ed-item';b.textContent='@'+d;
+      b.onmousedown=function(e){
+        e.preventDefault();
+        inp.value=(at>=0?val.slice(0,at):val)+'@'+d;
+        dd.style.display='none';
+      };
+      dd.appendChild(b);
+    });
+    var mb=document.createElement('button');mb.type='button';mb.className='ed-item ed-manual';mb.textContent='직접입력';
+    mb.onmousedown=function(e){e.preventDefault();dd.style.display='none';};
+    dd.appendChild(mb);
+  }
+  document.addEventListener('focusin',function(e){if(e.target&&e.target.type==='email')render(e.target);});
+  document.addEventListener('input',function(e){if(e.target&&e.target.type==='email'&&e.target===cur)render(e.target);});
+  document.addEventListener('focusout',function(e){if(e.target&&e.target.type==='email')setTimeout(function(){dd.style.display='none';},180);});
+})();
+
+/* ── 초기화 ── */
+(function init(){
+  loadSvcAdm();
+  showScreen('s-login');
+  document.addEventListener('keydown',function(e){
+    if(e.key==='Escape'){
+      closeCreateModal();
+      $('info-modal').classList.remove('open');
+    }
+  });
+})();
+</script>
+</body>
+</html>
