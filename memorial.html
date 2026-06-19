@@ -654,8 +654,8 @@ label{font-size:13px;color:var(--mid);display:block;margin-bottom:5px}
     <input type="file" id="p-media-file" multiple accept="image/*,video/*" style="display:none" onchange="addComposeMedia(this)">
     <div class="fg" style="margin-bottom:0"><label>추모의 글</label><textarea id="p-text" rows="4" placeholder="고인을 향한 마음을 적어주세요..."></textarea></div>
     <div class="fg" style="margin-top:10px;margin-bottom:0">
-      <label>게시물 비밀번호 <span style="color:var(--ash);font-weight:400">(선택 · 수정·삭제에 사용)</span></label>
-      <input type="password" id="p-pw" placeholder="비밀번호를 설정하면 작성자만 수정·삭제 가능" maxlength="20" autocomplete="new-password">
+      <label>게시물 비밀번호 <span style="color:#c0392b;font-weight:700">*</span> <span style="color:var(--ash);font-weight:400">(수정·삭제에 사용)</span></label>
+      <input type="password" id="p-pw" placeholder="비밀번호를 입력해 주세요 (필수)" maxlength="20" autocomplete="new-password">
     </div>
   </div>
 </div>
@@ -1362,6 +1362,7 @@ function submitPost(){
   var author=$('p-author').value.trim(), text=$('p-text').value.trim();
   if(!author)return toast('이름을 입력해 주세요.');
   if(!text&&_csrcs.length===0)return toast('글 또는 사진/영상을 추가해 주세요.');
+  if(!$('p-pw').value.trim())return toast('비밀번호를 입력해 주세요.');
   g.posts.unshift({id:uid(),author:author,rel:$('p-rel').value.trim(),text:text,pw:$('p-pw').value.trim(),date:new Date().toISOString(),likes:0,liked:false,comments:[],media:_csrcs.slice()});
   saveDB();
   $('p-author').value='';$('p-rel').value='';$('p-text').value='';$('p-pw').value='';
@@ -1532,16 +1533,11 @@ var _pwVerifyCb=null;
 var _pwVerifyCtx=null;
 
 function _requestPostAction(p,g,action){
-  /* 비밀번호가 있는 게시물은 관리자 여부와 관계없이 항상 인증 필요 */
-  if(p.pw){
-    _showPwVerify(p,g,action==='edit'?'게시물 수정':'게시물 삭제',function(){
-      if(action==='edit')openEditSheet(p);
-      else{if(confirm('게시물을 삭제할까요?'))delPost(p.id,g);}
-    });
-  } else {
+  /* 비밀번호 유무와 관계없이 항상 인증 모달 표시 */
+  _showPwVerify(p,g,action==='edit'?'게시물 수정':'게시물 삭제',function(){
     if(action==='edit')openEditSheet(p);
     else{if(confirm('게시물을 삭제할까요?'))delPost(p.id,g);}
-  }
+  });
 }
 
 function _showPwVerify(p,g,title,cb){
@@ -1554,8 +1550,12 @@ function _showPwVerify(p,g,title,cb){
 }
 function _pwVerifyConfirm(){
   var entered=$('pw-verify-input').value;
+  if(!entered){$('pw-verify-err').style.display='block';$('pw-verify-input').select();return;}
   var p=_pwVerifyCtx.p; var g=_pwVerifyCtx.g;
-  if(entered===p.pw||(g.adminPw&&entered===g.adminPw)){
+  /* p.pw가 없는 구버전 게시물은 관리자 비밀번호로만 허용 */
+  var postPwOk=p.pw&&entered===p.pw;
+  var adminPwOk=g.adminPw&&entered===g.adminPw;
+  if(postPwOk||adminPwOk){
     $('pw-verify-backdrop').style.display='none';
     var cb=_pwVerifyCb; _pwVerifyCb=null; _pwVerifyCtx=null;
     if(cb)cb();
