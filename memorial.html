@@ -702,7 +702,9 @@ label{font-size:13px;color:var(--mid);display:block;margin-bottom:5px}
       <div class="fg" style="margin-bottom:0"><label>이름 *</label><input type="text" id="edit-p-author" maxlength="20"></div>
       <div class="fg" style="margin-bottom:0"><label>관계</label><input type="text" id="edit-p-rel" maxlength="20"></div>
     </div>
-    <div class="fg" style="margin-bottom:0"><label>추모의 글</label><textarea id="edit-p-text" rows="6"></textarea></div>
+    <div class="fg" style="margin-bottom:8px"><label>추모의 글</label><textarea id="edit-p-text" rows="4"></textarea></div>
+    <div class="compose-media-prev" id="edit-prev"></div>
+    <input type="file" id="edit-media-file" multiple accept="image/*,video/*" style="display:none" onchange="addEditMedia(this)">
   </div>
 </div>
 
@@ -1506,7 +1508,8 @@ var _pwVerifyCb=null;
 var _pwVerifyCtx=null;
 
 function _requestPostAction(p,g,action){
-  if(p.pw&&!_adminAuthed){
+  /* 비밀번호가 있는 게시물은 관리자 여부와 관계없이 항상 인증 필요 */
+  if(p.pw){
     _showPwVerify(p,g,action==='edit'?'게시물 수정':'게시물 삭제',function(){
       if(action==='edit')openEditSheet(p);
       else{if(confirm('게시물을 삭제할까요?'))delPost(p.id,g);}
@@ -1543,11 +1546,15 @@ function _pwVerifyCancel(){
 }
 
 var _editPostId=null;
+var _editMediaSrcs=[];
+
 function openEditSheet(p){
   _editPostId=p.id;
+  _editMediaSrcs=(p.media||[]).map(function(m){return{src:m.src,type:m.type,name:m.name||''};});
   $('edit-p-author').value=p.author||'';
   $('edit-p-rel').value=p.rel||'';
   $('edit-p-text').value=p.text||'';
+  renderEditPrev();
   $('edit-sheet-backdrop').classList.add('open');
   $('edit-sheet').classList.add('open');
   setTimeout(function(){$('edit-p-text').focus();},350);
@@ -1555,18 +1562,42 @@ function openEditSheet(p){
 function closeEditSheet(){
   $('edit-sheet-backdrop').classList.remove('open');
   $('edit-sheet').classList.remove('open');
-  _editPostId=null;
+  _editPostId=null; _editMediaSrcs=[];
+}
+function addEditMedia(input){
+  if(!input.files.length)return;
+  Array.from(input.files).forEach(function(f){
+    if(f.size>52428800){toast(f.name+' 50MB 초과');return;}
+    var r=new FileReader();
+    r.onload=function(e){_editMediaSrcs.push({src:e.target.result,type:f.type.startsWith('video')?'video':'image',name:f.name});renderEditPrev();};
+    r.readAsDataURL(f);
+  });
+  input.value='';
+}
+function renderEditPrev(){
+  var w=$('edit-prev'); w.innerHTML='';
+  _editMediaSrcs.forEach(function(m,i){
+    var d=document.createElement('div'); d.className='cmp-thumb';
+    d.innerHTML=m.type==='video'?'<video src="'+m.src+'" style="width:100%;height:100%;object-fit:cover"></video>':'<img src="'+m.src+'" alt="">';
+    var x=document.createElement('button'); x.className='cmp-thumb-del'; x.textContent='✕';
+    (function(idx){x.onclick=function(){_editMediaSrcs.splice(idx,1);renderEditPrev();};})(i);
+    d.appendChild(x); w.appendChild(d);
+  });
+  var a=document.createElement('div'); a.className='add-media-btn';
+  a.innerHTML='<span class="add-media-icon">＋</span><span>사진/영상</span>';
+  a.onclick=function(){$('edit-media-file').click();}; w.appendChild(a);
 }
 function submitEdit(){
   if(!_editPostId)return;
   var g=curg(); if(!g)return;
   var text=$('edit-p-text').value.trim();
-  if(!text)return toast('내용을 입력해 주세요.');
+  if(!text&&_editMediaSrcs.length===0)return toast('글 또는 사진/영상을 추가해 주세요.');
   var idx=g.posts.findIndex(function(x){return x.id===_editPostId;});
   if(idx===-1)return toast('게시물을 찾을 수 없습니다.');
   g.posts[idx].text=text;
   g.posts[idx].author=$('edit-p-author').value.trim()||g.posts[idx].author;
   g.posts[idx].rel=$('edit-p-rel').value.trim();
+  g.posts[idx].media=_editMediaSrcs.slice();
   saveDB(); closeEditSheet(); renderFeed(); toast('수정되었습니다.');
 }
 
