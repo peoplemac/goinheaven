@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <title>사이버 추모관</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.47.0/tabler-icons.min.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <!-- Firebase SDK -->
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
@@ -193,10 +194,12 @@ label{font-size:13px;color:var(--mid);display:block;margin-bottom:5px}
   width:100%;max-width:var(--r);background:var(--white);border-top:1px solid var(--stone);
   display:flex;z-index:100;padding-bottom:env(safe-area-inset-bottom,0)}
 .bnav-item{flex:1;display:flex;flex-direction:column;align-items:center;
-  padding:9px 0 7px;cursor:pointer;color:var(--ash);font-size:10px;
-  border:none;background:none;font-family:inherit;gap:3px}
+  padding:8px 0 6px;cursor:pointer;color:var(--ash);font-size:10px;
+  border:none;background:none;font-family:inherit;gap:2px;transition:color .15s}
 .bnav-item.active{color:var(--gold)}
 .bnav-icon{font-size:20px;line-height:1}
+.bnav-dot{width:4px;height:4px;border-radius:50%;background:transparent;margin-top:1px;transition:background .15s}
+.bnav-item.active .bnav-dot{background:var(--gold)}
 
 /* ── FEED ── */
 .feed-panel{display:none}.feed-panel.active{display:block}
@@ -604,16 +607,16 @@ label{font-size:13px;color:var(--mid);display:block;margin-bottom:5px}
 
   <nav class="bottom-nav">
     <button class="bnav-item" onclick="homeFromMemorial()">
-      <span class="bnav-icon">🏠</span><span>홈</span>
+      <i class="ti ti-home bnav-icon" aria-hidden="true"></i><span>홈</span><span class="bnav-dot"></span>
     </button>
     <button class="bnav-item active" data-panel="feed" onclick="switchPanel(this)">
-      <span class="bnav-icon">📜</span><span>피드</span>
+      <i class="ti ti-list bnav-icon" aria-hidden="true"></i><span>피드</span><span class="bnav-dot"></span>
     </button>
     <button class="bnav-item" data-panel="qr" onclick="switchPanel(this)">
-      <span class="bnav-icon">⬜</span><span>QR</span>
+      <i class="ti ti-qrcode bnav-icon" aria-hidden="true"></i><span>QR</span><span class="bnav-dot"></span>
     </button>
     <button class="bnav-item" data-panel="admin" onclick="switchPanel(this)">
-      <span class="bnav-icon">⚙️</span><span>관리</span>
+      <i class="ti ti-settings bnav-icon" aria-hidden="true"></i><span>관리</span><span class="bnav-dot"></span>
     </button>
   </nav>
 </div>
