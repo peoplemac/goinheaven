@@ -200,6 +200,13 @@ label{font-size:13px;color:var(--mid);display:block;margin-bottom:5px}
 .bnav-icon{font-size:20px;line-height:1}
 .bnav-dot{width:4px;height:4px;border-radius:50%;background:transparent;margin-top:1px;transition:background .15s}
 .bnav-item.active .bnav-dot{background:var(--gold)}
+.fab-write{position:fixed;bottom:calc(68px + env(safe-area-inset-bottom,0) + 10px);
+  right:16px;width:52px;height:52px;border-radius:50%;background:var(--gold);
+  border:none;cursor:pointer;display:none;align-items:center;justify-content:center;
+  z-index:99;box-shadow:0 4px 16px rgba(184,150,90,.45);
+  transition:transform .12s,box-shadow .12s;color:#fff;font-family:inherit}
+.fab-write.visible{display:flex}
+.fab-write:active{transform:scale(.92);box-shadow:0 2px 6px rgba(184,150,90,.2)}
 
 /* ── FEED ── */
 .feed-panel{display:none}.feed-panel.active{display:block}
@@ -604,6 +611,10 @@ label{font-size:13px;color:var(--mid);display:block;margin-bottom:5px}
       </div>
     </div>
   </div>
+
+  <button class="fab-write" id="fab-write" onclick="openSheet()" aria-label="추모의 글 작성">
+    <i class="ti ti-edit" style="font-size:22px" aria-hidden="true"></i>
+  </button>
 
   <nav class="bottom-nav">
     <button class="bnav-item" onclick="homeFromMemorial()">
@@ -1225,6 +1236,7 @@ function switchPanelByName(name){
   if(name==='qr')renderQR();
   if(name==='admin')checkAdminAuth();
   document.querySelectorAll('[data-panel]').forEach(function(b){b.classList.toggle('active',b.getAttribute('data-panel')===name);});
+  var fab=$('fab-write');if(fab)fab.classList.toggle('visible',name==='feed');
 }
 function checkAdminAuth(){
   var g=curg();
