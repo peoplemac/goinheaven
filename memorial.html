@@ -771,6 +771,12 @@ async function _fbLoad(){
     /* localStorage 캐시 갱신 */
     _localSave();
     _fbLoading=false;
+    /* 추모관 화면이 열려 있으면 최신 Firebase 데이터로 즉시 재렌더 */
+    var _fbRG=curg();
+    var _fbMS=$('s-memorial');
+    if(_fbRG&&_fbMS&&_fbMS.classList.contains('active')){
+      renderProfile(_fbRG);renderFeed();renderStats();
+    }
     return true;
   }catch(e){_fbLoading=false;return false;}
 }
