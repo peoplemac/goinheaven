@@ -380,7 +380,7 @@ label{font-size:13px;color:var(--mid);display:block;margin-bottom:5px}
         <div class="fg"><label>생년월일</label><input type="date" id="m-b1"></div>
         <div class="fg"><label>기일</label><input type="date" id="m-d1"></div>
       </div>
-      <div class="fg"><label>약력 · 소개</label><textarea id="m-bio1" rows="2" placeholder="고인의 삶을 간략히 적어주세요."></textarea></div>
+      <div class="fg"><label>약력 · 소개</label><textarea id="m-bio1" rows="2" placeholder="고인의 삶을 간략히 적어주세요." oninput="updateAdminBioLimit()"></textarea><div id="m-bio1-counter" style="text-align:right;font-size:11px;color:var(--ash);margin-top:3px">0 / 100자</div></div>
 
       <button class="add-person-btn" id="btn-add-p2" onclick="toggleP2(true)">＋ 두 번째 고인 추가 (예: 아버지·어머니)</button>
       <div class="person2-section" id="person2-section">
@@ -392,7 +392,7 @@ label{font-size:13px;color:var(--mid);display:block;margin-bottom:5px}
           <div class="fg"><label>생년월일</label><input type="date" id="m-b2"></div>
           <div class="fg"><label>기일</label><input type="date" id="m-d2"></div>
         </div>
-        <div class="fg"><label>약력 · 소개</label><textarea id="m-bio2" rows="2" placeholder="두 번째 고인의 소개를 적어주세요."></textarea></div>
+        <div class="fg"><label>약력 · 소개</label><textarea id="m-bio2" rows="2" placeholder="두 번째 고인의 소개를 적어주세요." oninput="updateAdminBioLimit()"></textarea><div id="m-bio2-counter" style="text-align:right;font-size:11px;color:var(--ash);margin-top:3px">0 / 100자</div></div>
       </div>
 
       <div class="section-title">입장 비밀번호</div>
@@ -419,7 +419,7 @@ label{font-size:13px;color:var(--mid);display:block;margin-bottom:5px}
       <div class="section-title">구독 설정</div>
       <div class="row2">
         <div class="fg"><label>플랜</label>
-          <select id="m-plan">
+          <select id="m-plan" onchange="updateAdminBioLimit()">
             <option value="trial">무료체험</option>
             <option value="monthly">월 구독</option>
             <option value="yearly">연 구독</option>
@@ -619,6 +619,24 @@ function saveDB(){
 }
 function loadSvcAdm(){try{var r=localStorage.getItem(ADM_KEY);if(r)svcAdm=JSON.parse(r);}catch(e){}}
 function saveSvcAdm(){localStorage.setItem(ADM_KEY,JSON.stringify(svcAdm));}
+
+/* ── 약력 글자 수 제한 ── */
+function getBioAdminLimit(plan){
+  if(!plan||plan==='trial')return 100;
+  return 1000;
+}
+function updateAdminBioLimit(){
+  var plan=$('m-plan')?$('m-plan').value:'trial';
+  var limit=getBioAdminLimit(plan);
+  ['m-bio1','m-bio2'].forEach(function(id){
+    var ta=$(id); if(!ta)return;
+    ta.maxLength=limit;
+    var cnt=$(id+'-counter'); if(!cnt)return;
+    var len=ta.value.length;
+    cnt.textContent=len+' / '+limit+'자';
+    cnt.style.color=len>=limit?'#c0392b':(len>=Math.floor(limit*0.9)?'#e67e22':'var(--ash)');
+  });
+}
 
 /* ── 화면 ── */
 function showScreen(id){
@@ -856,6 +874,9 @@ function buildMgCard(g){
   var av=document.createElement('div'); av.className='mg-avatar';
   var m0=g.members[0];
   av.innerHTML=(m0&&m0.portrait)?'<img src="'+m0.portrait+'">':'☺';
+  av.title='추모관 바로 열기';
+  av.style.cursor='pointer';
+  (function(gid,pw){av.addEventListener('click',function(e){e.stopPropagation();openMemorialDirect(gid,pw);});})(g.id,g.pw);
   var info=document.createElement('div'); info.className='mg-info';
   info.innerHTML='<div class="mg-name">'+esc(names)+badgeHtml(sub.status,sub.endDate)+'</div>'
     +'<div class="mg-contact">'+(ct.name?esc(ct.name)+' · ':'')+(ct.phone?'📞 '+esc(ct.phone):'<span style="color:var(--ash)">연락처 미등록</span>')+'</div>';
@@ -1023,6 +1044,10 @@ function getMemorialUrl(gid){
   var base=href.replace(/[?#].*$/,'').replace(/\/[^\/]*$/, '/');
   return base+'memorial.html?gid='+gid;
 }
+function openMemorialDirect(gid,pw){
+  localStorage.setItem('adm_bypass',gid+'|'+pw+'|'+Date.now());
+  window.open(getMemorialUrl(gid),'_blank');
+}
 
 /* ── 개설 모달 ── */
 function openCreateModal(){
@@ -1034,6 +1059,7 @@ function openCreateModal(){
   $('m-plan').value='trial'; $('m-status').value='trial';
   $('m-sdate').value=''; $('m-edate').value='';
   toggleP2(false);
+  updateAdminBioLimit();
   $('create-modal').classList.add('open');
   document.body.style.overflow='hidden';
 }
@@ -1068,6 +1094,9 @@ function saveNewMemorial(){
   if(pw!==pw2)return toast('입장 비밀번호가 일치하지 않습니다.');
   if(!apw||apw.length<4)return toast('관리자 비밀번호를 4자 이상 입력해 주세요.');
   if(apw!==apw2)return toast('관리자 비밀번호가 일치하지 않습니다.');
+  var _bioLimit=getBioAdminLimit($('m-plan').value);
+  if($('m-bio1').value.trim().length>_bioLimit)return toast('첫 번째 약력은 '+_bioLimit+'자 이내로 입력해 주세요.');
+  if(p2open&&$('m-bio2').value.trim().length>_bioLimit)return toast('두 번째 약력은 '+_bioLimit+'자 이내로 입력해 주세요.');
 
   var m1={id:uid(),name:name1,birth:$('m-b1').value,death:$('m-d1').value,bio:$('m-bio1').value.trim(),portrait:_p1data};
   var members=[m1];

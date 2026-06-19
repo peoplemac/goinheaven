@@ -172,7 +172,7 @@ label{font-size:13px;color:var(--mid);display:block;margin-bottom:5px}
 .mem-bio-block{background:var(--stone);border-radius:10px;padding:9px 14px;text-align:left}
 .mem-bio-block+.mem-bio-block{margin-top:6px}
 .mem-bio-name{display:block;font-size:12px;font-weight:700;color:var(--gold);letter-spacing:.05em;margin-bottom:4px}
-.mem-bio-text{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;font-size:13px;color:var(--mid);line-height:1.7}
+.mem-bio-text{font-size:13px;color:var(--mid);line-height:1.7;white-space:pre-wrap;word-break:keep-all}
 .mem-stats{display:flex;justify-content:center;gap:2rem;margin-top:1.25rem;
   padding-top:1.25rem;border-top:1px solid var(--stone)}
 .mem-stat-n{font-size:18px;font-weight:500}
@@ -226,7 +226,11 @@ label{font-size:13px;color:var(--mid);display:block;margin-bottom:5px}
 .post-author{font-size:13px;font-weight:600;color:var(--deep)}
 .post-rel{font-size:11px;color:var(--warm)}
 .post-date{font-size:11px;color:var(--ash)}
-.post-del{font-size:18px;color:var(--ash);background:none;border:none;cursor:pointer;padding:4px}
+.post-del{font-size:18px;color:var(--ash);background:none;border:none;cursor:pointer;padding:4px;position:relative}
+.post-action-menu{position:absolute;right:0;top:28px;background:#fff;border:1px solid var(--stone);border-radius:10px;overflow:hidden;z-index:50;min-width:90px;box-shadow:0 2px 10px rgba(0,0,0,.12)}
+.post-action-menu button{display:block;width:100%;padding:10px 18px;text-align:center;border:none;background:none;cursor:pointer;font-size:14px;color:var(--deep);font-family:inherit;white-space:nowrap}
+.post-action-menu button:active{background:var(--ivory)}
+.post-action-menu button:first-child{border-bottom:1px solid var(--stone)}
 .post-media{width:100%;background:#000;position:relative}
 .post-media img{width:100%;max-height:420px;object-fit:contain;display:block}
 .post-media video{width:100%;max-height:420px;object-fit:contain;display:block;background:#000}
@@ -559,7 +563,7 @@ label{font-size:13px;color:var(--mid);display:block;margin-bottom:5px}
           <div class="fg"><label>생년월일</label><input type="date" id="ad-birth"></div>
           <div class="fg"><label>기일</label><input type="date" id="ad-death"></div>
         </div>
-        <div class="fg"><label>약력 · 소개</label><textarea id="ad-bio" rows="3"></textarea></div>
+        <div class="fg"><label>약력 · 소개</label><textarea id="ad-bio" rows="3" oninput="updateBioCounter()"></textarea><div id="bio-counter" style="text-align:right;font-size:11px;color:var(--ash);margin-top:3px"></div></div>
         <button class="btn btn-sm btn-gold" onclick="saveBio()">저장</button>
       </div>
       <div class="adm-card">
@@ -633,6 +637,10 @@ label{font-size:13px;color:var(--mid);display:block;margin-bottom:5px}
     </div>
     <input type="file" id="p-media-file" multiple accept="image/*,video/*" style="display:none" onchange="addComposeMedia(this)">
     <div class="fg" style="margin-bottom:0"><label>추모의 글</label><textarea id="p-text" rows="4" placeholder="고인을 향한 마음을 적어주세요..."></textarea></div>
+    <div class="fg" style="margin-top:10px;margin-bottom:0">
+      <label>게시물 비밀번호 <span style="color:var(--ash);font-weight:400">(선택 · 수정·삭제에 사용)</span></label>
+      <input type="password" id="p-pw" placeholder="비밀번호를 설정하면 작성자만 수정·삭제 가능" maxlength="20" autocomplete="new-password">
+    </div>
   </div>
 </div>
 
@@ -641,6 +649,39 @@ label{font-size:13px;color:var(--mid);display:block;margin-bottom:5px}
   <button id="lb-close" onclick="closeLB()">✕</button>
   <div id="lb-content"></div>
 </div>
+<!-- 게시물 비밀번호 확인 -->
+<div id="pw-verify-backdrop" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:300;align-items:center;justify-content:center">
+  <div style="background:#fff;border-radius:16px;padding:1.75rem 1.5rem;width:88%;max-width:320px">
+    <div id="pw-verify-title" style="font-size:15px;font-weight:700;margin-bottom:1.1rem;text-align:center">비밀번호 확인</div>
+    <input type="password" id="pw-verify-input" placeholder="게시물 비밀번호 또는 관리자 비밀번호"
+      style="width:100%;box-sizing:border-box;margin-bottom:.4rem"
+      onkeydown="if(event.key==='Enter')_pwVerifyConfirm()">
+    <div id="pw-verify-err" style="font-size:12px;color:#c0392b;margin-bottom:.6rem;display:none">비밀번호가 올바르지 않습니다.</div>
+    <div style="display:flex;gap:8px;margin-top:.6rem">
+      <button class="btn btn-sm" style="flex:1" onclick="_pwVerifyCancel()">취소</button>
+      <button class="btn btn-sm btn-gold" style="flex:1" onclick="_pwVerifyConfirm()">확인</button>
+    </div>
+  </div>
+</div>
+
+<!-- 게시물 수정 Sheet -->
+<div class="sheet-backdrop" id="edit-sheet-backdrop" onclick="closeEditSheet()"></div>
+<div class="sheet" id="edit-sheet">
+  <div class="sheet-handle"></div>
+  <div class="sheet-header">
+    <button class="sheet-close" onclick="closeEditSheet()">✕</button>
+    <span class="sheet-title">추모글 수정</span>
+    <button class="sheet-submit" onclick="submitEdit()">저장</button>
+  </div>
+  <div class="sheet-body">
+    <div class="row2" style="margin-bottom:10px">
+      <div class="fg" style="margin-bottom:0"><label>이름 *</label><input type="text" id="edit-p-author" maxlength="20"></div>
+      <div class="fg" style="margin-bottom:0"><label>관계</label><input type="text" id="edit-p-rel" maxlength="20"></div>
+    </div>
+    <div class="fg" style="margin-bottom:0"><label>추모의 글</label><textarea id="edit-p-text" rows="6"></textarea></div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script>
@@ -743,7 +784,7 @@ async function _fbSave(){
         if(u)med.push({type:mm.type,name:mm.name||'',url:u});
       }
       await fs.collection('groups').doc(g.id).collection('posts').doc(p.id).set({
-        id:p.id,author:p.author,rel:p.rel||'',text:p.text||'',date:p.date,
+        id:p.id,author:p.author,rel:p.rel||'',text:p.text||'',pw:p.pw||'',date:p.date,
         likes:p.likes||0,comments:p.comments||[],media:med
       });
     }
@@ -825,6 +866,21 @@ window.addEventListener('load',function(){
     /* gid 없이 직접 접속 → 잠금 화면 */
     goTo('s-landing');
   } else if(hasLocal){
+    /* 관리자 직접 입장 바이패스 확인 */
+    var _bypass=localStorage.getItem('adm_bypass');
+    if(_bypass){
+      localStorage.removeItem('adm_bypass');
+      var _bp=_bypass.split('|');
+      if(_bp.length>=3&&_bp[0]===gid&&(Date.now()-parseInt(_bp[2]))<15000){
+        var _bpg=db.groups.find(function(g){return g.id===gid;});
+        if(_bpg&&_bpg.pw===_bp[1]){
+          curGid=gid; _bpg.visits++; saveDB();
+          openMemorial(); _adminAuthed=true; /* 관리자 권한 유지 */
+          if(_fbReady)_fbLoad().catch(function(){});
+          return;
+        }
+      }
+    }
     /* 로컬 데이터 있으면 즉시 로그인 화면, Firebase는 백그라운드 갱신 */
     showLogin(gid);
     if(_fbReady)_fbLoad().catch(function(){});
@@ -1101,6 +1157,7 @@ function renderProfile(g){
     var p=document.createElement('div'); p.className='mem-portrait'+(dual?' dual':'');
     p.innerHTML=m.portrait?'<img src="'+m.portrait+'">':'☺';
     pw.appendChild(p);
+    if(m.portrait){(function(src){p.style.cursor='pointer';p.title='사진 크게 보기';p.addEventListener('click',function(){lbShow(src,'image');});})(m.portrait);}
     var ni=document.createElement('div'); ni.className='mem-name-item';
     var d=''; if(m.birth)d+=fmtDate(m.birth); if(m.death)d+=(d?' ~ ':'')+fmtDate(m.death);
     ni.innerHTML='<div class="mem-name'+(dual?' dual':'')+'">'+esc(m.name)+'</div>'+(d?'<div class="mem-dates">'+esc(d)+'</div>':'');
@@ -1174,6 +1231,20 @@ function changeAdminPw(){
   $('ad-acur').value='';$('ad-anew').value='';$('ad-anew2').value='';
   toast('관리자 비밀번호가 변경되었습니다.');
 }
+function getBioLimit(plan){
+  if(!plan||plan==='trial')return 100;
+  return 1000;
+}
+function updateBioCounter(){
+  var g=curg();
+  var limit=getBioLimit(g&&g.subscription&&g.subscription.plan);
+  var el=$('ad-bio');if(!el)return;
+  el.maxLength=limit;
+  var cnt=$('bio-counter');if(!cnt)return;
+  var len=el.value.length;
+  cnt.textContent=len+' / '+limit+'자';
+  cnt.style.color=len>=limit?'#c0392b':(len>=Math.floor(limit*0.9)?'#e67e22':'var(--ash)');
+}
 function calcDday(d){if(!d)return null;return Math.ceil((new Date(d).getTime()-Date.now())/86400000);}
 function renderAdminSub(){
   var g=curg();if(!g)return;
@@ -1235,9 +1306,9 @@ function submitPost(){
   var author=$('p-author').value.trim(), text=$('p-text').value.trim();
   if(!author)return toast('이름을 입력해 주세요.');
   if(!text&&_csrcs.length===0)return toast('글 또는 사진/영상을 추가해 주세요.');
-  g.posts.unshift({id:uid(),author:author,rel:$('p-rel').value.trim(),text:text,date:new Date().toISOString(),likes:0,liked:false,comments:[],media:_csrcs.slice()});
+  g.posts.unshift({id:uid(),author:author,rel:$('p-rel').value.trim(),text:text,pw:$('p-pw').value.trim(),date:new Date().toISOString(),likes:0,liked:false,comments:[],media:_csrcs.slice()});
   saveDB();
-  $('p-author').value='';$('p-rel').value='';$('p-text').value='';
+  $('p-author').value='';$('p-rel').value='';$('p-text').value='';$('p-pw').value='';
   _csrcs=[];renderCPrev();closeSheet();renderFeed();renderStats();toast('게시물이 등록되었습니다.');
 }
 
@@ -1259,7 +1330,20 @@ function buildPost(p,g){
   var meta=document.createElement('div'); meta.className='post-meta';
   meta.innerHTML='<div class="post-author">'+esc(p.author)+'</div>'+(p.rel?'<div class="post-rel">'+esc(p.rel)+'</div>':'')+'<div class="post-date">'+fmtRel(p.date)+'</div>';
   var del=document.createElement('button'); del.className='post-del'; del.textContent='···';
-  del.onclick=function(){if(confirm('게시물을 삭제할까요?'))delPost(p.id,g);};
+  del.onclick=function(e){
+    e.stopPropagation();
+    var ex=del.querySelector('.post-action-menu');
+    if(ex){ex.remove();return;}
+    var menu=document.createElement('div'); menu.className='post-action-menu';
+    var editBtn=document.createElement('button'); editBtn.textContent='수정';
+    editBtn.onclick=function(){menu.remove();_requestPostAction(p,g,'edit');};
+    var delBtn=document.createElement('button'); delBtn.textContent='삭제';
+    delBtn.style.color='#c0392b';
+    delBtn.onclick=function(){menu.remove();_requestPostAction(p,g,'delete');};
+    menu.appendChild(editBtn); menu.appendChild(delBtn);
+    del.appendChild(menu);
+    setTimeout(function(){document.addEventListener('click',function rm(){menu.remove();document.removeEventListener('click',rm);},{once:true});},10);
+  };
   hdr.appendChild(av); hdr.appendChild(meta); hdr.appendChild(del); card.appendChild(hdr);
 
   if(p.media&&p.media.length){
@@ -1380,6 +1464,77 @@ function lbShow(src,type){$('lb-content').innerHTML=type==='video'?'<video src="
 function closeLB(){$('lightbox').classList.remove('open');$('lb-content').innerHTML='';}
 
 /* ══════════════════════
+   게시물 비밀번호 & 수정
+══════════════════════ */
+var _pwVerifyCb=null;
+var _pwVerifyCtx=null;
+
+function _requestPostAction(p,g,action){
+  if(p.pw&&!_adminAuthed){
+    _showPwVerify(p,g,action==='edit'?'게시물 수정':'게시물 삭제',function(){
+      if(action==='edit')openEditSheet(p);
+      else{if(confirm('게시물을 삭제할까요?'))delPost(p.id,g);}
+    });
+  } else {
+    if(action==='edit')openEditSheet(p);
+    else{if(confirm('게시물을 삭제할까요?'))delPost(p.id,g);}
+  }
+}
+
+function _showPwVerify(p,g,title,cb){
+  _pwVerifyCb=cb; _pwVerifyCtx={p:p,g:g};
+  $('pw-verify-title').textContent=title;
+  $('pw-verify-input').value='';
+  $('pw-verify-err').style.display='none';
+  $('pw-verify-backdrop').style.display='flex';
+  setTimeout(function(){$('pw-verify-input').focus();},200);
+}
+function _pwVerifyConfirm(){
+  var entered=$('pw-verify-input').value;
+  var p=_pwVerifyCtx.p; var g=_pwVerifyCtx.g;
+  if(entered===p.pw||(g.adminPw&&entered===g.adminPw)){
+    $('pw-verify-backdrop').style.display='none';
+    var cb=_pwVerifyCb; _pwVerifyCb=null; _pwVerifyCtx=null;
+    if(cb)cb();
+  } else {
+    $('pw-verify-err').style.display='block';
+    $('pw-verify-input').select();
+  }
+}
+function _pwVerifyCancel(){
+  $('pw-verify-backdrop').style.display='none';
+  _pwVerifyCb=null; _pwVerifyCtx=null;
+}
+
+var _editPostId=null;
+function openEditSheet(p){
+  _editPostId=p.id;
+  $('edit-p-author').value=p.author||'';
+  $('edit-p-rel').value=p.rel||'';
+  $('edit-p-text').value=p.text||'';
+  $('edit-sheet-backdrop').classList.add('open');
+  $('edit-sheet').classList.add('open');
+  setTimeout(function(){$('edit-p-text').focus();},350);
+}
+function closeEditSheet(){
+  $('edit-sheet-backdrop').classList.remove('open');
+  $('edit-sheet').classList.remove('open');
+  _editPostId=null;
+}
+function submitEdit(){
+  if(!_editPostId)return;
+  var g=curg(); if(!g)return;
+  var text=$('edit-p-text').value.trim();
+  if(!text)return toast('내용을 입력해 주세요.');
+  var idx=g.posts.findIndex(function(x){return x.id===_editPostId;});
+  if(idx===-1)return toast('게시물을 찾을 수 없습니다.');
+  g.posts[idx].text=text;
+  g.posts[idx].author=$('edit-p-author').value.trim()||g.posts[idx].author;
+  g.posts[idx].rel=$('edit-p-rel').value.trim();
+  saveDB(); closeEditSheet(); renderFeed(); toast('수정되었습니다.');
+}
+
+/* ══════════════════════
    QR
 ══════════════════════ */
 function renderQR(){
@@ -1417,6 +1572,7 @@ function renderAdminTabs(g){
         $('ad-bio').value=g.members[i].bio||'';
         $('ad-birth').value=g.members[i].birth||'';
         $('ad-death').value=g.members[i].death||'';
+        updateBioCounter();
         renderAdminPortraitRow(g);
       };
       tabs.appendChild(t);
@@ -1427,6 +1583,7 @@ function renderAdminTabs(g){
   $('ad-bio').value=adm.bio||'';
   $('ad-birth').value=adm.birth||'';
   $('ad-death').value=adm.death||'';
+  updateBioCounter();
   renderAdminPortraitRow(g);
 }
 
@@ -1471,6 +1628,9 @@ function adPortraitChange(input){
 
 function saveBio(){
   var g=curg(); if(!g) return;
+  var bioVal=$('ad-bio').value.trim();
+  var limit=getBioLimit(g.subscription&&g.subscription.plan);
+  if(bioVal.length>limit)return toast('약력·소개는 '+limit+'자 이내로 입력해 주세요. (현재 '+bioVal.length+'자)');
   Object.keys(_adPortraitPending).forEach(function(idx){
     var i=parseInt(idx);
     if(g.members[i]!==undefined){
