@@ -927,21 +927,29 @@ window.addEventListener('load',function(){
         var _bpg=db.groups.find(function(g){return g.id===gid;});
         if(_bpg&&_bpg.pw===_bp[1]){
           curGid=gid; _bpg.visits++; saveDB();
-          openMemorial(); _adminAuthed=true; /* 관리자 권한 유지 */
+          openMemorial(); _adminAuthed=true;
           if(_fbReady)_fbLoad().catch(function(){});
           return;
         }
       }
     }
-    /* 로컬 데이터 있으면 즉시 로그인 화면, Firebase는 백그라운드 갱신 */
+    /* 세션 복원: 같은 탭에서 새로고침(F5)이면 로그인 생략 */
+    if(sessionStorage.getItem('mem_sess')===gid){
+      curGid=gid; openMemorial();
+      if(_fbReady)_fbLoad().catch(function(){});
+      return;
+    }
+    /* 로컬 데이터 있으면 로그인 화면, Firebase는 백그라운드 갱신 */
     showLogin(gid);
     if(_fbReady)_fbLoad().catch(function(){});
   } else if(_fbReady){
-    /* 로컬 없고 Firebase 있으면 데이터 로드 후 로그인 화면 */
+    /* 로컬 없고 Firebase 있으면 데이터 로드 후 로그인 또는 세션 복원 */
     toast('추모관 정보를 불러오는 중...');
     _fbLoad().then(function(ok){
-      if(ok&&db.groups.find(function(g){return g.id==gid;})){showLogin(gid);}
-      else goTo('s-landing');
+      if(ok&&db.groups.find(function(g){return g.id==gid;})){
+        if(sessionStorage.getItem('mem_sess')===gid){curGid=gid;openMemorial();}
+        else showLogin(gid);
+      } else goTo('s-landing');
     }).catch(function(){goTo('s-landing');});
   } else {
     /* Firebase 없고 로컬도 없으면 잠금 화면 */
@@ -957,7 +965,7 @@ function goTo(id){
   $(id).classList.add('active');
 }
 function setupBack(){if(curGid)showLogin(curGid);else goTo('s-landing');}
-function homeFromMemorial(){if(curGid)showLogin(curGid);else goTo('s-landing');}
+function homeFromMemorial(){sessionStorage.removeItem('mem_sess');if(curGid)showLogin(curGid);else goTo('s-landing');}
 function fmtDate(d){if(!d)return'';var p=d.split('-');return p[0]+'년 '+parseInt(p[1])+'월 '+parseInt(p[2])+'일';}
 function fmtRel(ds){var d=new Date(ds),n=new Date(),df=Math.floor((n-d)/1000);if(df<60)return'방금';if(df<3600)return Math.floor(df/60)+'분 전';if(df<86400)return Math.floor(df/3600)+'시간 전';if(df<604800)return Math.floor(df/86400)+'일 전';return d.toLocaleDateString('ko-KR');}
 function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
@@ -1195,6 +1203,7 @@ function enterMemorial(){
 function openMemorial(){
   var g=curg(); if(!g)return;
   _adminAuthed=false;
+  sessionStorage.setItem('mem_sess',curGid); /* 새로고침 시 세션 복원용 */
   goTo('s-memorial');
   _qrDone=false; $('qr-container').innerHTML='';
   renderProfile(g); switchPanelByName('feed');
