@@ -756,12 +756,13 @@ async function _fbLoad(){
       var localG=db.groups.find(function(x){return x.id===g.id;});
       g.posts=ps.docs.map(function(d){
         var p=d.data();
+        if(p.deleted)return null; /* 소프트 삭제 게시물 건너뜀 */
         p.media=(p.media||[]).map(function(m){return{src:m.url||'',type:m.type,name:m.name||''};});
         /* liked 는 기기별 localStorage 유지 */
         var lp=(localG&&localG.posts||[]).find(function(lpp){return lpp.id===p.id;});
         p.liked=(lp&&lp.liked)||false;
         return p;
-      });
+      }).filter(Boolean);
       g.posts.sort(function(a,b){return new Date(b.date)-new Date(a.date);});
       g.members=(g.members||[]).map(function(m){m.portrait=m.portraitUrl||null;return m;});
       gs.push(g);
@@ -777,6 +778,11 @@ async function _fbLoad(){
 /* 메모리 → Firebase: 변경된 그룹 저장
    - Storage 사용 가능(Blaze 플랜): 이미지 업로드 후 URL 저장
    - Storage 미사용(Spark 플랜): 텍스트 데이터만 저장, 이미지는 기기 localStorage 유지 */
+async function _fbSoftDeletePost(gid,pid){
+  if(!_fbReady)return;
+  try{await firebase.firestore().collection('groups').doc(gid).collection('posts').doc(pid).update({deleted:true});}catch(e){}
+}
+
 async function _fbSave(){
   if(!_fbReady)return;
   var fs=firebase.firestore();
@@ -1491,9 +1497,12 @@ function tLike(p,g){
   renderStats();
 }
 function delPost(id,g){
-  var idx=g.posts.findIndex(function(x){return x.id===id;});if(idx===-1)return;
-  g.posts[idx].media.forEach(function(m,i){localStorage.removeItem(DB_KEY+'_pm_'+id+'_'+i);});
-  g.posts.splice(idx,1);saveDB();renderFeed();renderStats();
+  /* 클로저 캡처 g가 _fbLoad 후 stale 될 수 있으므로 항상 현재 db 참조 사용 */
+  var curG=db.groups.find(function(x){return x.id===g.id;})||g;
+  var idx=curG.posts.findIndex(function(x){return x.id===id;});if(idx===-1)return;
+  curG.posts[idx].media.forEach(function(m,i){localStorage.removeItem(DB_KEY+'_pm_'+id+'_'+i);});
+  _fbSoftDeletePost(curG.id,id).catch(function(){});
+  curG.posts.splice(idx,1);saveDB();renderFeed();renderStats();
 }
 
 /* ══════════════════════
