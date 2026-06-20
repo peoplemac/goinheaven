@@ -597,17 +597,31 @@ label{font-size:13px;color:var(--mid);display:block;margin-bottom:5px}
       </div>
       <div class="adm-card">
         <h4>구독 정보</h4>
-        <div id="adm-sub-info"></div>
-        <div class="fg">
-          <label>플랜 선택</label>
-          <select id="ad-plan">
-            <option value="trial">무료체험</option>
-            <option value="monthly">월 구독</option>
-            <option value="yearly">연 구독</option>
-            <option value="unlimited">무제한</option>
-          </select>
+        <div id="adm-sub-info" style="margin-bottom:.75rem"></div>
+        <div class="row2" style="margin-bottom:0">
+          <div class="fg">
+            <label>플랜</label>
+            <select id="ad-plan">
+              <option value="trial">무료체험</option>
+              <option value="monthly">월 구독</option>
+              <option value="yearly">연 구독</option>
+              <option value="unlimited">무제한</option>
+            </select>
+          </div>
+          <div class="fg">
+            <label>상태</label>
+            <select id="ad-status">
+              <option value="trial">체험중</option>
+              <option value="active">활성</option>
+              <option value="expired">만료</option>
+            </select>
+          </div>
         </div>
-        <button class="btn btn-sm btn-gold" style="margin-top:.25rem" onclick="savePlan()">플랜 저장</button>
+        <div class="row2" style="margin-bottom:0">
+          <div class="fg"><label>시작일</label><input type="date" id="ad-sdate"></div>
+          <div class="fg"><label>만료일</label><input type="date" id="ad-edate"></div>
+        </div>
+        <button class="btn btn-sm btn-gold" style="margin-top:.25rem" onclick="saveSubscription()">구독 저장</button>
       </div>
     </div>
   </div>
@@ -1320,9 +1334,12 @@ function calcDday(d){if(!d)return null;return Math.ceil((new Date(d).getTime()-D
 function renderAdminSub(){
   var g=curg();if(!g)return;
   var sub=g.subscription||{},plan=sub.plan||'trial',status=sub.status||'trial';
-  var pn={trial:'무료체험',monthly:'월 구독',yearly:'연 구독',unlimited:'무제한'};
-  var sn={trial:'체험중',active:'활성',expired:'만료'};
-  var ps=$('ad-plan');if(ps)ps.value=plan;
+  /* 입력 필드 채우기 */
+  if($('ad-plan'))$('ad-plan').value=plan;
+  if($('ad-status'))$('ad-status').value=status;
+  if($('ad-sdate'))$('ad-sdate').value=sub.startDate||'';
+  if($('ad-edate'))$('ad-edate').value=sub.endDate||'';
+  /* 상태 배지 */
   var el=$('adm-sub-info');if(!el)return;
   var diff=calcDday(sub.endDate);
   var cls='sub-dday-trial',txt='🌱 무료체험 중';
@@ -1334,17 +1351,16 @@ function renderAdminSub(){
   } else if(status==='expired'){
     cls='sub-dday-expired';txt='⛔ 구독 만료'+(diff!==null?' (D+'+Math.abs(diff)+')':'');
   }
-  var rows='<tr><td class="sl">플랜</td><td class="sv">'+esc(pn[plan]||plan)+'</td></tr>'
-    +'<tr><td class="sl">상태</td><td class="sv">'+esc(sn[status]||status)+'</td></tr>'
-    +(sub.startDate?'<tr><td class="sl">시작일</td><td class="sv">'+fmtDate(sub.startDate)+'</td></tr>':'')
-    +(sub.endDate?'<tr><td class="sl">만료일</td><td class="sv">'+fmtDate(sub.endDate)+'</td></tr>':'');
-  el.innerHTML='<div class="sub-dday '+cls+'">'+txt+'</div><table class="sub-itbl">'+rows+'</table>';
+  el.innerHTML='<div class="sub-dday '+cls+'">'+txt+'</div>';
 }
-function savePlan(){
+function saveSubscription(){
   var g=curg();if(!g)return;
   if(!g.subscription)g.subscription={};
   g.subscription.plan=$('ad-plan').value;
-  saveDB();toast('플랜이 저장되었습니다.');
+  g.subscription.status=$('ad-status').value;
+  g.subscription.startDate=$('ad-sdate').value||'';
+  g.subscription.endDate=$('ad-edate').value||'';
+  saveDB();renderAdminSub();toast('구독 정보가 저장되었습니다.');
 }
 
 /* ══════════════════════
