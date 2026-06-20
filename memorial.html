@@ -754,35 +754,33 @@ function _fbInit(){
   }catch(e){}
 }
 
-/* Firebase → 메모리: 모든 그룹 + 게시물 로드 */
+/* Firebase → 메모리: 현재 추모관 단독 조회 (curGid 기준) */
 async function _fbLoad(){
   if(!_fbReady||_fbLoading)return false;
+  if(!curGid)return false;
   _fbLoading=true;
   try{
     var fs=firebase.firestore();
-    var snap=await fs.collection('groups').get();
-    if(snap.empty){_fbLoading=false;return false;}
-    var gs=[];
-    for(var i=0;i<snap.docs.length;i++){
-      var g=snap.docs[i].data();
-      if(g.deleted)continue; /* 소프트 삭제된 그룹 건너뜀 */
-      var ps=await fs.collection('groups').doc(g.id).collection('posts').get();
-      var localG=db.groups.find(function(x){return x.id===g.id;});
-      g.posts=ps.docs.map(function(d){
-        var p=d.data();
-        if(p.deleted)return null; /* 소프트 삭제 게시물 건너뜀 */
-        p.media=(p.media||[]).map(function(m){return{src:m.url||'',type:m.type,name:m.name||''};});
-        /* liked 는 기기별 localStorage 유지 */
-        var lp=(localG&&localG.posts||[]).find(function(lpp){return lpp.id===p.id;});
-        p.liked=(lp&&lp.liked)||false;
-        return p;
-      }).filter(Boolean);
-      g.posts.sort(function(a,b){return new Date(b.date)-new Date(a.date);});
-      g.members=(g.members||[]).map(function(m){m.portrait=m.portraitUrl||null;return m;});
-      gs.push(g);
-    }
-    db.groups=gs;
-    /* localStorage 캐시 갱신 */
+    var gdoc=await fs.collection('groups').doc(curGid).get();
+    if(!gdoc.exists){_fbLoading=false;return false;}
+    var g=gdoc.data();
+    if(g.deleted){_fbLoading=false;return false;}
+    var ps=await fs.collection('groups').doc(curGid).collection('posts').get();
+    var localG=db.groups.find(function(x){return x.id===curGid;});
+    g.posts=ps.docs.map(function(d){
+      var p=d.data();
+      if(p.deleted)return null; /* 소프트 삭제 게시물 건너뜀 */
+      p.media=(p.media||[]).map(function(m){return{src:m.url||'',type:m.type,name:m.name||''};});
+      /* liked 는 기기별 localStorage 유지 */
+      var lp=(localG&&localG.posts||[]).find(function(lpp){return lpp.id===p.id;});
+      p.liked=(lp&&lp.liked)||false;
+      return p;
+    }).filter(Boolean);
+    g.posts.sort(function(a,b){return new Date(b.date)-new Date(a.date);});
+    g.members=(g.members||[]).map(function(m){m.portrait=m.portraitUrl||null;return m;});
+    /* 현재 추모관만 갱신, 다른 캐시된 추모관은 유지 */
+    var idx=db.groups.findIndex(function(x){return x.id===curGid;});
+    if(idx>=0)db.groups[idx]=g; else db.groups.push(g);
     _localSave();
     _fbLoading=false;
     /* 추모관 화면이 열려 있으면 최신 Firebase 데이터로 즉시 재렌더 */
@@ -959,6 +957,7 @@ window.addEventListener('load',function(){
   } else if(_fbReady){
     /* 로컬 없고 Firebase 있으면 데이터 로드 후 로그인 또는 세션 복원 */
     toast('추모관 정보를 불러오는 중...');
+    curGid=gid; /* _fbLoad()가 curGid 기준으로 동작하므로 먼저 설정 */
     _fbLoad().then(function(ok){
       if(ok&&db.groups.find(function(g){return g.id==gid;})){
         if(sessionStorage.getItem('mem_sess')===gid){curGid=gid;openMemorial();}
@@ -1414,7 +1413,7 @@ function buildPost(p,g){
   var card=document.createElement('div'); card.className='post-card'; card.id='post-'+p.id;
 
   var hdr=document.createElement('div'); hdr.className='post-header';
-  var av=document.createElement('div'); av.className='post-avatar av-c'+(p.author.charCodeAt(0)%8); av.textContent=p.author.charAt(0)||'?';
+  var _auth=p.author||'?'; var av=document.createElement('div'); av.className='post-avatar av-c'+(_auth.charCodeAt(0)%8); av.textContent=_auth.charAt(0)||'?';
   var meta=document.createElement('div'); meta.className='post-meta';
   meta.innerHTML='<div class="post-author">'+esc(p.author)+'</div>'+(p.rel?'<div class="post-rel">'+esc(p.rel)+'</div>':'')+'<div class="post-date">'+fmtRel(p.date)+'</div>';
   var del=document.createElement('button'); del.className='post-del'; del.textContent='···';
