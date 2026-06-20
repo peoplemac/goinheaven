@@ -146,9 +146,15 @@ label{font-size:13px;color:var(--mid);display:block;margin-bottom:5px}
 /* 문자 */
 .sms-row{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--stone)}
 .sms-row:last-child{border-bottom:none}
-.sms-chk{width:18px;height:18px;accent-color:var(--gold);flex-shrink:0;cursor:pointer}
+.sms-chk{width:18px!important;height:18px!important;accent-color:var(--gold);flex-shrink:0;cursor:pointer;
+  -webkit-appearance:checkbox!important;appearance:checkbox!important;
+  border:none!important;border-radius:0!important;padding:0!important;background:transparent!important}
 .sms-rname{font-size:13px;font-weight:600;color:var(--deep)}
 .sms-rphone{font-size:11px;color:var(--mid)}
+.sms-anniv-tag{font-size:10px;color:#c07010;font-weight:700;background:#fff3cd;border-radius:4px;padding:1px 5px;margin-left:5px}
+.sms-filter-btn{font-size:12px;padding:5px 11px;border-radius:20px;border:1px solid var(--ash);background:var(--white);color:var(--mid);cursor:pointer;font-family:inherit;white-space:nowrap;transition:background .12s}
+.sms-filter-btn.active{background:var(--gold);color:#fff;border-color:var(--gold)}
+.sms-filter-btn:active{opacity:.8}
 
 /* 추모관 개설 모달 */
 .modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;
@@ -312,10 +318,18 @@ label{font-size:13px;color:var(--mid);display:block;margin-bottom:5px}
     <!-- 문자 탭 -->
     <div class="d-panel" id="dp-sms">
       <div class="d-card d-card-pad" style="margin-bottom:10px">
-        <h4 style="font-size:13px;font-weight:600;color:var(--deep);margin-bottom:.75rem">수신자 선택</h4>
+        <h4 style="font-size:13px;font-weight:600;color:var(--deep);margin-bottom:.65rem">수신자 선택</h4>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px" id="sms-filter-btns">
+          <button class="sms-filter-btn active" data-filter="all"     onclick="setSmsFilter('all')">전체</button>
+          <button class="sms-filter-btn"         data-filter="active"  onclick="setSmsFilter('active')">활성구독</button>
+          <button class="sms-filter-btn"         data-filter="trial"   onclick="setSmsFilter('trial')">체험중</button>
+          <button class="sms-filter-btn"         data-filter="expired" onclick="setSmsFilter('expired')">만료</button>
+          <button class="sms-filter-btn"         data-filter="anniv"   onclick="setSmsFilter('anniv')">📅 기일 1주일 전</button>
+        </div>
         <div style="display:flex;gap:8px;margin-bottom:.75rem">
           <button class="btn btn-sm" onclick="smsSelectAll(true)">전체선택</button>
           <button class="btn btn-sm" onclick="smsSelectAll(false)">전체해제</button>
+          <span id="sms-count" style="font-size:12px;color:var(--ash);align-self:center;margin-left:auto"></span>
         </div>
         <div id="sms-recipients"></div>
       </div>
@@ -1253,24 +1267,91 @@ function sendInfoSms(){
 }
 
 /* ── 문자 ── */
-function renderSms(){
-  loadDB();
+/* 기일까지 남은 일수 계산 (연간 반복) */
+function daysUntilAnniversary(deathStr){
+  if(!deathStr)return null;
+  var d=new Date(deathStr);
+  if(isNaN(d))return null;
+  var now=new Date(); now.setHours(0,0,0,0);
+  var anniv=new Date(now.getFullYear(),d.getMonth(),d.getDate());
+  if(anniv<now)anniv.setFullYear(now.getFullYear()+1);
+  return Math.ceil((anniv-now)/86400000);
+}
+
+var _smsFilter='all';
+
+function setSmsFilter(f){
+  _smsFilter=f;
+  document.querySelectorAll('.sms-filter-btn').forEach(function(b){
+    b.classList.toggle('active',b.dataset.filter===f);
+  });
+  /* 기일 필터 선택 시 메시지 템플릿 자동 입력 */
+  if(f==='anniv'&&!$('sms-body').value.trim()){
+    $('sms-body').value='[사이버 추모관 안내]\n안녕하세요. 곧 기일이 다가옵니다.\n추모관에서 고인을 추모해 주세요.';
+  }
+  _renderSmsRecipients();
+}
+
+function _renderSmsRecipients(){
   var wrap=$('sms-recipients'); wrap.innerHTML='';
-  var hasPh=false;
-  db.groups.forEach(function(g){
+  var gs=db.groups.filter(function(g){return !!(g.contact&&g.contact.phone);});
+
+  if(_smsFilter==='active')
+    gs=gs.filter(function(g){return (g.subscription||{}).status==='active';});
+  else if(_smsFilter==='trial')
+    gs=gs.filter(function(g){var s=(g.subscription||{}).status;return !s||s==='trial';});
+  else if(_smsFilter==='expired')
+    gs=gs.filter(function(g){return (g.subscription||{}).status==='expired';});
+  else if(_smsFilter==='anniv')
+    gs=gs.filter(function(g){
+      return g.members.some(function(m){var d=daysUntilAnniversary(m.death);return d!==null&&d<=7;});
+    });
+
+  var countEl=$('sms-count');
+  if(countEl)countEl.textContent=gs.length?gs.length+'명':'';
+
+  if(!gs.length){
+    var msg=_smsFilter==='anniv'?'1주일 내 기일인 추모관이 없습니다':'전화번호가 등록된 추모관이 없습니다';
+    wrap.innerHTML='<p style="color:var(--ash);font-size:13px;text-align:center;padding:1.25rem 0">'+msg+'</p>';
+    return;
+  }
+
+  gs.forEach(function(g){
     var ct=g.contact||{};
-    if(!ct.phone)return;
-    hasPh=true;
     var names=g.members.map(function(m){return m.name;}).join(' · ');
     var row=document.createElement('div'); row.className='sms-row';
     var cb=document.createElement('input'); cb.type='checkbox'; cb.className='sms-chk';
-    cb.dataset.phone=ct.phone; cb.dataset.name=names;
+    cb.dataset.phone=ct.phone; cb.dataset.name=(ct.name||names)+' '+ct.phone;
+    /* 기일 필터는 자동 체크 */
+    cb.checked=(_smsFilter==='anniv');
+
+    /* 기일 D-n 태그 */
+    var annexHtml='';
+    if(_smsFilter==='anniv'){
+      var minD=g.members.reduce(function(mn,m){
+        var d=daysUntilAnniversary(m.death);
+        return (d!==null&&d<=7&&d<mn)?d:mn;
+      },999);
+      if(minD<999)annexHtml='<span class="sms-anniv-tag">기일 D-'+minD+'</span>';
+    }
     var inf=document.createElement('div'); inf.style.flex='1';
-    inf.innerHTML='<div class="sms-rname">'+esc(names)+'</div><div class="sms-rphone">'+esc(ct.phone)+'</div>';
+    inf.innerHTML='<div class="sms-rname">'+esc(names)+'</div>'
+      +'<div class="sms-rphone">'+(ct.name?esc(ct.name)+' · ':'')+esc(ct.phone)+annexHtml+'</div>';
     row.appendChild(cb); row.appendChild(inf);
+    /* 행 클릭으로도 체크 토글 */
+    row.style.cursor='pointer';
+    row.addEventListener('click',function(e){if(e.target!==cb)cb.checked=!cb.checked;});
     wrap.appendChild(row);
   });
-  if(!hasPh)wrap.innerHTML='<p style="color:var(--ash);font-size:13px;text-align:center;padding:1.25rem 0">전화번호가 등록된 추모관이 없습니다</p>';
+}
+
+function renderSms(){
+  loadDB();
+  _smsFilter='all';
+  document.querySelectorAll('.sms-filter-btn').forEach(function(b){
+    b.classList.toggle('active',b.dataset.filter==='all');
+  });
+  _renderSmsRecipients();
 }
 function smsSelectAll(v){document.querySelectorAll('.sms-chk').forEach(function(c){c.checked=v;});}
 function sendSms(){
@@ -1278,14 +1359,14 @@ function sendSms(){
   if(!checks.length)return toast('수신자를 선택해 주세요.');
   var msg=$('sms-body').value.trim();
   if(!msg)return toast('메시지를 입력해 주세요.');
-  var phones=checks.map(function(c){return c.dataset.phone;});
+  var phones=checks.map(function(c){return c.dataset.phone.split(' ')[0];});
   window.open('sms:'+phones.join(',')+'?body='+encodeURIComponent(msg),'_self');
 }
 function copySmsInfo(){
   var checks=Array.from(document.querySelectorAll('.sms-chk:checked'));
   if(!checks.length)return toast('수신자를 선택해 주세요.');
   var msg=$('sms-body').value.trim();
-  var text='[수신자]\n'+checks.map(function(c){return c.dataset.name+' '+c.dataset.phone;}).join('\n')+'\n\n'+msg;
+  var text='[수신자]\n'+checks.map(function(c){return c.dataset.name;}).join('\n')+'\n\n'+msg;
   copyToClipboard(text);
 }
 
