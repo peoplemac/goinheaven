@@ -556,9 +556,10 @@ async function _fbLoad(){
       var ps=await fs.collection('groups').doc(g.id).collection('posts').get();
       g.posts=ps.docs.map(function(d){
         var p=d.data();
+        if(p.deleted)return null; /* 소프트 삭제 게시물 건너뜀 */
         p.media=(p.media||[]).map(function(m){return{src:m.url||'',type:m.type,name:m.name||''};});
         return p;
-      });
+      }).filter(Boolean);
       g.members=(g.members||[]).map(function(m){m.portrait=m.portraitUrl||null;return m;});
       gs.push(g);
     }
@@ -650,6 +651,7 @@ function submitLogin(){
   var id=$('l-id').value.trim(), pw=$('l-pw').value;
   if(id===svcAdm.id && pw===svcAdm.pw){
     $('l-err').style.display='none';
+    sessionStorage.setItem('adm_sess','1');
     loadDB();
     showScreen('s-dash');
     switchTab('overview');
@@ -658,12 +660,15 @@ function submitLogin(){
   }
 }
 function logout(){
+  sessionStorage.removeItem('adm_sess');
+  sessionStorage.removeItem('adm_tab');
   $('l-id').value='';$('l-pw').value='';$('l-err').style.display='none';
   showScreen('s-login');
 }
 
 /* ── 탭 ── */
 function switchTab(name){
+  sessionStorage.setItem('adm_tab',name);
   document.querySelectorAll('.dash-tab').forEach(function(b){b.classList.toggle('active',b.dataset.tab===name);});
   document.querySelectorAll('.d-panel').forEach(function(p){p.classList.toggle('active',p.id==='dp-'+name);});
   if(name==='overview')renderOverview();
@@ -1286,7 +1291,14 @@ function changePw(){
 (function init(){
   _fbInit();
   loadSvcAdm();
-  showScreen('s-login');
+  /* F5 새로고침 시 세션 복원 */
+  if(sessionStorage.getItem('adm_sess')==='1'){
+    loadDB();
+    showScreen('s-dash');
+    switchTab(sessionStorage.getItem('adm_tab')||'overview');
+  } else {
+    showScreen('s-login');
+  }
   document.addEventListener('keydown',function(e){
     if(e.key==='Escape'){
       closeCreateModal();
