@@ -212,6 +212,8 @@ label{font-size:13px;color:var(--mid);display:block;margin-bottom:5px}
 /* 전체목록 검색 */
 .ov-card-click{cursor:pointer;transition:background .12s}
 .ov-card-click:active{background:var(--stone)}
+.sms-quick-btn{display:inline-flex;align-items:center;gap:3px;font-size:11px;background:var(--gold);color:#fff;border:none;border-radius:5px;padding:2px 7px;cursor:pointer;font-family:inherit;vertical-align:middle;margin-left:5px;line-height:1.4}
+.sms-quick-btn:active{opacity:.75}
 .ov-row-dates{font-size:10px;color:var(--ash);font-weight:normal}
 .ov-search-box{position:relative;margin-bottom:.75rem}
 .ov-search-box input{font-size:13px;padding:9px 36px 9px 12px}
@@ -280,11 +282,15 @@ label{font-size:13px;color:var(--mid);display:block;margin-bottom:5px}
     <div class="d-panel active" id="dp-overview">
       <div class="ov-grid">
         <div class="ov-card ov-card-click" onclick="toggleAllList()"><div class="ov-n c-gold" id="ov-total">0</div><div class="ov-l">전체 추모관 ↕</div></div>
-        <div class="ov-card"><div class="ov-n c-green" id="ov-active">0</div><div class="ov-l">활성 구독</div></div>
-        <div class="ov-card"><div class="ov-n" id="ov-trial">0</div><div class="ov-l">체험중</div></div>
-        <div class="ov-card"><div class="ov-n c-red" id="ov-expired">0</div><div class="ov-l">만료</div></div>
+        <div class="ov-card ov-card-click" onclick="toggleFilterList('active')"><div class="ov-n c-green" id="ov-active">0</div><div class="ov-l">활성 구독 ↕</div></div>
+        <div class="ov-card ov-card-click" onclick="toggleFilterList('trial')"><div class="ov-n" id="ov-trial">0</div><div class="ov-l">체험중 ↕</div></div>
+        <div class="ov-card ov-card-click" onclick="toggleFilterList('expired')"><div class="ov-n c-red" id="ov-expired">0</div><div class="ov-l">만료 ↕</div></div>
       </div>
       <div class="d-card d-card-pad" id="ov-lists"></div>
+      <div class="d-card d-card-pad" id="ov-filter-wrap" style="display:none;margin-top:8px">
+        <div class="ov-sec-hd" id="ov-filter-title"></div>
+        <div id="ov-filter-list"></div>
+      </div>
       <div class="d-card d-card-pad" id="ov-all-wrap" style="display:none;margin-top:8px">
         <div class="ov-sec-hd">📋 전체 추모관</div>
         <div class="ov-search-box">
@@ -701,9 +707,12 @@ function buildOvRow(g){
     return esc(m.name||'')+dates;
   }).join(' · ');
   var row=document.createElement('div'); row.className='ov-row';
+  var smsBtnHtml=ct.phone
+    ?'<button class="sms-quick-btn" onclick="event.stopPropagation();_quickSms(\''+g.id+'\')">💬 문자</button>'
+    :'';
   row.innerHTML='<div>'
     +'<div class="ov-row-name ov-row-link" onclick="goToMemorial(\''+g.id+'\')">'+namesHtml+'</div>'
-    +(ct.phone?'<div class="ov-row-sub">'+(ct.name?esc(ct.name)+' · ':'')+esc(ct.phone)+'</div>':'')
+    +(ct.phone?'<div class="ov-row-sub">'+(ct.name?esc(ct.name)+' · ':'')+esc(ct.phone)+smsBtnHtml+'</div>':'')
     +'</div>'
     +'<div>'+badgeHtml(sub.status,sub.endDate)+'</div>';
   return row;
@@ -767,9 +776,12 @@ function renderOverview(skipLoad){
 }
 function _refreshAllList(){
   var allWrap=$('ov-all-wrap');
-  if(!allWrap||allWrap.style.display==='none')return;
-  var sq=$('ov-search')?($('ov-search').value||''):'';
-  filterAllList(sq,true);
+  if(allWrap&&allWrap.style.display!=='none'){
+    var sq=$('ov-search')?($('ov-search').value||''):'';
+    filterAllList(sq,true);
+  }
+  var filterWrap=$('ov-filter-wrap');
+  if(filterWrap&&filterWrap.style.display!=='none')_refreshFilterList();
 }
 
 /* ── 배지 ── */
@@ -818,12 +830,57 @@ function goToMemorial(gid){
   },300);
 }
 
+/* ── SMS 퀵 발송 ── */
+function _quickSms(gid){
+  var g=db.groups.find(function(x){return x.id===gid;});
+  if(!g)return;
+  var phone=(g.contact||{}).phone;
+  if(!phone)return toast('연락처가 등록되지 않았습니다.');
+  var names=g.members.map(function(m){return m.name;}).join(' · ');
+  var url=getMemorialUrl(g.id);
+  var msg='[사이버 추모관 안내]\n'+names+' 추모관이 개설되었습니다.\n\n🔗 링크: '+url+'\n🔑 입장 비밀번호: '+g.pw+'\n\n링크를 클릭하여 추모관에 입장하실 수 있습니다.';
+  window.open('sms:'+phone+'?body='+encodeURIComponent(msg),'_self');
+}
+
+/* ── 구독 상태 필터 목록 ── */
+var _curFilter=null;
+function _refreshFilterList(){
+  if(!_curFilter)return;
+  var gs=db.groups.filter(function(g){
+    var s=(g.subscription||{}).status;
+    if(_curFilter==='active')return s==='active';
+    if(_curFilter==='trial')return !s||s==='trial';
+    if(_curFilter==='expired')return s==='expired';
+    return false;
+  });
+  var listEl=$('ov-filter-list'); listEl.innerHTML='';
+  if(!gs.length){
+    listEl.innerHTML='<p style="font-size:12px;color:var(--ash);text-align:center;padding:.5rem 0">해당하는 추모관이 없습니다</p>';
+  } else {
+    gs.forEach(function(g){listEl.appendChild(buildOvRow(g));});
+  }
+}
+function toggleFilterList(status){
+  var wrap=$('ov-filter-wrap');
+  if(_curFilter===status&&wrap.style.display!=='none'){
+    wrap.style.display='none'; _curFilter=null; return;
+  }
+  _curFilter=status;
+  $('ov-all-wrap').style.display='none'; /* 전체 목록 닫기 */
+  var titleMap={active:'✅ 활성 구독 추모관',trial:'🆓 체험중 추모관',expired:'⛔ 만료 추모관'};
+  $('ov-filter-title').textContent=titleMap[status]||'필터 목록';
+  _refreshFilterList();
+  wrap.style.display='block';
+  setTimeout(function(){wrap.scrollIntoView({behavior:'smooth',block:'nearest'});},80);
+}
+
 /* ── 전체목록 토글 · 검색 ── */
 function toggleAllList(){
   var wrap=$('ov-all-wrap');
   var open=wrap.style.display!=='none';
   wrap.style.display=open?'none':'block';
   if(!open){
+    $('ov-filter-wrap').style.display='none'; _curFilter=null; /* 필터 목록 닫기 */
     $('ov-search').value='';
     $('ov-search-clear').style.display='none';
     filterAllList('');
