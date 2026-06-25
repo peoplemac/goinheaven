@@ -1420,9 +1420,20 @@ async function submitPost(){
       }
     } else { media=_csrcs.map(function(m){return{src:m.src,type:m.type,name:m.name||''};});}
   } else { media=_csrcs.map(function(m){return{src:m.src,type:m.type,name:m.name||''};});}
-  g.posts.unshift({id:uid(),author:author,rel:$('p-rel').value.trim(),text:text,
-    pw:$('p-pw').value.trim(),date:new Date().toISOString(),likes:0,liked:false,comments:[],media:media});
-  saveDB();
+  var postId=uid(),postDate=new Date().toISOString();
+  var postRel=$('p-rel').value.trim(),postPw=$('p-pw').value.trim();
+  g.posts.unshift({id:postId,author:author,rel:postRel,text:text,
+    pw:postPw,date:postDate,likes:0,liked:false,comments:[],media:media});
+  _localSave();
+  if(_fbReady){
+    try{
+      await firebase.firestore().collection('groups').doc(g.id).collection('posts').doc(postId).set({
+        id:postId,author:author,rel:postRel,text:text,pw:postPw,date:postDate,
+        likes:0,comments:[],
+        media:media.map(function(m){return{type:m.type,name:m.name||'',url:m.src};})
+      });
+    }catch(e){}
+  }
   $('p-author').value='';$('p-rel').value='';$('p-text').value='';$('p-pw').value='';
   _csrcs=[];renderCPrev();closeSheet();renderFeed();renderStats();
   toast('게시물이 등록되었습니다.');
@@ -1701,11 +1712,22 @@ async function submitEdit(){
       }
     } else { media=_editMediaSrcs.map(function(m){return{src:m.src,type:m.type,name:m.name||''};});}
   } else { media=_editMediaSrcs.map(function(m){return{src:m.src,type:m.type,name:m.name||''};});}
-  g.posts[idx].text=text;
-  g.posts[idx].author=$('edit-p-author').value.trim()||g.posts[idx].author;
-  g.posts[idx].rel=$('edit-p-rel').value.trim();
-  g.posts[idx].media=media;
-  saveDB(); closeEditSheet(); renderFeed(); toast('수정되었습니다.');
+  var p=g.posts[idx];
+  p.text=text;
+  p.author=$('edit-p-author').value.trim()||p.author;
+  p.rel=$('edit-p-rel').value.trim();
+  p.media=media;
+  _localSave();
+  if(_fbReady){
+    try{
+      await firebase.firestore().collection('groups').doc(g.id).collection('posts').doc(p.id).set({
+        id:p.id,author:p.author,rel:p.rel||'',text:p.text||'',pw:p.pw||'',date:p.date,
+        likes:p.likes||0,comments:p.comments||[],
+        media:media.map(function(m){return{type:m.type,name:m.name||'',url:m.src};})
+      });
+    }catch(e){}
+  }
+  closeEditSheet(); renderFeed(); toast('수정되었습니다.');
   if(btn)btn.disabled=false;
 }
 
