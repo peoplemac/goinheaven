@@ -653,7 +653,7 @@ label{font-size:13px;color:var(--mid);display:block;margin-bottom:5px}
   <div class="sheet-header">
     <button class="sheet-close" onclick="closeSheet()">✕</button>
     <span class="sheet-title">추모글 작성</span>
-    <button class="sheet-submit" onclick="submitPost()">게시</button>
+    <button class="sheet-submit" id="sheet-submit-btn" onclick="submitPost()">게시</button>
   </div>
   <div class="sheet-body">
     <div class="row2" style="margin-bottom:10px">
@@ -723,7 +723,7 @@ label{font-size:13px;color:var(--mid);display:block;margin-bottom:5px}
   <div class="sheet-header">
     <button class="sheet-close" onclick="closeEditSheet()">✕</button>
     <span class="sheet-title">추모글 수정</span>
-    <button class="sheet-submit" onclick="submitEdit()">저장</button>
+    <button class="sheet-submit" id="edit-submit-btn" onclick="submitEdit()">저장</button>
   </div>
   <div class="sheet-body">
     <div class="row2" style="margin-bottom:10px">
@@ -1371,8 +1371,10 @@ function closeSheet(){$('sheet-backdrop').classList.remove('open');$('sheet').cl
 function addComposeMedia(input){
   if(!input.files.length)return;
   Array.from(input.files).forEach(function(f){
-    if(f.size>52428800){toast(f.name+' 50MB 초과');return;}
-    var r=new FileReader(); r.onload=function(e){_csrcs.push({src:e.target.result,type:f.type.startsWith('video')?'video':'image',name:f.name});renderCPrev();}; r.readAsDataURL(f);
+    if(f.size>524288000){toast(f.name+' 500MB 초과');return;}
+    var objUrl=URL.createObjectURL(f);
+    _csrcs.push({file:f,src:objUrl,type:f.type.startsWith('video')?'video':'image',name:f.name});
+    renderCPrev();
   }); input.value='';
 }
 function renderCPrev(){
@@ -1381,22 +1383,50 @@ function renderCPrev(){
     var d=document.createElement('div'); d.className='cmp-thumb';
     d.innerHTML=m.type==='video'?'<video src="'+m.src+'" style="width:100%;height:100%;object-fit:cover"></video>':'<img src="'+m.src+'" alt="">';
     var x=document.createElement('button'); x.className='cmp-thumb-del'; x.textContent='✕';
-    x.onclick=function(){_csrcs.splice(i,1);renderCPrev();}; d.appendChild(x); w.appendChild(d);
+    (function(idx){x.onclick=function(){if(_csrcs[idx].file)URL.revokeObjectURL(_csrcs[idx].src);_csrcs.splice(idx,1);renderCPrev();};})(i);
+    d.appendChild(x); w.appendChild(d);
   });
   var a=document.createElement('div'); a.className='add-media-btn';
   a.innerHTML='<span class="add-media-icon">＋</span><span>사진/영상</span>';
   a.onclick=function(){$('p-media-file').click();}; w.appendChild(a);
 }
-function submitPost(){
+async function submitPost(){
   var g=curg(); if(!g)return;
   var author=$('p-author').value.trim(), text=$('p-text').value.trim();
   if(!author)return toast('이름을 입력해 주세요.');
   if(!text&&_csrcs.length===0)return toast('글 또는 사진/영상을 추가해 주세요.');
   if(!$('p-pw').value.trim())return toast('비밀번호를 입력해 주세요.');
-  g.posts.unshift({id:uid(),author:author,rel:$('p-rel').value.trim(),text:text,pw:$('p-pw').value.trim(),date:new Date().toISOString(),likes:0,liked:false,comments:[],media:_csrcs.slice()});
+  var btn=$('sheet-submit-btn'); if(btn)btn.disabled=true;
+  var media=[];
+  var needUpload=_fbReady&&_csrcs.some(function(m){return m.file;});
+  if(needUpload){
+    var st; try{st=firebase.storage();}catch(e){}
+    if(st){
+      var pid=uid();
+      for(var i=0;i<_csrcs.length;i++){
+        var m=_csrcs[i];
+        if(!m.file){media.push({src:m.src,type:m.type,name:m.name||''});continue;}
+        toast('업로드 중 '+(i+1)+'/'+_csrcs.length+'...');
+        try{
+          var ref=st.ref('posts/'+pid+'/'+i+'_'+(m.name||'file'));
+          await ref.put(m.file);
+          var url=await ref.getDownloadURL();
+          URL.revokeObjectURL(m.src);
+          media.push({src:url,type:m.type,name:m.name||''});
+        }catch(e){
+          toast('업로드 실패: '+(m.name||'파일'));
+          if(btn)btn.disabled=false; return;
+        }
+      }
+    } else { media=_csrcs.map(function(m){return{src:m.src,type:m.type,name:m.name||''};});}
+  } else { media=_csrcs.map(function(m){return{src:m.src,type:m.type,name:m.name||''};});}
+  g.posts.unshift({id:uid(),author:author,rel:$('p-rel').value.trim(),text:text,
+    pw:$('p-pw').value.trim(),date:new Date().toISOString(),likes:0,liked:false,comments:[],media:media});
   saveDB();
   $('p-author').value='';$('p-rel').value='';$('p-text').value='';$('p-pw').value='';
-  _csrcs=[];renderCPrev();closeSheet();renderFeed();renderStats();toast('게시물이 등록되었습니다.');
+  _csrcs=[];renderCPrev();closeSheet();renderFeed();renderStats();
+  toast('게시물이 등록되었습니다.');
+  if(btn)btn.disabled=false;
 }
 
 /* ══════════════════════
@@ -1621,10 +1651,10 @@ function closeEditSheet(){
 function addEditMedia(input){
   if(!input.files.length)return;
   Array.from(input.files).forEach(function(f){
-    if(f.size>52428800){toast(f.name+' 50MB 초과');return;}
-    var r=new FileReader();
-    r.onload=function(e){_editMediaSrcs.push({src:e.target.result,type:f.type.startsWith('video')?'video':'image',name:f.name});renderEditPrev();};
-    r.readAsDataURL(f);
+    if(f.size>524288000){toast(f.name+' 500MB 초과');return;}
+    var objUrl=URL.createObjectURL(f);
+    _editMediaSrcs.push({file:f,src:objUrl,type:f.type.startsWith('video')?'video':'image',name:f.name});
+    renderEditPrev();
   });
   input.value='';
 }
@@ -1634,25 +1664,49 @@ function renderEditPrev(){
     var d=document.createElement('div'); d.className='cmp-thumb';
     d.innerHTML=m.type==='video'?'<video src="'+m.src+'" style="width:100%;height:100%;object-fit:cover"></video>':'<img src="'+m.src+'" alt="">';
     var x=document.createElement('button'); x.className='cmp-thumb-del'; x.textContent='✕';
-    (function(idx){x.onclick=function(){_editMediaSrcs.splice(idx,1);renderEditPrev();};})(i);
+    (function(idx){x.onclick=function(){if(_editMediaSrcs[idx].file)URL.revokeObjectURL(_editMediaSrcs[idx].src);_editMediaSrcs.splice(idx,1);renderEditPrev();};})(i);
     d.appendChild(x); w.appendChild(d);
   });
   var a=document.createElement('div'); a.className='add-media-btn';
   a.innerHTML='<span class="add-media-icon">＋</span><span>사진/영상</span>';
   a.onclick=function(){$('edit-media-file').click();}; w.appendChild(a);
 }
-function submitEdit(){
+async function submitEdit(){
   if(!_editPostId)return;
   var g=curg(); if(!g)return;
   var text=$('edit-p-text').value.trim();
   if(!text&&_editMediaSrcs.length===0)return toast('글 또는 사진/영상을 추가해 주세요.');
   var idx=g.posts.findIndex(function(x){return x.id===_editPostId;});
   if(idx===-1)return toast('게시물을 찾을 수 없습니다.');
+  var btn=$('edit-submit-btn'); if(btn)btn.disabled=true;
+  var media=[];
+  var needUpload=_fbReady&&_editMediaSrcs.some(function(m){return m.file;});
+  if(needUpload){
+    var st; try{st=firebase.storage();}catch(e){}
+    if(st){
+      for(var i=0;i<_editMediaSrcs.length;i++){
+        var m=_editMediaSrcs[i];
+        if(!m.file){media.push({src:m.src,type:m.type,name:m.name||''});continue;}
+        toast('업로드 중 '+(i+1)+'/'+_editMediaSrcs.length+'...');
+        try{
+          var ref=st.ref('posts/'+_editPostId+'/'+i+'_'+(m.name||'file'));
+          await ref.put(m.file);
+          var url=await ref.getDownloadURL();
+          URL.revokeObjectURL(m.src);
+          media.push({src:url,type:m.type,name:m.name||''});
+        }catch(e){
+          toast('업로드 실패: '+(m.name||'파일'));
+          if(btn)btn.disabled=false; return;
+        }
+      }
+    } else { media=_editMediaSrcs.map(function(m){return{src:m.src,type:m.type,name:m.name||''};});}
+  } else { media=_editMediaSrcs.map(function(m){return{src:m.src,type:m.type,name:m.name||''};});}
   g.posts[idx].text=text;
   g.posts[idx].author=$('edit-p-author').value.trim()||g.posts[idx].author;
   g.posts[idx].rel=$('edit-p-rel').value.trim();
-  g.posts[idx].media=_editMediaSrcs.slice();
+  g.posts[idx].media=media;
   saveDB(); closeEditSheet(); renderFeed(); toast('수정되었습니다.');
+  if(btn)btn.disabled=false;
 }
 
 /* ══════════════════════
