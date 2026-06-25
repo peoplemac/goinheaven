@@ -983,7 +983,9 @@ function fmtDate(d){if(!d)return'';var p=d.split('-');return p[0]+'년 '+parseIn
 function fmtRel(ds){var d=new Date(ds),n=new Date(),df=Math.floor((n-d)/1000);if(df<60)return'방금';if(df<3600)return Math.floor(df/60)+'분 전';if(df<86400)return Math.floor(df/3600)+'시간 전';if(df<604800)return Math.floor(df/86400)+'일 전';return d.toLocaleDateString('ko-KR');}
 function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,5);}
-function toast(msg){var t=$('toast');t.textContent=msg;t.classList.add('show');setTimeout(function(){t.classList.remove('show');},2200);}
+var _toastTimer=null;
+function toast(msg){if(_toastTimer){clearTimeout(_toastTimer);_toastTimer=null;}var t=$('toast');t.textContent=msg;t.classList.add('show');_toastTimer=setTimeout(function(){t.classList.remove('show');_toastTimer=null;},2200);}
+function _toastStay(msg){if(_toastTimer){clearTimeout(_toastTimer);_toastTimer=null;}var t=$('toast');t.textContent=msg;t.classList.add('show');}
 function curg(){return db.groups.find(function(g){return g.id===curGid;})||null;}
 function _copyText(text){
   if(navigator.clipboard){navigator.clipboard.writeText(text).then(function(){toast('링크가 복사되었습니다.');}).catch(function(){_copyFallback(text);});}
@@ -1406,10 +1408,15 @@ async function submitPost(){
       for(var i=0;i<_csrcs.length;i++){
         var m=_csrcs[i];
         if(!m.file){media.push({src:m.src,type:m.type,name:m.name||''});continue;}
-        toast('업로드 중 '+(i+1)+'/'+_csrcs.length+'...');
         try{
           var ref=st.ref('posts/'+pid+'/'+i+'_'+(m.name||'file'));
-          await ref.put(m.file);
+          var _pre=_csrcs.length>1?('('+( i+1)+'/'+_csrcs.length+') '):'';
+          _toastStay(_pre+'업로드 중 0%');
+          await new Promise(function(resolve,reject){
+            ref.put(m.file).on('state_changed',
+              function(snap){_toastStay(_pre+'업로드 중 '+Math.round(snap.bytesTransferred/snap.totalBytes*100)+'%');},
+              reject,resolve);
+          });
           var url=await ref.getDownloadURL();
           URL.revokeObjectURL(m.src);
           media.push({src:url,type:m.type,name:m.name||''});
@@ -1698,10 +1705,15 @@ async function submitEdit(){
       for(var i=0;i<_editMediaSrcs.length;i++){
         var m=_editMediaSrcs[i];
         if(!m.file){media.push({src:m.src,type:m.type,name:m.name||''});continue;}
-        toast('업로드 중 '+(i+1)+'/'+_editMediaSrcs.length+'...');
         try{
           var ref=st.ref('posts/'+_editPostId+'/'+i+'_'+(m.name||'file'));
-          await ref.put(m.file);
+          var _pre=_editMediaSrcs.length>1?('('+( i+1)+'/'+_editMediaSrcs.length+') '):'';
+          _toastStay(_pre+'업로드 중 0%');
+          await new Promise(function(resolve,reject){
+            ref.put(m.file).on('state_changed',
+              function(snap){_toastStay(_pre+'업로드 중 '+Math.round(snap.bytesTransferred/snap.totalBytes*100)+'%');},
+              reject,resolve);
+          });
           var url=await ref.getDownloadURL();
           URL.revokeObjectURL(m.src);
           media.push({src:url,type:m.type,name:m.name||''});
