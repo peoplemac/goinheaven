@@ -443,7 +443,7 @@ label{font-size:13px;color:var(--mid);display:block;margin-bottom:5px}
 .auth-err{font-size:12px;color:#c0392b;margin-bottom:.5rem;min-height:1.2em;text-align:center}
 .auth-agree-wrap{display:none;flex-direction:column;gap:8px;margin:.75rem 0 .5rem}
 .auth-agree-wrap.show{display:flex}
-.auth-agree-row{display:flex;align-items:flex-start;gap:8px;font-size:12px;color:var(--mid);line-height:1.6}
+.auth-agree-row{display:flex;align-items:flex-start;gap:8px;font-size:12px;color:var(--mid);line-height:1.6;cursor:pointer;-webkit-tap-highlight-color:transparent}
 .auth-agree-row input[type=checkbox]{width:16px;height:16px;flex-shrink:0;margin-top:2px;accent-color:var(--gold);cursor:pointer}
 .auth-agree-row a{color:var(--gold);text-decoration:none;white-space:nowrap}
 .auth-agree-row a:hover{text-decoration:underline}
@@ -511,7 +511,7 @@ label{font-size:13px;color:var(--mid);display:block;margin-bottom:5px}
     </button>
     <div class="auth-divider">또는 이메일로</div>
     <div class="fg">
-      <input type="email" id="auth-email" placeholder="이메일 주소" onkeydown="if(event.key==='Enter'&&!event.isComposing)authSubmit()">
+      <input type="email" id="auth-email" placeholder="이메일 주소" onkeydown="if(event.key==='Enter'&&!event.isComposing)authSubmit()" onblur="checkEmailDupe()">
     </div>
     <div class="fg">
       <input type="password" id="auth-pw" placeholder="비밀번호 (6자 이상)" onkeydown="if(event.key==='Enter'&&!event.isComposing)authSubmit()">
@@ -520,18 +520,18 @@ label{font-size:13px;color:var(--mid);display:block;margin-bottom:5px}
       <input type="password" id="auth-pw2" placeholder="비밀번호 확인" onkeydown="if(event.key==='Enter'&&!event.isComposing)authSubmit()">
     </div>
     <div class="auth-agree-wrap" id="auth-agree-wrap">
-      <div class="auth-agree-row">
-        <input type="checkbox" id="agree-privacy">
-        <label for="agree-privacy">[필수] <a onclick="openPrivacyModal('privacy')">개인정보처리방침</a>에 동의합니다.</label>
+      <div class="auth-agree-row" onclick="toggleAgree('agree-privacy')">
+        <input type="checkbox" id="agree-privacy" onclick="event.stopPropagation()">
+        <label>[필수] <a onclick="openPrivacyModal('privacy');event.stopPropagation()">개인정보처리방침</a>에 동의합니다.</label>
       </div>
-      <div class="auth-agree-row">
-        <input type="checkbox" id="agree-use">
-        <label for="agree-use">[필수] <a onclick="openPrivacyModal('use')">개인정보 수집·이용</a>에 동의합니다.</label>
+      <div class="auth-agree-row" onclick="toggleAgree('agree-use')">
+        <input type="checkbox" id="agree-use" onclick="event.stopPropagation()">
+        <label>[필수] <a onclick="openPrivacyModal('use');event.stopPropagation()">개인정보 수집·이용</a>에 동의합니다.</label>
       </div>
       <div class="auth-agree-divider">선택 동의 항목</div>
-      <div class="auth-agree-row optional">
-        <input type="checkbox" id="agree-marketing">
-        <label for="agree-marketing">[선택] <a onclick="openPrivacyModal('marketing')">마케팅·이벤트 안내</a> 수신에 동의합니다.</label>
+      <div class="auth-agree-row optional" onclick="toggleAgree('agree-marketing')">
+        <input type="checkbox" id="agree-marketing" onclick="event.stopPropagation()">
+        <label>[선택] <a onclick="openPrivacyModal('marketing');event.stopPropagation()">마케팅·이벤트 안내</a> 수신에 동의합니다.</label>
       </div>
     </div>
     <div class="auth-err" id="auth-err"></div>
@@ -952,6 +952,22 @@ function _fbInit(){
    AUTH
 ══════════════════════ */
 var _authMode='login';
+
+function toggleAgree(id){
+  var cb=document.getElementById(id);
+  if(cb)cb.checked=!cb.checked;
+}
+
+function checkEmailDupe(){
+  if(_authMode!=='signup')return;
+  var email=$('auth-email').value.trim();
+  if(!email||!_fbReady)return;
+  firebase.auth().fetchSignInMethodsForEmail(email).then(function(methods){
+    var el=$('auth-err');
+    if(methods&&methods.length>0)el.textContent='이미 가입된 이메일입니다. 로그인해 주세요.';
+    else if(el.textContent==='이미 가입된 이메일입니다. 로그인해 주세요.')el.textContent='';
+  }).catch(function(){});
+}
 
 function authTab(mode){
   _authMode=mode;
