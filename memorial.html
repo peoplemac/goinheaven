@@ -11,6 +11,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
 <script src="firebase-config.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
@@ -419,6 +420,42 @@ label{font-size:13px;color:var(--mid);display:block;margin-bottom:5px}
 #ai-chat-send{background:linear-gradient(135deg,#7b5ea7,#5c4080);color:#fff;border:none;border-radius:22px;padding:10px 18px;font-size:14px;font-weight:600;cursor:pointer;white-space:nowrap;}
 #ai-chat-send:disabled{opacity:.45;cursor:not-allowed;}
 
+/* ── AUTH ── */
+#s-auth{display:none;flex-direction:column;align-items:center;
+  justify-content:center;min-height:100vh;padding:2rem 1.25rem;background:var(--ivory)}
+#s-auth.active{display:flex}
+.auth-hdr{text-align:center;margin-bottom:1.75rem}
+.auth-hdr-icon{font-size:42px;margin-bottom:.75rem}
+.auth-hdr-title{font-size:22px;font-weight:300;letter-spacing:.1em;color:var(--deep)}
+.auth-hdr-sub{font-size:12px;color:var(--mid);margin-top:.4rem;line-height:1.9}
+.auth-box{background:var(--white);border:1px solid var(--stone);border-radius:16px;
+  padding:1.5rem;width:100%;max-width:340px}
+.auth-tabs{display:flex;border:1px solid var(--stone);border-radius:8px;margin-bottom:1.25rem;overflow:hidden}
+.auth-tab{flex:1;padding:9px;font-size:13px;font-weight:500;border:none;
+  background:none;cursor:pointer;color:var(--mid);font-family:inherit;transition:all .15s}
+.auth-tab.active{background:var(--gold);color:#fff}
+.auth-divider{display:flex;align-items:center;gap:10px;margin:.75rem 0;font-size:12px;color:var(--ash)}
+.auth-divider::before,.auth-divider::after{content:'';flex:1;height:1px;background:var(--stone)}
+.btn-google{width:100%;display:flex;align-items:center;justify-content:center;gap:10px;
+  background:var(--white);border:1px solid var(--stone);border-radius:8px;
+  padding:11px;font-size:14px;color:var(--deep);cursor:pointer;font-family:inherit;transition:background .15s}
+.btn-google:active{background:var(--stone)}
+.auth-err{font-size:12px;color:#c0392b;margin-bottom:.5rem;min-height:1.2em;text-align:center}
+
+/* ── MY PAGE ── */
+#s-mypage{min-height:100vh}
+.mypage-topbar{display:flex;align-items:center;padding:14px 16px;
+  background:var(--white);border-bottom:1px solid var(--stone);position:sticky;top:0;z-index:50}
+.mypage-topbar-logo{flex:1;font-size:15px;font-weight:500;letter-spacing:.05em;color:var(--deep)}
+.mypage-user{font-size:11px;color:var(--mid);margin-right:8px;max-width:110px;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mypage-logout{font-size:12px;color:var(--ash);background:none;border:none;cursor:pointer;font-family:inherit;white-space:nowrap}
+.mypage-body{padding:1.25rem 1rem 4rem}
+.mypage-section-title{font-size:12px;font-weight:600;color:var(--gold);letter-spacing:.06em;
+  margin-bottom:1rem;padding-bottom:.5rem;border-bottom:1px solid var(--stone)}
+.mypage-plan{display:inline-flex;align-items:center;gap:4px;background:var(--stone);
+  color:var(--mid);font-size:11px;padding:2px 8px;border-radius:20px;margin-bottom:1rem}
+
 </style>
 </head>
 <body>
@@ -433,6 +470,51 @@ label{font-size:13px;color:var(--mid);display:block;margin-bottom:5px}
 
 <!-- ② HOME → 비활성화 (직접 접근 불가) -->
 <div id="s-home" class="screen" style="display:none!important"></div>
+
+<!-- ② AUTH -->
+<div id="s-auth" class="screen">
+  <div class="auth-hdr">
+    <div class="auth-hdr-icon">🕯</div>
+    <h1 class="auth-hdr-title">사이버 추모관</h1>
+    <p class="auth-hdr-sub">소중한 분의 기억을 영원히<br>보존하고 나눠보세요</p>
+  </div>
+  <div class="auth-box">
+    <div class="auth-tabs">
+      <button class="auth-tab active" id="tab-login" onclick="authTab('login')">로그인</button>
+      <button class="auth-tab" id="tab-signup" onclick="authTab('signup')">회원가입</button>
+    </div>
+    <button class="btn-google" onclick="signInGoogle()">
+      <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#FFC107" d="M43.6 20H24v8h11.3C33.6 33.1 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.9 1.1 8.1 3l5.7-5.7C34.2 6.5 29.4 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.7-.4-4z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.5 16 18.9 13 24 13c3.1 0 5.9 1.1 8.1 3l5.7-5.7C34.2 6.5 29.4 4 24 4 16.3 4 9.7 8.4 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-1.9 13.5-5.1l-6.2-5.3C29.4 35.3 26.8 36 24 36c-5.1 0-9.5-2.9-11.3-7.1l-6.5 5C9.6 39.5 16.3 44 24 44z"/><path fill="#1976D2" d="M43.6 20H24v8h11.3c-.8 2.2-2.3 4.1-4.2 5.5l6.2 5.3C41.1 35.3 44 30 44 24c0-1.3-.1-2.7-.4-4z"/></svg>
+      Google로 계속하기
+    </button>
+    <div class="auth-divider">또는 이메일로</div>
+    <div class="fg">
+      <input type="email" id="auth-email" placeholder="이메일 주소" onkeydown="if(event.key==='Enter'&&!event.isComposing)authSubmit()">
+    </div>
+    <div class="fg">
+      <input type="password" id="auth-pw" placeholder="비밀번호 (6자 이상)" onkeydown="if(event.key==='Enter'&&!event.isComposing)authSubmit()">
+    </div>
+    <div class="fg" id="auth-pw2-wrap" style="display:none">
+      <input type="password" id="auth-pw2" placeholder="비밀번호 확인" onkeydown="if(event.key==='Enter'&&!event.isComposing)authSubmit()">
+    </div>
+    <div class="auth-err" id="auth-err"></div>
+    <button class="btn btn-gold btn-block" id="auth-submit-btn" onclick="authSubmit()">로그인</button>
+  </div>
+</div>
+
+<!-- ② MY PAGE (로그인 후 홈) -->
+<div id="s-mypage" class="screen">
+  <div class="mypage-topbar">
+    <span class="mypage-topbar-logo">🕯 사이버 추모관</span>
+    <span class="mypage-user" id="mypage-user-email"></span>
+    <button class="mypage-logout" onclick="signOutUser()">로그아웃</button>
+  </div>
+  <div class="mypage-body">
+    <div class="mypage-plan" id="mypage-plan-badge">무료 플랜</div>
+    <div class="mypage-section-title">나의 추모관</div>
+    <div id="mypage-cards"></div>
+  </div>
+</div>
 
 <!-- ③ SETUP -->
 <div id="s-setup" class="screen">
@@ -794,12 +876,133 @@ label{font-size:13px;color:var(--mid);display:block;margin-bottom:5px}
 ══════════════════════════════════════════ */
 var _fbReady=false;
 var _fbLoading=false;
+var _authUser=null;
+var _authReady=false;
+
 function _fbInit(){
   try{
     if(typeof FIREBASE_CONFIG==='undefined'||!FIREBASE_CONFIG.apiKey||FIREBASE_CONFIG.apiKey.indexOf('YOUR')===0)return;
     if(!firebase.apps.length)firebase.initializeApp(FIREBASE_CONFIG);
     _fbReady=true;
+    firebase.auth().onAuthStateChanged(function(user){
+      _authUser=user;
+      _authReady=true;
+      /* ?gid= 링크로 접속한 경우 Auth와 무관하게 기존 흐름 유지 */
+      if(getParam('gid'))return;
+      if(user){
+        $('mypage-user-email').textContent=user.email||'';
+        _loadUserGroups(user.uid);
+      } else {
+        db.groups=[];
+        goTo('s-auth');
+      }
+    });
   }catch(e){}
+}
+
+/* ══════════════════════
+   AUTH
+══════════════════════ */
+var _authMode='login';
+
+function authTab(mode){
+  _authMode=mode;
+  var isLogin=mode==='login';
+  $('tab-login').classList.toggle('active',isLogin);
+  $('tab-signup').classList.toggle('active',!isLogin);
+  $('auth-pw2-wrap').style.display=isLogin?'none':'';
+  $('auth-submit-btn').textContent=isLogin?'로그인':'회원가입';
+  $('auth-err').textContent='';
+}
+
+async function authSubmit(){
+  var email=$('auth-email').value.trim();
+  var pw=$('auth-pw').value;
+  var errEl=$('auth-err');
+  errEl.textContent='';
+  if(!email||!pw){errEl.textContent='이메일과 비밀번호를 입력해 주세요.';return;}
+  var btn=$('auth-submit-btn');btn.disabled=true;
+  try{
+    if(_authMode==='login'){
+      await firebase.auth().signInWithEmailAndPassword(email,pw);
+    } else {
+      var pw2=$('auth-pw2').value;
+      if(pw!==pw2){errEl.textContent='비밀번호가 일치하지 않습니다.';btn.disabled=false;return;}
+      await firebase.auth().createUserWithEmailAndPassword(email,pw);
+    }
+  }catch(e){errEl.textContent=_authErrMsg(e.code);btn.disabled=false;}
+}
+
+async function signInGoogle(){
+  if(!_fbReady){$('auth-err').textContent='Firebase가 준비되지 않았습니다.';return;}
+  try{
+    var provider=new firebase.auth.GoogleAuthProvider();
+    await firebase.auth().signInWithPopup(provider);
+  }catch(e){$('auth-err').textContent='구글 로그인에 실패했습니다.';}
+}
+
+function signOutUser(){
+  firebase.auth().signOut().then(function(){
+    db.groups=[];_authUser=null;
+    goTo('s-auth');
+  });
+}
+
+function _authErrMsg(code){
+  var m={
+    'auth/email-already-in-use':'이미 사용 중인 이메일입니다.',
+    'auth/invalid-email':'이메일 형식이 올바르지 않습니다.',
+    'auth/weak-password':'비밀번호는 6자 이상이어야 합니다.',
+    'auth/user-not-found':'등록되지 않은 이메일입니다.',
+    'auth/wrong-password':'비밀번호가 틀렸습니다.',
+    'auth/invalid-credential':'이메일 또는 비밀번호가 올바르지 않습니다.',
+    'auth/too-many-requests':'잠시 후 다시 시도해 주세요.',
+    'auth/network-request-failed':'네트워크 연결을 확인해 주세요.'
+  };
+  return m[code]||'오류가 발생했습니다. 다시 시도해 주세요.';
+}
+
+async function _loadUserGroups(uid){
+  if(!_fbReady){renderMyPage();return;}
+  try{
+    var fs=firebase.firestore();
+    var snap=await fs.collection('groups').where('ownerUid','==',uid).get();
+    db.groups=[];
+    snap.forEach(function(doc){
+      var g=doc.data();
+      g.posts=g.posts||[];
+      g.members=(g.members||[]).map(function(m){m.portrait=m.portraitUrl||null;return m;});
+      db.groups.push(g);
+    });
+    db.groups.sort(function(a,b){return (b.createdAt||0)-(a.createdAt||0);});
+  }catch(e){}
+  renderMyPage();
+}
+
+function renderMyPage(){
+  if(_authUser)$('mypage-user-email').textContent=_authUser.email||'';
+  var wrap=$('mypage-cards');wrap.innerHTML='';
+  db.groups.forEach(function(g){
+    var card=document.createElement('div');card.className='mem-select-card';
+    card.style.marginBottom='14px';
+    var portraits='<div class="msc-portraits">';
+    g.members.forEach(function(m,mi){
+      portraits+='<div class="msc-portrait'+(mi>0?' p2':'')+'">'+
+        (m.portrait?'<img src="'+m.portrait+'">':(m.name?m.name.charAt(0):'☺'))+'</div>';
+    });
+    portraits+='</div>';
+    var names=g.members.map(function(m){return m.name;}).join(' · ');
+    card.innerHTML=portraits+
+      '<div class="msc-info"><div class="msc-name">'+esc(names)+'</div></div>'+
+      '<div class="msc-arrow">›</div>';
+    card.addEventListener('click',function(){showLogin(g.id);});
+    wrap.appendChild(card);
+  });
+  var addCard=document.createElement('div');addCard.className='add-mem-card';
+  addCard.innerHTML='<span class="add-icon">＋</span><span>새 추모관 개설</span>';
+  addCard.addEventListener('click',function(){openSetup(null);});
+  wrap.appendChild(addCard);
+  goTo('s-mypage');
 }
 
 /* Firebase → 메모리: 현재 추모관 단독 조회 (curGid 기준) */
@@ -876,7 +1079,8 @@ async function _fbSave(){
     }
     await fs.collection('groups').doc(g.id).set({
       id:g.id,pw:g.pw,adminPw:g.adminPw||'',visits:g.visits||0,
-      members:mems,contact:g.contact||{},subscription:g.subscription||{},note:g.note||''
+      members:mems,contact:g.contact||{},subscription:g.subscription||{},note:g.note||'',
+      ownerUid:g.ownerUid||null,ownerEmail:g.ownerEmail||null,createdAt:g.createdAt||Date.now()
     });
     for(var k=0;k<g.posts.length;k++){
       var p=g.posts[k];
@@ -975,8 +1179,11 @@ window.addEventListener('load',function(){
   var hasLocal=gid&&db.groups.find(function(g){return g.id==gid;});
 
   if(!gid){
-    /* gid 없이 직접 접속 → 잠금 화면 */
-    goTo('s-landing');
+    /* gid 없이 직접 접속 → Auth 상태 확인 (onAuthStateChanged가 처리) */
+    /* Firebase 미설정이면 바로 auth 화면 */
+    if(!_fbReady)goTo('s-auth');
+    /* else: onAuthStateChanged가 s-auth 또는 s-mypage로 이동 */
+    return;
   } else if(hasLocal){
     /* 관리자 직접 입장 바이패스 확인 */
     var _bypass=localStorage.getItem('adm_bypass');
@@ -1021,12 +1228,13 @@ window.addEventListener('load',function(){
 /* ── 유틸 ── */
 function $(id){return document.getElementById(id);}
 function goTo(id){
-  if(id==='s-home')id='s-landing';
+  if(id==='s-home')id=(_authUser?'s-mypage':'s-auth');
   document.querySelectorAll('.screen').forEach(function(s){s.classList.remove('active');});
   $(id).classList.add('active');
 }
-function setupBack(){if(curGid)showLogin(curGid);else goTo('s-landing');}
-function homeFromMemorial(){sessionStorage.removeItem('mem_sess');if(curGid)showLogin(curGid);else goTo('s-landing');}
+function _goHome(){return _authUser?'s-mypage':'s-auth';}
+function setupBack(){if(curGid)showLogin(curGid);else goTo(_goHome());}
+function homeFromMemorial(){sessionStorage.removeItem('mem_sess');if(curGid)showLogin(curGid);else goTo(_goHome());}
 function fmtDate(d){if(!d)return'';var p=d.split('-');return p[0]+'년 '+parseInt(p[1])+'월 '+parseInt(p[2])+'일';}
 function fmtRel(ds){var d=new Date(ds),n=new Date(),df=Math.floor((n-d)/1000);if(df<60)return'방금';if(df<3600)return Math.floor(df/60)+'분 전';if(df<86400)return Math.floor(df/3600)+'시간 전';if(df<604800)return Math.floor(df/86400)+'일 전';return d.toLocaleDateString('ko-KR');}
 function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
@@ -1180,7 +1388,10 @@ function saveMemorial(){
     var m1={id:uid(),name:name1,birth:$('su-b1').value,death:$('su-d1').value,bio:$('su-bio1').value.trim(),portrait:_p1data};
     var members=[m1];
     if(p2open){members.push({id:uid(),name:$('su-n2').value.trim(),birth:$('su-b2').value,death:$('su-d2').value,bio:$('su-bio2').value.trim(),portrait:_p2data});}
-    var newG={id:uid(),pw:pw,adminPw:apw,visits:0,members:members,posts:[]};
+    var newG={id:uid(),pw:pw,adminPw:apw,visits:0,members:members,posts:[],
+      ownerUid:_authUser?_authUser.uid:null,
+      ownerEmail:_authUser?_authUser.email:null,
+      createdAt:Date.now()};
     db.groups.push(newG);
   } else {
     /* 수정: 기존 id 유지하여 portrait 키 보존 */
@@ -1206,7 +1417,10 @@ function saveMemorial(){
     if(apw) g.adminPw=apw;
   }
   saveDB(); toast('저장되었습니다.');
-  setTimeout(function(){goTo('s-home');},500);
+  setTimeout(function(){
+    if(_authUser)renderMyPage();
+    else goTo('s-landing');
+  },500);
 }
 
 /* ══════════════════════
