@@ -447,6 +447,9 @@ label{font-size:13px;color:var(--mid);display:block;margin-bottom:5px}
 .auth-agree-row input[type=checkbox]{width:16px;height:16px;flex-shrink:0;margin-top:2px;accent-color:var(--gold);cursor:pointer}
 .auth-agree-row a{color:var(--gold);text-decoration:none;white-space:nowrap}
 .auth-agree-row a:hover{text-decoration:underline}
+.auth-agree-row.optional{color:var(--ash)}
+.auth-agree-row.optional a{color:var(--mid)}
+.auth-agree-divider{font-size:11px;color:var(--ash);border-top:1px solid var(--stone);padding-top:8px;margin-top:2px}
 /* 개인정보 모달 */
 .privacy-modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:900;align-items:flex-end;justify-content:center}
 .privacy-modal-bg.open{display:flex}
@@ -524,6 +527,11 @@ label{font-size:13px;color:var(--mid);display:block;margin-bottom:5px}
       <div class="auth-agree-row">
         <input type="checkbox" id="agree-use">
         <label for="agree-use">[필수] <a onclick="openPrivacyModal('use')">개인정보 수집·이용</a>에 동의합니다.</label>
+      </div>
+      <div class="auth-agree-divider">선택 동의 항목</div>
+      <div class="auth-agree-row optional">
+        <input type="checkbox" id="agree-marketing">
+        <label for="agree-marketing">[선택] <a onclick="openPrivacyModal('marketing')">마케팅·이벤트 안내</a> 수신에 동의합니다.</label>
       </div>
     </div>
     <div class="auth-err" id="auth-err"></div>
@@ -954,7 +962,7 @@ function authTab(mode){
   $('auth-agree-wrap').classList.toggle('show',!isLogin);
   $('auth-submit-btn').textContent=isLogin?'로그인':'회원가입';
   $('auth-err').textContent='';
-  if(isLogin){$('agree-privacy').checked=false;$('agree-use').checked=false;}
+  if(isLogin){$('agree-privacy').checked=false;$('agree-use').checked=false;$('agree-marketing').checked=false;}
 }
 
 async function authSubmit(){
@@ -1065,23 +1073,43 @@ var _PRIVACY_CONTENT={
 
   use:
     '<p>사이버 추모관 서비스 이용을 위해 아래와 같이 개인정보를 수집·이용합니다. 내용을 확인하시고 동의 여부를 결정해 주세요.</p>'+
+    '<h4 style="margin:.75rem 0 .4rem;font-size:13px">[필수] 서비스 제공을 위한 개인정보 수집·이용</h4>'+
     '<table>'+
     '<tr><th>수집 항목</th><td>성명, 연락처, 이메일 주소</td></tr>'+
     '<tr><th>수집 목적</th><td>회원 식별 및 본인 확인, 사이버 추모관 서비스 제공, 고지·안내, 고충처리</td></tr>'+
     '<tr><th>보유 기간</th><td>회원 탈퇴 시까지 (관련 법령에 따른 의무 보존 기간 별도 적용)</td></tr>'+
     '</table>'+
     '<p>※ 위 동의를 거부할 권리가 있으며, 동의를 거부하실 경우 서비스 이용이 제한될 수 있습니다.</p>'+
-    '<h4>개인정보 보호책임자</h4>'+
+    '<h4 style="margin:.75rem 0 .4rem;font-size:13px">[선택] 마케팅·이벤트 안내를 위한 개인정보 수집·이용</h4>'+
+    '<table>'+
+    '<tr><th>수집 항목</th><td>이메일 주소</td></tr>'+
+    '<tr><th>수집 목적</th><td>신규 서비스 안내, 이벤트·혜택 정보 제공, 서비스 관련 뉴스레터 발송</td></tr>'+
+    '<tr><th>보유 기간</th><td>동의 철회 시까지</td></tr>'+
+    '</table>'+
+    '<p>※ 선택 동의는 거부하셔도 서비스 이용에 제한이 없습니다.</p>'+
+    '<h4 style="margin:.75rem 0 .4rem;font-size:13px">개인정보 보호책임자</h4>'+
     '<table>'+
     '<tr><th>기업명</th><td>(주)피플맥</td></tr>'+
     '<tr><th>책임자</th><td>이윤범</td></tr>'+
     '<tr><th>연락처</th><td>070-4407-2004</td></tr>'+
     '</table>'+
-    '<p style="font-size:11px;color:var(--ash)">본 동의는 철회 가능하며, 철회 시 서비스 이용이 중단될 수 있습니다.</p>'
+    '<p style="font-size:11px;color:var(--ash)">필수 동의는 철회 시 서비스 이용이 중단될 수 있습니다. 선택 동의는 언제든지 철회 가능합니다.</p>',
+
+  marketing:
+    '<p>더 좋은 서비스와 혜택을 안내해 드리기 위해 아래와 같이 마케팅 목적의 개인정보 수집·이용에 동의를 구합니다.</p>'+
+    '<table>'+
+    '<tr><th>수집 항목</th><td>이메일 주소</td></tr>'+
+    '<tr><th>수집 목적</th><td>신규 서비스 출시 안내, 이벤트·프로모션 정보 제공, 서비스 업데이트 뉴스레터 발송</td></tr>'+
+    '<tr><th>보유 기간</th><td>동의 철회 시까지</td></tr>'+
+    '</table>'+
+    '<p>※ 본 동의는 선택 사항으로, 동의하지 않아도 서비스를 정상적으로 이용하실 수 있습니다.</p>'+
+    '<p>※ 동의 후 언제든지 고객센터(070-4407-2004) 또는 이메일(peoplemac.inc@gmail.com)을 통해 수신 동의를 철회하실 수 있습니다.</p>'+
+    '<p style="font-size:11px;color:var(--ash)">광고성 정보 수신 동의 | (주)피플맥</p>'
 };
 
 function openPrivacyModal(type){
-  $('privacy-modal-title').textContent=type==='privacy'?'개인정보처리방침':'개인정보 수집·이용 동의';
+  var titles={privacy:'개인정보처리방침',use:'개인정보 수집·이용 동의',marketing:'마케팅·이벤트 안내 동의(선택)'};
+  $('privacy-modal-title').textContent=titles[type]||'개인정보처리방침';
   $('privacy-modal-body').innerHTML=_PRIVACY_CONTENT[type];
   $('privacy-modal-bg').classList.add('open');
 }
