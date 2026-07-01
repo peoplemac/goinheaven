@@ -393,6 +393,32 @@ label{font-size:13px;color:var(--mid);display:block;margin-bottom:5px}
 .toast{position:fixed;top:20px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.82);color:#fff;padding:10px 22px;border-radius:20px;font-size:13px;z-index:999;opacity:0;transition:opacity .25s;pointer-events:none;white-space:nowrap}
 .toast.show{opacity:1}
 
+/* AI 채팅 */
+.ai-chat-btn{width:100%;display:flex;align-items:center;justify-content:center;gap:8px;background:linear-gradient(135deg,#7b5ea7,#5c4080);color:#fff;border:none;border-radius:50px;padding:12px 24px;font-size:14px;font-weight:600;cursor:pointer;margin-top:14px;box-shadow:0 3px 12px rgba(90,60,130,.25);letter-spacing:.3px;transition:opacity .15s;}
+.ai-chat-btn:active{opacity:.85;}
+#ai-chat-sheet{display:flex;flex-direction:column;height:88vh;}
+.ai-chat-hdr{display:flex;align-items:center;gap:12px;padding:14px 16px;border-bottom:1px solid var(--line);flex-shrink:0;}
+.ai-chat-hdr-close{background:none;border:none;font-size:20px;cursor:pointer;color:var(--mid);margin-left:auto;padding:4px 8px;}
+.ai-chat-av{width:42px;height:42px;border-radius:50%;background:linear-gradient(135deg,#7b5ea7,#5c4080);display:flex;align-items:center;justify-content:center;font-size:19px;color:#fff;font-weight:700;flex-shrink:0;}
+.ai-chat-nm{font-weight:700;font-size:15px;color:var(--text);}
+.ai-chat-sub{font-size:11px;color:var(--mid);margin-top:2px;}
+#ai-chat-msgs{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:10px;}
+.ai-msg-row{display:flex;gap:8px;align-items:flex-end;}
+.ai-msg-row.user{flex-direction:row-reverse;}
+.ai-bubble{max-width:78%;padding:10px 14px;border-radius:18px;font-size:14px;line-height:1.55;word-break:break-word;}
+.ai-bubble.bot{background:#ede8f5;color:var(--text);border-bottom-left-radius:4px;}
+.ai-bubble.user{background:var(--gold);color:#fff;border-bottom-right-radius:4px;}
+.ai-typing-dot{display:flex;gap:5px;padding:2px 0;}
+.ai-typing-dot span{width:7px;height:7px;border-radius:50%;background:#9b7fd4;animation:ai-blink 1.3s infinite;}
+.ai-typing-dot span:nth-child(2){animation-delay:.2s;}
+.ai-typing-dot span:nth-child(3){animation-delay:.4s;}
+@keyframes ai-blink{0%,80%,100%{opacity:.25}40%{opacity:1}}
+.ai-chat-bar{display:flex;gap:8px;padding:10px 12px;border-top:1px solid var(--line);flex-shrink:0;}
+#ai-chat-input{flex:1;border:1px solid var(--line);border-radius:22px;padding:10px 16px;font-size:14px;outline:none;}
+#ai-chat-input:focus{border-color:#7b5ea7;}
+#ai-chat-send{background:linear-gradient(135deg,#7b5ea7,#5c4080);color:#fff;border:none;border-radius:22px;padding:10px 18px;font-size:14px;font-weight:600;cursor:pointer;white-space:nowrap;}
+#ai-chat-send:disabled{opacity:.45;cursor:not-allowed;}
+
 </style>
 </head>
 <body>
@@ -505,6 +531,9 @@ label{font-size:13px;color:var(--mid);display:block;margin-bottom:5px}
       <div class="mem-stat"><div class="mem-stat-n" id="st-likes">0</div><div class="mem-stat-l">♡ 추모</div></div>
       <div class="mem-stat"><div class="mem-stat-n" id="st-visit">0</div><div class="mem-stat-l">방문</div></div>
     </div>
+    <button class="ai-chat-btn" onclick="openAiChat()">
+      ✦ AI로 대화하기
+    </button>
     <div class="mem-share-row">
       <button class="mem-share-btn" onclick="shareMemorial()">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.6" y1="13.5" x2="15.4" y2="17.5"/><line x1="15.4" y1="6.5" x2="8.6" y2="10.5"/></svg>
@@ -644,6 +673,25 @@ label{font-size:13px;color:var(--mid);display:block;margin-bottom:5px}
       <i class="ti ti-settings bnav-icon" aria-hidden="true"></i><span>관리</span><span class="bnav-dot"></span>
     </button>
   </nav>
+</div>
+
+<!-- AI 채팅 Sheet -->
+<div class="sheet-backdrop" id="ai-chat-backdrop" onclick="closeAiChat()"></div>
+<div class="sheet" id="ai-chat-sheet">
+  <div class="sheet-handle"></div>
+  <div class="ai-chat-hdr">
+    <div class="ai-chat-av" id="ai-chat-av">?</div>
+    <div>
+      <div class="ai-chat-nm" id="ai-chat-nm"></div>
+      <div class="ai-chat-sub">✦ 하늘에서 보내는 AI 메시지</div>
+    </div>
+    <button class="ai-chat-hdr-close" onclick="closeAiChat()">✕</button>
+  </div>
+  <div id="ai-chat-msgs"></div>
+  <div class="ai-chat-bar">
+    <input type="text" id="ai-chat-input" placeholder="하고 싶은 말을 전해보세요..." onkeydown="if(event.key==='Enter'&&!event.isComposing)sendAiMessage()">
+    <button id="ai-chat-send" onclick="sendAiMessage()">전송</button>
+  </div>
 </div>
 
 <!-- 글쓰기 Sheet -->
@@ -1756,6 +1804,70 @@ function renderQR(){
 }
 function downloadQR(){var c=$('qr-container');var cv=c.querySelector('canvas');var im=c.querySelector('img');var a=document.createElement('a');var g=curg();a.download=(g?g.members[0].name:'memorial')+'_QR.png';a.href=cv?cv.toDataURL():im?im.src:'';if(!a.href)return toast('QR을 먼저 생성해 주세요.');a.click();toast('QR 저장 중...');}
 function copyQRLink(){var g=curg();if(!g)return;var url=loginURL(g.id);if(navigator.clipboard){navigator.clipboard.writeText(url).then(function(){toast('링크 복사됨');}).catch(function(){fbCopy(url);});}else fbCopy(url);}
+
+/* ══════════════════════
+   AI 채팅
+══════════════════════ */
+var AI_CHAT_URL='YOUR_AI_CHAT_CLOUD_RUN_URL';
+var _aiHistory=[];
+var _aiMember=null;
+
+function openAiChat(){
+  var g=curg(); if(!g||!g.members.length)return;
+  _aiMember=g.members[0];
+  _aiHistory=[];
+  var name=_aiMember.name||'?';
+  $('ai-chat-av').textContent=name.charAt(0);
+  $('ai-chat-nm').textContent=name;
+  $('ai-chat-msgs').innerHTML='';
+  _aiAppend('bot','걱정하지 마세요, 저 여기 있어요. 보고 싶었어요. 하고 싶은 말 있으면 편히 해줘요.');
+  $('ai-chat-backdrop').classList.add('open');
+  $('ai-chat-sheet').classList.add('open');
+  setTimeout(function(){$('ai-chat-input').focus();},400);
+}
+function closeAiChat(){
+  $('ai-chat-backdrop').classList.remove('open');
+  $('ai-chat-sheet').classList.remove('open');
+}
+function _aiAppend(role,text){
+  var msgs=$('ai-chat-msgs');
+  var row=document.createElement('div'); row.className='ai-msg-row'+(role==='user'?' user':'');
+  var bub=document.createElement('div'); bub.className='ai-bubble '+(role==='user'?'user':'bot');
+  bub.textContent=text; row.appendChild(bub); msgs.appendChild(row);
+  msgs.scrollTop=msgs.scrollHeight;
+}
+function _aiShowTyping(){
+  var msgs=$('ai-chat-msgs');
+  var row=document.createElement('div'); row.className='ai-msg-row'; row.id='ai-typing';
+  var bub=document.createElement('div'); bub.className='ai-bubble bot';
+  bub.innerHTML='<div class="ai-typing-dot"><span></span><span></span><span></span></div>';
+  row.appendChild(bub); msgs.appendChild(row); msgs.scrollTop=msgs.scrollHeight;
+}
+async function sendAiMessage(){
+  var input=$('ai-chat-input');
+  var text=input.value.trim(); if(!text)return;
+  var btn=$('ai-chat-send'); btn.disabled=true; input.value='';
+  _aiAppend('user',text);
+  _aiHistory.push({role:'user',content:text});
+  _aiShowTyping();
+  try{
+    var g=curg();
+    var posts=(g&&g.posts||[]).slice(0,8).map(function(p){return{author:p.author,text:p.text||''};}).filter(function(p){return p.text;});
+    var r=await fetch(AI_CHAT_URL,{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({memberName:_aiMember.name||'',birth:_aiMember.birth||'',death:_aiMember.death||'',bio:_aiMember.bio||'',recentPosts:posts,messages:_aiHistory.slice(-10)})
+    });
+    var d=await r.json();
+    var reply=d.reply||'잠시 후 다시 말을 걸어주세요.';
+    var t=document.getElementById('ai-typing'); if(t)t.remove();
+    _aiAppend('bot',reply);
+    _aiHistory.push({role:'assistant',content:reply});
+  }catch(e){
+    var t=document.getElementById('ai-typing'); if(t)t.remove();
+    _aiAppend('bot','잠시 연결이 끊겼어요. 다시 한번 말을 걸어주세요.');
+  }
+  btn.disabled=false; input.focus();
+}
 function fbCopy(t){var ta=document.createElement('textarea');ta.value=t;ta.style.cssText='position:fixed;opacity:0';document.body.appendChild(ta);ta.select();try{document.execCommand('copy');toast('링크 복사됨');}catch(e){toast('링크: '+t);}document.body.removeChild(ta);}
 
 /* ══════════════════════
