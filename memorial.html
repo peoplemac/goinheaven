@@ -441,6 +441,25 @@ label{font-size:13px;color:var(--mid);display:block;margin-bottom:5px}
   padding:11px;font-size:14px;color:var(--deep);cursor:pointer;font-family:inherit;transition:background .15s}
 .btn-google:active{background:var(--stone)}
 .auth-err{font-size:12px;color:#c0392b;margin-bottom:.5rem;min-height:1.2em;text-align:center}
+.auth-agree-wrap{display:none;flex-direction:column;gap:8px;margin:.75rem 0 .5rem}
+.auth-agree-wrap.show{display:flex}
+.auth-agree-row{display:flex;align-items:flex-start;gap:8px;font-size:12px;color:var(--mid);line-height:1.6}
+.auth-agree-row input[type=checkbox]{width:16px;height:16px;flex-shrink:0;margin-top:2px;accent-color:var(--gold);cursor:pointer}
+.auth-agree-row a{color:var(--gold);text-decoration:none;white-space:nowrap}
+.auth-agree-row a:hover{text-decoration:underline}
+/* 개인정보 모달 */
+.privacy-modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:900;align-items:flex-end;justify-content:center}
+.privacy-modal-bg.open{display:flex}
+.privacy-modal{background:var(--white);border-radius:18px 18px 0 0;padding:1.5rem 1.25rem 2.5rem;
+  max-height:80vh;overflow-y:auto;width:100%;max-width:var(--r)}
+.privacy-modal-hdr{display:flex;align-items:center;margin-bottom:1rem}
+.privacy-modal-hdr h3{flex:1;font-size:15px;font-weight:600;color:var(--deep)}
+.privacy-modal-hdr button{background:none;border:none;font-size:20px;color:var(--ash);cursor:pointer;padding:0}
+.privacy-modal p{font-size:13px;color:var(--mid);line-height:1.9;margin-bottom:.75rem}
+.privacy-modal h4{font-size:13px;font-weight:600;color:var(--deep);margin:.75rem 0 .25rem}
+.privacy-modal table{width:100%;border-collapse:collapse;font-size:12px;margin-bottom:.75rem}
+.privacy-modal th,.privacy-modal td{border:1px solid var(--stone);padding:7px 10px;text-align:left;line-height:1.6}
+.privacy-modal th{background:var(--stone);color:var(--deep);font-weight:600;width:30%}
 
 /* ── MY PAGE ── */
 #s-mypage{min-height:100vh}
@@ -497,8 +516,29 @@ label{font-size:13px;color:var(--mid);display:block;margin-bottom:5px}
     <div class="fg" id="auth-pw2-wrap" style="display:none">
       <input type="password" id="auth-pw2" placeholder="비밀번호 확인" onkeydown="if(event.key==='Enter'&&!event.isComposing)authSubmit()">
     </div>
+    <div class="auth-agree-wrap" id="auth-agree-wrap">
+      <div class="auth-agree-row">
+        <input type="checkbox" id="agree-privacy">
+        <label for="agree-privacy">[필수] <a onclick="openPrivacyModal('privacy')">개인정보처리방침</a>에 동의합니다.</label>
+      </div>
+      <div class="auth-agree-row">
+        <input type="checkbox" id="agree-use">
+        <label for="agree-use">[필수] <a onclick="openPrivacyModal('use')">개인정보 수집·이용</a>에 동의합니다.</label>
+      </div>
+    </div>
     <div class="auth-err" id="auth-err"></div>
     <button class="btn btn-gold btn-block" id="auth-submit-btn" onclick="authSubmit()">로그인</button>
+  </div>
+</div>
+
+<!-- 개인정보처리방침 모달 -->
+<div class="privacy-modal-bg" id="privacy-modal-bg" onclick="if(event.target===this)closePrivacyModal()">
+  <div class="privacy-modal">
+    <div class="privacy-modal-hdr">
+      <h3 id="privacy-modal-title">개인정보처리방침</h3>
+      <button onclick="closePrivacyModal()">✕</button>
+    </div>
+    <div id="privacy-modal-body"></div>
   </div>
 </div>
 
@@ -911,8 +951,10 @@ function authTab(mode){
   $('tab-login').classList.toggle('active',isLogin);
   $('tab-signup').classList.toggle('active',!isLogin);
   $('auth-pw2-wrap').style.display=isLogin?'none':'';
+  $('auth-agree-wrap').classList.toggle('show',!isLogin);
   $('auth-submit-btn').textContent=isLogin?'로그인':'회원가입';
   $('auth-err').textContent='';
+  if(isLogin){$('agree-privacy').checked=false;$('agree-use').checked=false;}
 }
 
 async function authSubmit(){
@@ -928,10 +970,52 @@ async function authSubmit(){
     } else {
       var pw2=$('auth-pw2').value;
       if(pw!==pw2){errEl.textContent='비밀번호가 일치하지 않습니다.';btn.disabled=false;return;}
+      if(!$('agree-privacy').checked||!$('agree-use').checked){
+        errEl.textContent='필수 동의 항목을 모두 체크해 주세요.';btn.disabled=false;return;
+      }
       await firebase.auth().createUserWithEmailAndPassword(email,pw);
     }
   }catch(e){errEl.textContent=_authErrMsg(e.code);btn.disabled=false;}
 }
+
+var _PRIVACY_CONTENT={
+  privacy:'<p><strong>(주)피플맥</strong>(이하 "회사")은 「개인정보 보호법」 및 관계 법령에 따라 이용자의 개인정보를 보호하고, 이와 관련한 고충을 신속하게 처리하기 위하여 다음과 같이 개인정보처리방침을 수립·공개합니다.</p>'+
+    '<h4>1. 수집하는 개인정보 항목</h4>'+
+    '<table><tr><th>구분</th><td>이메일 주소</td></tr>'+
+    '<tr><th>수집 방법</th><td>서비스 회원가입 시 직접 입력</td></tr></table>'+
+    '<h4>2. 개인정보의 수집 및 이용 목적</h4>'+
+    '<p>회원 식별 및 본인 확인, 사이버 추모관 서비스 제공, 서비스 관련 공지 및 안내</p>'+
+    '<h4>3. 개인정보의 보유 및 이용 기간</h4>'+
+    '<p>회원 탈퇴 시까지 보유·이용합니다. 단, 관계 법령에 따라 보존이 필요한 경우 해당 기간 동안 보관합니다.</p>'+
+    '<h4>4. 개인정보의 제3자 제공</h4>'+
+    '<p>회사는 원칙적으로 이용자의 개인정보를 외부에 제공하지 않습니다. 다만, 이용자의 동의가 있거나 법령에 의한 경우는 예외로 합니다.</p>'+
+    '<h4>5. 개인정보의 파기</h4>'+
+    '<p>보유 기간이 경과하거나 처리 목적이 달성된 경우 지체 없이 해당 정보를 파기합니다. 전자적 파일은 복구 불가능한 방법으로 삭제하며, 출력물은 분쇄 또는 소각합니다.</p>'+
+    '<h4>6. 이용자의 권리</h4>'+
+    '<p>이용자는 언제든지 자신의 개인정보를 조회·수정하거나 삭제·처리 정지를 요청할 수 있습니다. 요청은 아래 개인정보 보호 담당부서로 연락하시기 바랍니다.</p>'+
+    '<h4>7. 개인정보 보호 담당부서</h4>'+
+    '<table><tr><th>기업명</th><td>(주)피플맥</td></tr>'+
+    '<tr><th>담당자</th><td>이윤범</td></tr>'+
+    '<tr><th>연락처</th><td>070-4407-2004</td></tr></table>'+
+    '<p style="font-size:11px;color:var(--ash)">본 방침은 2025년 7월 1일부터 적용됩니다.</p>',
+
+  use:'<p>사이버 추모관 서비스 이용을 위해 아래와 같이 개인정보를 수집·이용합니다. 내용을 확인하시고 동의 여부를 결정해 주세요.</p>'+
+    '<table><tr><th>수집 항목</th><td>이메일 주소</td></tr>'+
+    '<tr><th>수집 목적</th><td>회원 식별, 추모관 서비스 제공, 서비스 안내</td></tr>'+
+    '<tr><th>보유 기간</th><td>회원 탈퇴 시까지</td></tr></table>'+
+    '<p>※ 위 동의를 거부할 권리가 있으며, 거부 시 서비스 이용이 제한될 수 있습니다.</p>'+
+    '<h4>개인정보 보호 담당부서</h4>'+
+    '<table><tr><th>기업명</th><td>(주)피플맥</td></tr>'+
+    '<tr><th>담당자</th><td>이윤범</td></tr>'+
+    '<tr><th>연락처</th><td>070-4407-2004</td></tr></table>'
+};
+
+function openPrivacyModal(type){
+  $('privacy-modal-title').textContent=type==='privacy'?'개인정보처리방침':'개인정보 수집·이용 동의';
+  $('privacy-modal-body').innerHTML=_PRIVACY_CONTENT[type];
+  $('privacy-modal-bg').classList.add('open');
+}
+function closePrivacyModal(){$('privacy-modal-bg').classList.remove('open');}
 
 async function signInGoogle(){
   if(!_fbReady){$('auth-err').textContent='Firebase가 준비되지 않았습니다.';return;}
