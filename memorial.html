@@ -441,6 +441,16 @@ label{font-size:13px;color:var(--mid);display:block;margin-bottom:5px}
   padding:11px;font-size:14px;color:var(--deep);cursor:pointer;font-family:inherit;transition:background .15s}
 .btn-google:active{background:var(--stone)}
 .auth-err{font-size:12px;color:#c0392b;margin-bottom:.5rem;min-height:1.2em;text-align:center}
+.email-row{display:flex;gap:8px;align-items:stretch}
+.email-row input{flex:1;min-width:0}
+.btn-email-chk{white-space:nowrap;padding:0 14px;font-size:13px;font-weight:500;
+  border:1px solid var(--ash);border-radius:8px;background:var(--white);color:var(--deep);
+  cursor:pointer;font-family:inherit;display:none;flex-shrink:0;transition:background .12s}
+.btn-email-chk.show{display:block}
+.btn-email-chk:active{background:var(--stone)}
+.email-chk-msg{font-size:12px;min-height:1.1em;margin-top:5px}
+.email-chk-msg.ok{color:#27ae60}
+.email-chk-msg.err{color:#c0392b}
 .auth-agree-wrap{display:none;flex-direction:column;gap:8px;margin:.75rem 0 .5rem}
 .auth-agree-wrap.show{display:flex}
 .auth-agree-row{display:flex;align-items:flex-start;gap:8px;font-size:12px;color:var(--mid);line-height:1.6;cursor:pointer;-webkit-tap-highlight-color:transparent}
@@ -511,7 +521,11 @@ label{font-size:13px;color:var(--mid);display:block;margin-bottom:5px}
     </button>
     <div class="auth-divider">또는 이메일로</div>
     <div class="fg">
-      <input type="email" id="auth-email" placeholder="이메일 주소" onkeydown="if(event.key==='Enter'&&!event.isComposing)authSubmit()" onblur="checkEmailDupe()">
+      <div class="email-row">
+        <input type="email" id="auth-email" placeholder="이메일 주소" onkeydown="if(event.key==='Enter'&&!event.isComposing)authSubmit()" oninput="_emailChecked=false;$('email-chk-msg').textContent='';$('email-chk-msg').className='email-chk-msg'">
+        <button type="button" id="btn-email-chk" class="btn-email-chk" onclick="checkEmailDupe()">중복확인</button>
+      </div>
+      <div class="email-chk-msg" id="email-chk-msg"></div>
     </div>
     <div class="fg">
       <input type="password" id="auth-pw" placeholder="비밀번호 (6자 이상)" onkeydown="if(event.key==='Enter'&&!event.isComposing)authSubmit()">
@@ -953,20 +967,39 @@ function _fbInit(){
 ══════════════════════ */
 var _authMode='login';
 
+var _emailChecked=false;
+
 function toggleAgree(id){
   var cb=document.getElementById(id);
   if(cb)cb.checked=!cb.checked;
 }
 
 function checkEmailDupe(){
-  if(_authMode!=='signup')return;
   var email=$('auth-email').value.trim();
-  if(!email||!_fbReady)return;
+  var msgEl=$('email-chk-msg');
+  var btn=$('btn-email-chk');
+  if(!email){msgEl.textContent='이메일을 입력해 주세요.';msgEl.className='email-chk-msg err';return;}
+  var re=/^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if(!re.test(email)){msgEl.textContent='이메일 형식이 올바르지 않습니다.';msgEl.className='email-chk-msg err';return;}
+  if(!_fbReady){msgEl.textContent='잠시 후 다시 시도해 주세요.';msgEl.className='email-chk-msg err';return;}
+  btn.disabled=true;btn.textContent='확인 중…';
+  _emailChecked=false;
   firebase.auth().fetchSignInMethodsForEmail(email).then(function(methods){
-    var el=$('auth-err');
-    if(methods&&methods.length>0)el.textContent='이미 가입된 이메일입니다. 로그인해 주세요.';
-    else if(el.textContent==='이미 가입된 이메일입니다. 로그인해 주세요.')el.textContent='';
-  }).catch(function(){});
+    if(methods&&methods.length>0){
+      msgEl.textContent='이미 가입된 이메일입니다.';
+      msgEl.className='email-chk-msg err';
+      _emailChecked=false;
+    } else {
+      msgEl.textContent='✓ 사용 가능한 이메일입니다.';
+      msgEl.className='email-chk-msg ok';
+      _emailChecked=true;
+    }
+    btn.disabled=false;btn.textContent='중복확인';
+  }).catch(function(){
+    msgEl.textContent='확인 중 오류가 발생했습니다. 다시 시도해 주세요.';
+    msgEl.className='email-chk-msg err';
+    btn.disabled=false;btn.textContent='중복확인';
+  });
 }
 
 function authTab(mode){
@@ -976,8 +1009,11 @@ function authTab(mode){
   $('tab-signup').classList.toggle('active',!isLogin);
   $('auth-pw2-wrap').style.display=isLogin?'none':'';
   $('auth-agree-wrap').classList.toggle('show',!isLogin);
+  $('btn-email-chk').classList.toggle('show',!isLogin);
   $('auth-submit-btn').textContent=isLogin?'로그인':'회원가입';
   $('auth-err').textContent='';
+  $('email-chk-msg').textContent='';$('email-chk-msg').className='email-chk-msg';
+  _emailChecked=false;
   if(isLogin){$('agree-privacy').checked=false;$('agree-use').checked=false;$('agree-marketing').checked=false;}
 }
 
@@ -994,6 +1030,7 @@ async function authSubmit(){
     } else {
       var pw2=$('auth-pw2').value;
       if(pw!==pw2){errEl.textContent='비밀번호가 일치하지 않습니다.';btn.disabled=false;return;}
+      if(!_emailChecked){errEl.textContent='이메일 중복 확인을 해주세요.';btn.disabled=false;return;}
       if(!$('agree-privacy').checked||!$('agree-use').checked){
         errEl.textContent='필수 동의 항목을 모두 체크해 주세요.';btn.disabled=false;return;
       }
