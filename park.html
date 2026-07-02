@@ -389,9 +389,7 @@ async function submitLogin(){
 
 function logout(){
   sessionStorage.removeItem('park_sess');
-  _parkData=null;_memorials=[];
-  $('l-pid').value='';$('l-pw').value='';
-  showScreen('s-login');
+  window.location.reload();
 }
 
 /* ── 대시보드 ── */
