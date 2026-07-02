@@ -356,11 +356,20 @@ window.addEventListener('load',function(){
   var sess=sessionStorage.getItem('park_sess');
   if(sess){
     try{_parkData=JSON.parse(sess);loadDashboard();}
-    catch(e){sessionStorage.removeItem('park_sess');showScreen('s-login');}
+    catch(e){sessionStorage.removeItem('park_sess');initLogin();}
   } else {
-    showScreen('s-login');
+    initLogin();
   }
 });
+
+async function initLogin(){
+  showScreen('s-login');
+  if(!_fs)return;
+  var btn=$('l-btn');
+  btn.disabled=true; btn.textContent='연결 중…';
+  try{await _fs.collection('parks').doc('__init__').get();}catch(e){}
+  btn.disabled=false; btn.textContent='로그인';
+}
 
 /* ── 로그인 ── */
 async function submitLogin(){
@@ -381,7 +390,7 @@ async function submitLogin(){
       loadDashboard();
     }
   }catch(e){
-    $('l-err').textContent='오류: '+e.message;
+    $('l-err').textContent='연결 오류가 발생했습니다. 다시 시도해 주세요.';
     $('l-err').style.display='block';
   }
   btn.disabled=false;btn.textContent='로그인';
