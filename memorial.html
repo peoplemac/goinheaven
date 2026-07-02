@@ -940,6 +940,7 @@ var _fbReady=false;
 var _fbLoading=false;
 var _authUser=null;
 var _authReady=false;
+var _chkingDupe=false;
 
 function _fbInit(){
   try{
@@ -947,6 +948,7 @@ function _fbInit(){
     if(!firebase.apps.length)firebase.initializeApp(FIREBASE_CONFIG);
     _fbReady=true;
     firebase.auth().onAuthStateChanged(function(user){
+      if(_chkingDupe)return; /* 중복확인 임시 계정 생성/삭제 중에는 무시 */
       _authUser=user;
       _authReady=true;
       /* ?gid= 링크로 접속한 경우 Auth와 무관하게 기존 흐름 유지 */
@@ -974,7 +976,7 @@ function toggleAgree(id){
   if(cb)cb.checked=!cb.checked;
 }
 
-function checkEmailDupe(){
+async function checkEmailDupe(){
   var email=$('auth-email').value.trim();
   var msgEl=$('email-chk-msg');
   var btn=$('btn-email-chk');
@@ -983,23 +985,30 @@ function checkEmailDupe(){
   if(!re.test(email)){msgEl.textContent='이메일 형식이 올바르지 않습니다.';msgEl.className='email-chk-msg err';return;}
   if(!_fbReady){msgEl.textContent='잠시 후 다시 시도해 주세요.';msgEl.className='email-chk-msg err';return;}
   btn.disabled=true;btn.textContent='확인 중…';
-  _emailChecked=false;
-  firebase.auth().fetchSignInMethodsForEmail(email).then(function(methods){
-    if(methods&&methods.length>0){
+  _emailChecked=false;_chkingDupe=true;
+  try{
+    /* 임시 계정 생성 시도 → 성공 시 즉시 삭제 → 사용 가능 확인 */
+    var cred=await firebase.auth().createUserWithEmailAndPassword(email,'_Chk#'+Date.now()+'!x');
+    await cred.user.delete();
+    msgEl.textContent='✓ 사용 가능한 이메일입니다.';
+    msgEl.className='email-chk-msg ok';
+    _emailChecked=true;
+  }catch(e){
+    if(e.code==='auth/email-already-in-use'){
       msgEl.textContent='이미 가입된 이메일입니다.';
       msgEl.className='email-chk-msg err';
-      _emailChecked=false;
+    } else if(e.code==='auth/invalid-email'){
+      msgEl.textContent='이메일 형식이 올바르지 않습니다.';
+      msgEl.className='email-chk-msg err';
     } else {
-      msgEl.textContent='✓ 사용 가능한 이메일입니다.';
-      msgEl.className='email-chk-msg ok';
-      _emailChecked=true;
+      msgEl.textContent='확인 중 오류가 발생했습니다. 다시 시도해 주세요.';
+      msgEl.className='email-chk-msg err';
     }
+    _emailChecked=false;
+  }finally{
+    _chkingDupe=false;
     btn.disabled=false;btn.textContent='중복확인';
-  }).catch(function(){
-    msgEl.textContent='확인 중 오류가 발생했습니다. 다시 시도해 주세요.';
-    msgEl.className='email-chk-msg err';
-    btn.disabled=false;btn.textContent='중복확인';
-  });
+  }
 }
 
 function authTab(mode){
@@ -1036,7 +1045,15 @@ async function authSubmit(){
       }
       await firebase.auth().createUserWithEmailAndPassword(email,pw);
     }
-  }catch(e){errEl.textContent=_authErrMsg(e.code);btn.disabled=false;}
+  }catch(e){
+    if(e.code==='auth/email-already-in-use'){
+      var msgEl=$('email-chk-msg');
+      msgEl.textContent='이미 가입된 이메일입니다.';
+      msgEl.className='email-chk-msg err';
+      _emailChecked=false;
+    }
+    errEl.textContent=_authErrMsg(e.code);btn.disabled=false;
+  }
 }
 
 var _PRIVACY_CONTENT={
