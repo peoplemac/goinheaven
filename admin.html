@@ -947,7 +947,7 @@ function _quickSms(gid){
   var names=g.members.map(function(m){return m.name;}).join(' · ');
   var url=getMemorialUrl(g.id);
   var msg='[사이버 추모관 안내]\n'+names+' 추모관이 개설되었습니다.\n\n🔗 링크: '+url+'\n🔑 입장 비밀번호: '+g.pw+'\n\n링크를 클릭하여 추모관에 입장하실 수 있습니다.';
-  window.open('sms:'+phone+'?body='+encodeURIComponent(msg),'_self');
+  solapiSend(phone, msg);
 }
 
 /* ── 구독 상태 필터 목록 ── */
@@ -1159,7 +1159,7 @@ function buildMgCard(g){
     if(!phone)return toast('전화번호를 먼저 저장해 주세요.');
     var url=getMemorialUrl(g.id);
     var msg='[사이버 추모관 안내]\n'+names+' 추모관이 개설되었습니다.\n\n🔗 링크: '+url+'\n🔑 입장 비밀번호: '+g.pw+'\n\n링크를 클릭하여 추모관에 입장하실 수 있습니다.';
-    window.open('sms:'+phone+'?body='+encodeURIComponent(msg),'_self');
+    solapiSend(phone, msg, smsBtn);
   };
 
   var infoBtn=document.createElement('button'); infoBtn.className='btn btn-sm'; infoBtn.textContent='🔗 링크 안내';
@@ -1367,7 +1367,7 @@ function copyInfo(type){
 function sendInfoSms(){
   var phone=_infoData.phone;
   if(!phone)return toast('등록된 전화번호가 없습니다.\n추모관 카드에서 연락처를 저장해 주세요.');
-  window.open('sms:'+phone+'?body='+encodeURIComponent(_infoData.msg),'_self');
+  solapiSend(phone, _infoData.msg);
 }
 
 /* ── 문자 ── */
@@ -1458,26 +1458,23 @@ function renderSms(){
   _renderSmsRecipients();
 }
 function smsSelectAll(v){document.querySelectorAll('.sms-chk').forEach(function(c){c.checked=v;});}
-async function sendSms(){
-  var checks=Array.from(document.querySelectorAll('.sms-chk:checked'));
-  if(!checks.length)return toast('수신자를 선택해 주세요.');
-  var msg=$('sms-body').value.trim();
-  if(!msg)return toast('메시지를 입력해 주세요.');
-  var phones=checks.map(function(c){return c.dataset.phone.split(' ')[0];});
-
+/* ── SOLAPI 공통 발송 헬퍼 (모든 문자 버튼이 사용) ── */
+async function solapiSend(phones, msg, btn){
+  if(!Array.isArray(phones))phones=[phones];
+  phones=phones.map(function(p){return (p||'').toString().trim();}).filter(Boolean);
+  if(!phones.length)return toast('수신 번호가 없습니다.');
+  if(!msg)return toast('메시지 내용이 없습니다.');
   loadSvcAdm();
   var key=svcAdm.solapiKey, secret=svcAdm.solapiSecret, sender=svcAdm.solapiSender;
-
-  /* SOLAPI 미설정 시 SMS 앱 폴백 */
+  /* SOLAPI 미설정 시 문자앱 폴백 */
   if(!key||!secret||!sender){
     if(confirm('SOLAPI가 설정되지 않았습니다.\n설정 탭에서 SOLAPI 정보를 입력하거나,\n문자 앱으로 발송하시겠습니까?')){
       window.open('sms:'+phones.join(',')+'?body='+encodeURIComponent(msg),'_self');
     }
     return;
   }
-
-  var btn=$('sms-send-btn');
-  if(btn){btn.disabled=true;btn.textContent='발송 중...';}
+  var prev;
+  if(btn){prev=btn.textContent; btn.disabled=true; btn.textContent='발송 중...';}
   try{
     var resp=await fetch(SOLAPI_FN_URL,{
       method:'POST',
@@ -1497,8 +1494,16 @@ async function sendSms(){
   }catch(e){
     toast('❌ 오류: '+e.message);
   }finally{
-    if(btn){btn.disabled=false;btn.textContent='📱 SMS 발송';}
+    if(btn){btn.disabled=false; btn.textContent=prev;}
   }
+}
+async function sendSms(){
+  var checks=Array.from(document.querySelectorAll('.sms-chk:checked'));
+  if(!checks.length)return toast('수신자를 선택해 주세요.');
+  var msg=$('sms-body').value.trim();
+  if(!msg)return toast('메시지를 입력해 주세요.');
+  var phones=checks.map(function(c){return c.dataset.phone.split(' ')[0];});
+  await solapiSend(phones, msg, $('sms-send-btn'));
 }
 function copySmsInfo(){
   var checks=Array.from(document.querySelectorAll('.sms-chk:checked'));
