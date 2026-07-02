@@ -1,0 +1,14 @@
+# Firebase 서비스 계정 키 (절대 커밋 금지)
+*-firebase-adminsdk-*.json
+firebase-debug.log
+
+# 배포/운영 스크립트
+*.bat
+*.ps1
+
+# Node.js
+functions/node_modules/
+functions/package-lock.json
+
+# 기타
+.claude/
