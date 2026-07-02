@@ -322,7 +322,6 @@ var _curPw=null;
     if(typeof FIREBASE_CONFIG==='undefined')return;
     if(!firebase.apps.length)firebase.initializeApp(FIREBASE_CONFIG);
     _fs=firebase.firestore();
-    _fs.settings({merge:true});
   }catch(e){}
 })();
 
@@ -397,17 +396,19 @@ function logout(){
 
 /* ── 대시보드 ── */
 async function loadDashboard(){
+  if(!_parkData)return;
+  var pid=_parkData.parkId;
   $('park-name').textContent=_parkData.name||'추모공원';
   showScreen('s-dashboard');
   if(!_fs){$('mem-list').innerHTML='<div class="empty-msg">서버 연결 오류</div>';return;}
   try{
     var snap=await _fs.collection('groups')
-      .where('parkId','==',_parkData.parkId)
-      .orderBy('createdAt','desc')
+      .where('parkId','==',pid)
       .get();
     _memorials=snap.docs.map(function(d){return d.data();});
+    _memorials.sort(function(a,b){return (b.createdAt||0)-(a.createdAt||0);});
   }catch(e){_memorials=[];}
-  renderDashboard();
+  if(_parkData)renderDashboard();
 }
 
 function renderDashboard(){
