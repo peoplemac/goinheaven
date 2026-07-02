@@ -225,7 +225,13 @@ label{font-size:13px;color:var(--mid);display:block;margin-bottom:5px}
       <input type="password" id="c-pw2" placeholder="재입력" maxlength="20">
     </div>
 
-    <div class="sec-title">담당자 (선택)</div>
+    <div class="sec-title">관리자 비밀번호 <span style="font-size:11px;font-weight:400;color:var(--ash)">(선택)</span></div>
+    <div class="fg">
+      <label>관리자 비밀번호 <span style="font-size:11px;color:var(--ash)">(추모관 내부 설정 변경용, 비워두면 미설정)</span></label>
+      <input type="password" id="c-apw" placeholder="예: admin1234" maxlength="20">
+    </div>
+
+    <div class="sec-title">담당자 <span style="font-size:11px;font-weight:400;color:var(--ash)">(선택)</span></div>
     <div class="fg">
       <label>담당 유가족 이름</label>
       <input type="text" id="c-cname" placeholder="홍길순" maxlength="20">
@@ -494,10 +500,11 @@ async function saveCreate(){
         portraitUrl=await ref.getDownloadURL();
       }catch(e){/* 사진 업로드 실패 시 계속 진행 */}
     }
+    var apw=$('c-apw').value;
     var contact={name:$('c-cname').value.trim(),phone:$('c-cphone').value.trim()};
     var member={id:uid(),name:name,birth:$('c-b1').value||'',death:$('c-d1').value||'',bio:'',portraitUrl:portraitUrl};
     await _fs.collection('groups').doc(gid).set({
-      id:gid,pw:pw,adminPw:'',
+      id:gid,pw:pw,adminPw:apw,
       managementKey:mkey,
       parkId:_parkData.parkId,
       parkName:_parkData.name||'',
@@ -508,7 +515,7 @@ async function saveCreate(){
       subscription:{plan:'trial',status:'trial',startDate:'',endDate:''}
     });
     _curGid=gid;_curPw=pw;
-    _memorials.unshift({id:gid,pw:pw,adminPw:'',managementKey:mkey,
+    _memorials.unshift({id:gid,pw:pw,adminPw:apw,managementKey:mkey,
       parkId:_parkData.parkId,members:[member],visits:0,contact:contact,createdAt:Date.now()});
     showResult(gid,mkey,pw,name,contact,true);
   }catch(e){
