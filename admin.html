@@ -389,13 +389,13 @@ label{font-size:13px;color:var(--mid);display:block;margin-bottom:5px}
         <button class="btn btn-sm" onclick="changePw()">변경</button>
       </div>
       <div class="d-card d-card-pad">
-        <h4 style="font-size:13px;font-weight:600;color:var(--deep);margin-bottom:.3rem">📱 알리고 SMS 설정</h4>
-        <p style="font-size:11px;color:var(--ash);margin-bottom:.75rem;line-height:1.7">알리고(aligo.in) 계정 정보를 입력하면 문자 탭에서 실제 SMS 발송이 가능합니다.<br>발신번호는 알리고에 사전 등록된 번호만 사용 가능합니다.</p>
-        <div class="fg"><label>API Key</label><input type="text" id="set-aligo-key" placeholder="알리고 API KEY" autocomplete="off"></div>
-        <div class="fg"><label>알리고 아이디</label><input type="text" id="set-aligo-id" placeholder="알리고 로그인 아이디" autocomplete="off"></div>
-        <div class="fg" style="margin-bottom:.5rem"><label>발신번호 <span style="color:var(--ash);font-weight:400">(하이픈 없이)</span></label><input type="tel" id="set-aligo-sender" placeholder="01012345678"></div>
-        <button class="btn btn-sm btn-gold" onclick="saveAligoSettings()">알리고 설정 저장</button>
-        <div id="aligo-status" style="font-size:12px;margin-top:.5rem;display:none"></div>
+        <h4 style="font-size:13px;font-weight:600;color:var(--deep);margin-bottom:.3rem">📱 SOLAPI SMS 설정</h4>
+        <p style="font-size:11px;color:var(--ash);margin-bottom:.75rem;line-height:1.7">SOLAPI(solapi.com) API 정보를 입력하면 문자 탭에서 실제 SMS 발송이 가능합니다.<br>발신번호는 SOLAPI에 사전 등록·인증된 번호만 사용 가능합니다. <b>IP 등록은 필요 없습니다.</b></p>
+        <div class="fg"><label>API Key</label><input type="text" id="set-solapi-key" placeholder="SOLAPI API Key" autocomplete="off"></div>
+        <div class="fg"><label>API Secret</label><input type="password" id="set-solapi-secret" placeholder="SOLAPI API Secret Key" autocomplete="off"></div>
+        <div class="fg" style="margin-bottom:.5rem"><label>발신번호 <span style="color:var(--ash);font-weight:400">(하이픈 없이)</span></label><input type="tel" id="set-solapi-sender" placeholder="01012345678"></div>
+        <button class="btn btn-sm btn-gold" onclick="saveSolapiSettings()">SOLAPI 설정 저장</button>
+        <div id="solapi-status" style="font-size:12px;margin-top:.5rem;display:none"></div>
       </div>
       <div class="d-card d-card-pad" style="margin-top:10px">
         <h4 style="font-size:13px;font-weight:600;color:var(--deep);margin-bottom:.3rem">💾 데이터 백업</h4>
@@ -1466,11 +1466,11 @@ async function sendSms(){
   var phones=checks.map(function(c){return c.dataset.phone.split(' ')[0];});
 
   loadSvcAdm();
-  var aligoKey=svcAdm.aligoKey, aligoId=svcAdm.aligoId, aligoSender=svcAdm.aligoSender;
+  var key=svcAdm.solapiKey, secret=svcAdm.solapiSecret, sender=svcAdm.solapiSender;
 
-  /* 알리고 미설정 시 SMS 앱 폴백 */
-  if(!aligoKey||!aligoId||!aligoSender){
-    if(confirm('알리고 API가 설정되지 않았습니다.\n설정 탭에서 알리고 정보를 입력하거나,\n문자 앱으로 발송하시겠습니까?')){
+  /* SOLAPI 미설정 시 SMS 앱 폴백 */
+  if(!key||!secret||!sender){
+    if(confirm('SOLAPI가 설정되지 않았습니다.\n설정 탭에서 SOLAPI 정보를 입력하거나,\n문자 앱으로 발송하시겠습니까?')){
       window.open('sms:'+phones.join(',')+'?body='+encodeURIComponent(msg),'_self');
     }
     return;
@@ -1479,19 +1479,20 @@ async function sendSms(){
   var btn=$('sms-send-btn');
   if(btn){btn.disabled=true;btn.textContent='발송 중...';}
   try{
-    var resp=await fetch(ALIGO_FN_URL,{
+    var resp=await fetch(SOLAPI_FN_URL,{
       method:'POST',
       headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({apiKey:aligoKey,userId:aligoId,sender:aligoSender,receivers:phones,message:msg})
+      body:JSON.stringify({apiKey:key,apiSecret:secret,sender:sender,receivers:phones,message:msg})
     });
-    if(!resp.ok)throw new Error('HTTP '+resp.status);
     var result=await resp.json();
-    if(String(result.result_code)==='1'){
-      toast('✅ 발송 완료: '+result.success_cnt+'건 성공'
-        +(result.error_cnt>0?' / '+result.error_cnt+'건 실패':''));
-      if(result.error_cnt>0)console.warn('알리고 오류 상세:',result);
+    if(result.success){
+      toast('✅ 발송 완료: '+result.successCnt+'건 성공');
+    } else if(result.successCnt>0){
+      toast('⚠ 일부 발송: '+result.successCnt+'건 성공 / '+result.failCnt+'건 실패');
+      console.warn('SOLAPI 실패 상세:',result.raw);
     } else {
-      toast('❌ 발송 실패: '+result.message+' (코드 '+result.result_code+')');
+      toast('❌ 발송 실패: '+(result.message||'HTTP '+result.httpStatus));
+      console.warn('SOLAPI 오류 상세:',result.raw);
     }
   }catch(e){
     toast('❌ 오류: '+e.message);
@@ -1508,37 +1509,37 @@ function copySmsInfo(){
 }
 
 /* ── 설정 ── */
-var ALIGO_FN_URL='https://send-aligo-sms-103442976148.asia-northeast3.run.app';
+var SOLAPI_FN_URL='https://send-solapi-sms-103442976148.asia-northeast3.run.app';
 
 function renderSettings(){
   loadSvcAdm();
   $('set-name').value=svcAdm.name||'';
   $('set-id').value=svcAdm.id||'';
-  $('set-aligo-key').value=svcAdm.aligoKey||'';
-  $('set-aligo-id').value=svcAdm.aligoId||'';
-  $('set-aligo-sender').value=svcAdm.aligoSender||'';
-  var st=$('aligo-status');
-  if(svcAdm.aligoKey&&svcAdm.aligoId&&svcAdm.aligoSender){
+  $('set-solapi-key').value=svcAdm.solapiKey||'';
+  $('set-solapi-secret').value=svcAdm.solapiSecret||'';
+  $('set-solapi-sender').value=svcAdm.solapiSender||'';
+  var st=$('solapi-status');
+  if(svcAdm.solapiKey&&svcAdm.solapiSecret&&svcAdm.solapiSender){
     st.style.display='block'; st.style.color='#27ae60';
-    st.textContent='✅ 알리고 설정 완료 — SMS 직접 발송 가능';
+    st.textContent='✅ SOLAPI 설정 완료 — SMS 직접 발송 가능';
   } else {
     st.style.display='block'; st.style.color='var(--ash)';
-    st.textContent='⚠ API Key · 아이디 · 발신번호를 모두 입력해 주세요.';
+    st.textContent='⚠ API Key · API Secret · 발신번호를 모두 입력해 주세요.';
   }
   $('set-cur-pw').value=''; $('set-new-pw').value=''; $('set-new-pw2').value='';
 }
-function saveAligoSettings(){
+function saveSolapiSettings(){
   loadSvcAdm();
-  var key=$('set-aligo-key').value.trim();
-  var id=$('set-aligo-id').value.trim();
-  var sender=$('set-aligo-sender').value.trim().replace(/-/g,'');
-  if(!key||!id||!sender)return toast('API Key · 아이디 · 발신번호를 모두 입력해 주세요.');
-  svcAdm.aligoKey=key; svcAdm.aligoId=id; svcAdm.aligoSender=sender;
+  var key=$('set-solapi-key').value.trim();
+  var secret=$('set-solapi-secret').value.trim();
+  var sender=$('set-solapi-sender').value.trim().replace(/-/g,'');
+  if(!key||!secret||!sender)return toast('API Key · API Secret · 발신번호를 모두 입력해 주세요.');
+  svcAdm.solapiKey=key; svcAdm.solapiSecret=secret; svcAdm.solapiSender=sender;
   saveSvcAdm();
-  var st=$('aligo-status');
+  var st=$('solapi-status');
   st.style.display='block'; st.style.color='#27ae60';
-  st.textContent='✅ 알리고 설정 완료 — SMS 직접 발송 가능';
-  toast('알리고 설정이 저장되었습니다.');
+  st.textContent='✅ SOLAPI 설정 완료 — SMS 직접 발송 가능';
+  toast('SOLAPI 설정이 저장되었습니다.');
 }
 async function backupDownload(){
   var st=$('backup-status');

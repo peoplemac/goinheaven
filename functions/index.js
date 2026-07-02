@@ -1,6 +1,7 @@
 'use strict';
 const functions = require('firebase-functions');
 const https = require('https');
+const crypto = require('crypto');
 const { URLSearchParams } = require('url');
 
 /* 알리고 바이트 계산 (한글 2byte, 영문 1byte) */
@@ -23,6 +24,81 @@ exports.checkOutboundIp = functions
         catch (e) { res.json({ ip: d.trim() }); }
       });
     }).on('error', (e) => res.status(500).json({ error: e.message }));
+  });
+
+/* SOLAPI(구 쿨에스엠에스) 문자 발송 — HMAC 인증, IP 등록 불필요 */
+exports.sendSolapiSms = functions
+  .region('asia-northeast3')
+  .https.onRequest((req, res) => {
+    res.set('Access-Control-Allow-Origin', '*');
+    res.set('Access-Control-Allow-Methods', 'POST, OPTIONS');
+    res.set('Access-Control-Allow-Headers', 'Content-Type');
+    if (req.method === 'OPTIONS') { res.status(204).send(''); return; }
+    if (req.method !== 'POST') {
+      res.status(405).json({ success: false, message: 'Method not allowed' });
+      return;
+    }
+
+    const { apiKey, apiSecret, sender, receivers, message } = req.body || {};
+    if (!apiKey || !apiSecret || !sender || !receivers || !message) {
+      res.status(400).json({ success: false, message: '필수 항목이 누락되었습니다.' });
+      return;
+    }
+
+    const recvArr = Array.isArray(receivers) ? receivers : [receivers];
+    const cleanSender = String(sender).replace(/-/g, '');
+    const messages = recvArr.map((to) => ({
+      to: String(to).replace(/-/g, ''),
+      from: cleanSender,
+      text: message,
+    }));
+
+    /* HMAC-SHA256 서명 (date + salt) */
+    const date = new Date().toISOString();
+    const salt = crypto.randomBytes(16).toString('hex');
+    const signature = crypto.createHmac('sha256', apiSecret).update(date + salt).digest('hex');
+    const authorization =
+      `HMAC-SHA256 apiKey=${apiKey}, date=${date}, salt=${salt}, signature=${signature}`;
+
+    const postData = JSON.stringify({ messages });
+    const options = {
+      hostname: 'api.solapi.com',
+      path: '/messages/v4/send-many/detail',
+      method: 'POST',
+      headers: {
+        'Authorization': authorization,
+        'Content-Type': 'application/json',
+        'Content-Length': Buffer.byteLength(postData, 'utf8'),
+      },
+    };
+
+    const apiReq = https.request(options, (apiRes) => {
+      let data = '';
+      apiRes.on('data', (chunk) => { data += chunk; });
+      apiRes.on('end', () => {
+        let parsed = null;
+        try { parsed = JSON.parse(data); } catch (e) { /* keep raw */ }
+        const httpOk = apiRes.statusCode >= 200 && apiRes.statusCode < 300;
+        const failedList = (parsed && parsed.failedMessageList) || [];
+        const cnt = (parsed && parsed.groupInfo && parsed.groupInfo.count) || {};
+        const successCnt = (cnt.registeredSuccess != null)
+          ? cnt.registeredSuccess
+          : (httpOk ? Math.max(recvArr.length - failedList.length, 0) : 0);
+        res.json({
+          success: httpOk && failedList.length === 0,
+          successCnt: successCnt,
+          failCnt: failedList.length,
+          message: (parsed && (parsed.errorMessage || parsed.statusMessage)) || '',
+          httpStatus: apiRes.statusCode,
+          raw: parsed || data,
+        });
+      });
+    });
+    apiReq.on('error', (err) => {
+      res.status(500).json({ success: false, message: '네트워크 오류: ' + err.message });
+    });
+    apiReq.write(postData);
+    apiReq.end();
   });
 
 exports.sendAligoSms = functions
