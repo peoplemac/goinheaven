@@ -233,6 +233,23 @@ label{font-size:13px;color:var(--mid);display:block;margin-bottom:5px}
   border-radius:50px;font-size:13px;pointer-events:none;opacity:0;
   transition:opacity .25s;white-space:nowrap;z-index:9999}
 .toast.show{opacity:1}
+/* 추모공원 카드 */
+.park-card{background:var(--white);border:1px solid var(--stone);border-radius:12px;margin-bottom:10px;overflow:hidden}
+.park-head{display:flex;align-items:center;gap:10px;padding:12px 14px;cursor:pointer;transition:background .12s}
+.park-head:active{background:var(--ivory)}
+.park-icon{width:42px;height:42px;border-radius:10px;background:linear-gradient(135deg,var(--gold),var(--gold2));
+  display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
+.park-info{flex:1;min-width:0}
+.park-card-name{font-size:14px;font-weight:600;color:var(--deep)}
+.park-card-phone{font-size:11px;color:var(--mid);margin-top:2px}
+.park-stat{font-size:10px;font-weight:700;padding:2px 7px;border-radius:10px;white-space:nowrap}
+.park-stat.active{background:#d4edda;color:#155724}
+.park-stat.inactive{background:#f8d7da;color:#721c24}
+.park-body{display:none;border-top:1px solid var(--stone);padding:12px 14px}
+.park-body.open{display:block}
+.park-badge{display:inline-block;font-size:10px;font-weight:700;padding:1px 6px;
+  border-radius:8px;background:#eef4ff;color:#2a5bd7;margin-left:5px;vertical-align:middle}
+
 /* 이메일 도메인 드롭다운 */
 .email-dd{display:none;position:fixed;z-index:10000;background:var(--white);
   border:1px solid var(--stone);border-radius:10px;
@@ -280,6 +297,7 @@ label{font-size:13px;color:var(--mid);display:block;margin-bottom:5px}
     <button class="dash-tab active" data-tab="overview" onclick="switchTab('overview')">📊 개요</button>
     <button class="dash-tab" data-tab="memorials" onclick="switchTab('memorials')">📋 추모관</button>
     <button class="dash-tab" data-tab="sms" onclick="switchTab('sms')">💬 문자</button>
+    <button class="dash-tab" data-tab="parks" onclick="switchTab('parks')">🏛 추모공원</button>
     <button class="dash-tab" data-tab="settings" onclick="switchTab('settings')">⚙️ 설정</button>
   </div>
   <div class="dash-body">
@@ -345,6 +363,14 @@ label{font-size:13px;color:var(--mid);display:block;margin-bottom:5px}
       </div>
     </div>
 
+    <!-- 추모공원 탭 -->
+    <div class="d-panel" id="dp-parks">
+      <div style="margin-bottom:12px">
+        <button class="btn btn-gold btn-block" onclick="openParkModal()">＋ 추모공원 등록</button>
+      </div>
+      <div id="park-list"><p style="text-align:center;color:var(--ash);font-size:13px;padding:2rem">로딩 중...</p></div>
+    </div>
+
     <!-- 설정 탭 -->
     <div class="d-panel" id="dp-settings">
       <div class="d-card d-card-pad" style="margin-bottom:10px">
@@ -370,6 +396,12 @@ label{font-size:13px;color:var(--mid);display:block;margin-bottom:5px}
         <div class="fg" style="margin-bottom:.5rem"><label>발신번호 <span style="color:var(--ash);font-weight:400">(하이픈 없이)</span></label><input type="tel" id="set-aligo-sender" placeholder="01012345678"></div>
         <button class="btn btn-sm btn-gold" onclick="saveAligoSettings()">알리고 설정 저장</button>
         <div id="aligo-status" style="font-size:12px;margin-top:.5rem;display:none"></div>
+      </div>
+      <div class="d-card d-card-pad" style="margin-top:10px">
+        <h4 style="font-size:13px;font-weight:600;color:var(--deep);margin-bottom:.3rem">💾 데이터 백업</h4>
+        <p style="font-size:11px;color:var(--ash);margin-bottom:.75rem;line-height:1.7">추모관 전체 데이터를 JSON 파일로 다운로드합니다.<br>정기적으로 저장해 두시면 긴급 상황 시 복구에 활용할 수 있습니다.</p>
+        <button class="btn btn-sm btn-gold" onclick="backupDownload()">📥 전체 데이터 다운로드</button>
+        <div id="backup-status" style="font-size:12px;margin-top:.5rem;display:none"></div>
       </div>
     </div>
 
@@ -474,6 +506,39 @@ label{font-size:13px;color:var(--mid);display:block;margin-bottom:5px}
   </div>
 </div>
 
+<!-- 추모공원 등록/수정 모달 -->
+<div class="modal-backdrop" id="park-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <button class="modal-close" onclick="closeParkModal()">✕</button>
+      <div class="modal-title" id="park-modal-title">추모공원 등록</div>
+      <button class="modal-save" onclick="savePark()">완료</button>
+    </div>
+    <div class="modal-body">
+      <div class="fg">
+        <label>공원 ID * <span style="font-size:11px;color:var(--ash)">(영문·숫자·_만 가능, park.html 로그인용)</span></label>
+        <input type="text" id="p-id" placeholder="예: hangang_park" autocomplete="off" maxlength="30"
+          oninput="this.value=this.value.replace(/[^a-zA-Z0-9_]/g,'')">
+      </div>
+      <div class="fg"><label>공원 이름 *</label><input type="text" id="p-name" placeholder="한강추모공원" maxlength="40"></div>
+      <div class="fg">
+        <label>비밀번호 * <span style="font-size:11px;color:var(--ash)">(park.html 로그인용, 4자 이상)</span></label>
+        <input type="password" id="p-pw" placeholder="4자 이상" maxlength="30" autocomplete="new-password">
+      </div>
+      <div class="fg"><label>전화번호</label><input type="tel" id="p-phone" placeholder="02-0000-0000"></div>
+      <div class="fg"><label>주소</label><input type="text" id="p-addr" placeholder="서울시 ..." maxlength="80"></div>
+      <div class="fg"><label>상태</label>
+        <select id="p-status">
+          <option value="active">운영중</option>
+          <option value="inactive">비활성</option>
+        </select>
+      </div>
+      <div class="pw-err" id="p-err"></div>
+      <button class="btn btn-gold btn-block" onclick="savePark()" style="margin-top:.5rem">등록 완료</button>
+    </div>
+  </div>
+</div>
+
 <!-- 개설 완료 안내 모달 -->
 <div class="info-modal-backdrop" id="info-modal">
   <div class="info-modal">
@@ -504,6 +569,12 @@ label{font-size:13px;color:var(--mid);display:block;margin-bottom:5px}
       <button class="link-copy" onclick="copyInfo('apw')">복사</button>
     </div>
 
+    <div class="info-label">관리 링크 <span style="font-weight:400;color:var(--ash)">(park.html 없이 바로 관리 가능 — 외부 공개 금지)</span></div>
+    <div class="link-box">
+      <div class="link-text" id="info-mgt"></div>
+      <button class="link-copy" onclick="copyInfo('mgtUrl')">복사</button>
+    </div>
+
     <div class="info-label">안내 문자 메시지</div>
     <div class="link-box" style="align-items:flex-start">
       <div class="link-text" id="info-msg" style="white-space:pre-line;line-height:1.8"></div>
@@ -531,6 +602,7 @@ var _infoData={};
 function $(id){return document.getElementById(id);}
 function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,7);}
+function genMKey(){var c='0123456789abcdef',r='';for(var i=0;i<32;i++)r+=c[Math.floor(Math.random()*16)];return r;}
 var _toastT=null;
 function toast(msg){var el=$('toast');el.textContent=msg;el.classList.add('show');clearTimeout(_toastT);_toastT=setTimeout(function(){el.classList.remove('show');},2200);}
 function copyToClipboard(text){
@@ -568,6 +640,8 @@ async function _fbSave(){
     });
     await fs.collection('groups').doc(g.id).set({
       id:g.id,pw:g.pw,adminPw:g.adminPw||'',visits:g.visits||0,
+      managementKey:g.managementKey||'',
+      parkId:g.parkId||null,
       members:mems,contact:g.contact||{},subscription:g.subscription||{},note:g.note||''
     });
   }
@@ -703,6 +777,7 @@ function switchTab(name){
   if(name==='overview')renderOverview();
   else if(name==='memorials')renderMemorials();
   else if(name==='sms')renderSms();
+  else if(name==='parks')renderParks();
   else if(name==='settings')renderSettings();
 }
 
@@ -963,7 +1038,8 @@ function buildMgCard(g){
   av.style.cursor='pointer';
   (function(gid,pw){av.addEventListener('click',function(e){e.stopPropagation();openMemorialDirect(gid,pw);});})(g.id,g.pw);
   var info=document.createElement('div'); info.className='mg-info';
-  info.innerHTML='<div class="mg-name">'+esc(names)+badgeHtml(sub.status,sub.endDate)+'</div>'
+  var parkBadge=g.parkId?'<span class="park-badge">🏛 '+(g.parkName||g.parkId)+'</span>':'';
+  info.innerHTML='<div class="mg-name">'+esc(names)+badgeHtml(sub.status,sub.endDate)+parkBadge+'</div>'
     +'<div class="mg-contact">'+(ct.name?esc(ct.name)+' · ':'')+(ct.phone?'📞 '+esc(ct.phone):'<span style="color:var(--ash)">연락처 미등록</span>')+'</div>';
   var arr=document.createElement('span'); arr.className='mg-arr'; arr.textContent='›';
   head.appendChild(av); head.appendChild(info); head.appendChild(arr);
@@ -973,9 +1049,12 @@ function buildMgCard(g){
 
   /* 링크 / 비번 / QR */
   var memUrl=getMemorialUrl(g.id);
+  var mgtUrl=memUrl+'&mkey='+(g.managementKey||'');
   var linkHtml='<div class="sub-sec-title">추모관 링크</div>'
     +'<div class="link-box"><div class="link-text" style="font-size:10px">'+esc(memUrl)+'</div>'
     +'<button class="link-copy" id="lc-url-'+g.id+'">링크복사</button></div>'
+    +'<div class="link-box" style="margin-bottom:7px"><div class="link-text" style="font-size:10px;color:var(--warm)">🔑 관리링크: '+esc(mgtUrl)+'</div>'
+    +'<button class="link-copy" id="lc-mgt-'+g.id+'">복사</button></div>'
     +'<div style="display:flex;flex-direction:column;align-items:center;gap:6px;padding:.5rem 0 .25rem">'
     +'<div id="qr-'+g.id+'" class="qr-box"></div>'
     +'<button class="btn btn-sm" id="qr-dl-'+g.id+'">⬇ QR 이미지 저장</button>'
@@ -1096,10 +1175,12 @@ function buildMgCard(g){
   /* 버튼 이벤트 (HTML 인젝션 회피) */
   setTimeout(function(){
     var lcUrl=document.getElementById('lc-url-'+g.id);
+    var lcMgt=document.getElementById('lc-mgt-'+g.id);
     var lcPw=document.getElementById('lc-pw-'+g.id);
     var lcApw=document.getElementById('lc-apw-'+g.id);
     var qrDl=document.getElementById('qr-dl-'+g.id);
     if(lcUrl)lcUrl.onclick=function(){copyToClipboard(memUrl);};
+    if(lcMgt)lcMgt.onclick=function(){copyToClipboard(mgtUrl);};
     if(lcPw)lcPw.onclick=function(){copyToClipboard(g.pw);};
     if(lcApw)lcApw.onclick=function(){copyToClipboard(g.adminPw||'');};
     if(qrDl)qrDl.onclick=function(){
@@ -1191,6 +1272,8 @@ function saveNewMemorial(){
 
   var newG={
     id:uid(), pw:pw, adminPw:apw, visits:0,
+    managementKey:genMKey(),
+    parkId:null,
     members:members, posts:[],
     contact:{name:$('m-cname').value.trim(),phone:$('m-cphone').value.trim(),email:$('m-cemail').value.trim()},
     subscription:{plan:$('m-plan').value,status:$('m-status').value,startDate:$('m-sdate').value,endDate:$('m-edate').value},
@@ -1241,11 +1324,13 @@ function downloadInfoQR(){
 function showInfoModal(g){
   var names=g.members.map(function(m){return m.name;}).join(' · ');
   var url=getMemorialUrl(g.id);
+  var mgtUrl=url+'&mkey='+(g.managementKey||'');
   var msg='[사이버 추모관 안내]\n'+names+' 추모관이 개설되었습니다.\n\n🔗 링크: '+url+'\n🔑 입장 비밀번호: '+g.pw+'\n\n링크를 클릭하여 추모관에 입장하실 수 있습니다.';
 
-  _infoData={url:url, pw:g.pw, apw:g.adminPw||'', msg:msg, names:names, phone:(g.contact||{}).phone||''};
+  _infoData={url:url, mgtUrl:mgtUrl, pw:g.pw, apw:g.adminPw||'', msg:msg, names:names, phone:(g.contact||{}).phone||''};
 
   $('info-url').textContent=url;
+  $('info-mgt').textContent=mgtUrl;
   $('info-pw').textContent=g.pw;
   $('info-apw').textContent=g.adminPw||'—';
   $('info-msg').textContent=msg;
@@ -1445,6 +1530,34 @@ function saveAligoSettings(){
   st.textContent='✅ 알리고 설정 완료 — SMS 직접 발송 가능';
   toast('알리고 설정이 저장되었습니다.');
 }
+async function backupDownload(){
+  var st=$('backup-status');
+  st.style.display='block'; st.style.color='var(--mid)'; st.textContent='데이터 수집 중...';
+  try{
+    var payload={exportedAt:new Date().toISOString(),groups:[],parks:[]};
+    if(_fbReady){
+      var fstore=firebase.firestore();
+      var gs=await fstore.collection('groups').get();
+      gs.forEach(function(d){payload.groups.push(d.data());});
+      var ps=await fstore.collection('parks').get();
+      ps.forEach(function(d){payload.parks.push(d.data());});
+    }else{
+      payload.groups=db.groups.slice();
+    }
+    var blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});
+    var url=URL.createObjectURL(blob);
+    var a=document.createElement('a');
+    var now=new Date();
+    var ts=now.getFullYear()+'-'+(now.getMonth()+1).toString().padStart(2,'0')+'-'+now.getDate().toString().padStart(2,'0');
+    a.href=url; a.download='goinheaven-backup-'+ts+'.json';
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    st.style.color='#27ae60';
+    st.textContent='✅ 완료 — 추모관 '+payload.groups.length+'개, 추모공원 '+payload.parks.length+'개';
+  }catch(e){
+    st.style.color='#c0392b'; st.textContent='⚠ 오류: '+e.message;
+  }
+}
 function saveAccount(){
   var n=$('set-name').value.trim(), id=$('set-id').value.trim();
   if(!n||!id)return toast('이름과 ID를 입력해 주세요.');
@@ -1459,6 +1572,122 @@ function changePw(){
   svcAdm.pw=nw; saveSvcAdm();
   $('set-cur-pw').value=''; $('set-new-pw').value=''; $('set-new-pw2').value='';
   toast('비밀번호가 변경되었습니다.');
+}
+
+/* ── 추모공원 관리 ── */
+var _parks=[];
+var _editParkId=null;
+
+async function loadParks(){
+  if(!_fbReady){_parks=[];return;}
+  try{
+    var snap=await firebase.firestore().collection('parks').orderBy('createdAt','desc').get();
+    _parks=snap.docs.map(function(d){return Object.assign({},d.data(),{parkId:d.id});});
+  }catch(e){_parks=[];}
+}
+
+async function renderParks(){
+  var wrap=$('park-list');
+  wrap.innerHTML='<p style="text-align:center;color:var(--ash);font-size:13px;padding:2rem">로딩 중...</p>';
+  await loadParks();
+  if(!_parks.length){
+    wrap.innerHTML='<p style="text-align:center;color:var(--ash);font-size:13px;padding:2rem">등록된 추모공원이 없습니다.<br>위 버튼으로 추가해 주세요.</p>';
+    return;
+  }
+  wrap.innerHTML='';
+  _parks.forEach(function(p){wrap.appendChild(buildParkCard(p));});
+}
+
+function buildParkCard(p){
+  var card=document.createElement('div'); card.className='park-card';
+  var statusLabel=p.status==='inactive'?'비활성':'운영중';
+  var statusCls=p.status==='inactive'?'inactive':'active';
+
+  var head=document.createElement('div'); head.className='park-head';
+  head.innerHTML='<div class="park-icon">🏛</div>'
+    +'<div class="park-info">'
+      +'<div class="park-card-name">'+esc(p.name||p.parkId)
+        +'<span class="park-stat '+statusCls+'" style="margin-left:6px">'+statusLabel+'</span>'
+      +'</div>'
+      +'<div class="park-card-phone">ID: '+esc(p.parkId)+(p.phone?' · '+esc(p.phone):'')+'</div>'
+    +'</div>'
+    +'<span class="mg-arr" id="park-arr-'+p.parkId+'">›</span>';
+
+  var body=document.createElement('div'); body.className='park-body'; body.id='park-body-'+p.parkId;
+
+  /* 소속 추모관 수 */
+  var memCount=db.groups.filter(function(g){return g.parkId===p.parkId;}).length;
+  body.innerHTML=(p.addr?'<div style="font-size:12px;color:var(--mid);margin-bottom:.5rem">📍 '+esc(p.addr)+'</div>':'')
+    +'<div style="font-size:12px;color:var(--mid);margin-bottom:.75rem">개설 추모관: <strong>'+memCount+'건</strong></div>';
+
+  /* 버튼 행 */
+  var btnRow=document.createElement('div'); btnRow.style.cssText='display:flex;gap:6px;flex-wrap:wrap';
+  var editBtn=document.createElement('button'); editBtn.className='btn btn-sm btn-gold'; editBtn.textContent='수정';
+  editBtn.onclick=function(){openParkModal(p);};
+  var loginBtn=document.createElement('button'); loginBtn.className='btn btn-sm'; loginBtn.textContent='🔗 park.html 접속';
+  loginBtn.onclick=function(){
+    var base=window.location.href.replace(/[?#].*$/, '').replace(/\/[^\/]*$/,'/');
+    window.open(base+'park.html','_blank');
+  };
+  var delBtn=document.createElement('button'); delBtn.className='btn btn-sm btn-danger'; delBtn.textContent='삭제';
+  delBtn.onclick=function(){
+    if(memCount>0)return toast(memCount+'개의 추모관이 소속되어 있어 삭제할 수 없습니다.');
+    if(confirm('"'+p.name+'" 추모공원을 삭제할까요?')){
+      firebase.firestore().collection('parks').doc(p.parkId).delete().then(function(){
+        toast('삭제되었습니다.');renderParks();
+      }).catch(function(){toast('삭제 오류');});
+    }
+  };
+  btnRow.appendChild(editBtn); btnRow.appendChild(loginBtn); btnRow.appendChild(delBtn);
+  body.appendChild(btnRow);
+
+  head.onclick=function(){
+    var open=body.classList.toggle('open');
+    var arr=document.getElementById('park-arr-'+p.parkId);
+    if(arr)arr.classList.toggle('open',open);
+  };
+  card.appendChild(head); card.appendChild(body);
+  return card;
+}
+
+function openParkModal(park){
+  _editParkId=park?park.parkId:null;
+  $('park-modal-title').textContent=park?'추모공원 수정':'추모공원 등록';
+  $('p-id').value=park?park.parkId:''; $('p-id').disabled=!!park;
+  $('p-name').value=park?park.name:'';
+  $('p-pw').value='';
+  $('p-phone').value=park?park.phone||'':'';
+  $('p-addr').value=park?park.addr||'':'';
+  $('p-status').value=park?park.status||'active':'active';
+  $('p-err').textContent=''; $('p-err').style.display='none';
+  $('park-modal').classList.add('open');
+  document.body.style.overflow='hidden';
+}
+function closeParkModal(){
+  $('park-modal').classList.remove('open');
+  document.body.style.overflow='';
+}
+async function savePark(){
+  var pid=($('p-id').value||'').trim().toLowerCase();
+  var name=($('p-name').value||'').trim();
+  var pw=$('p-pw').value;
+  var phone=($('p-phone').value||'').trim();
+  var addr=($('p-addr').value||'').trim();
+  var status=$('p-status').value;
+  var errEl=$('p-err');
+  errEl.style.display='none'; errEl.textContent='';
+  if(!pid){errEl.textContent='공원 ID를 입력해 주세요.';errEl.style.display='block';return;}
+  if(!/^[a-zA-Z0-9_]+$/.test(pid)){errEl.textContent='공원 ID는 영문·숫자·_만 가능합니다.';errEl.style.display='block';return;}
+  if(!name){errEl.textContent='공원 이름을 입력해 주세요.';errEl.style.display='block';return;}
+  if(!_editParkId&&(!pw||pw.length<4)){errEl.textContent='비밀번호를 4자 이상 입력해 주세요.';errEl.style.display='block';return;}
+  if(!_fbReady){toast('Firebase 연결이 필요합니다.');return;}
+  var data={name:name,phone:phone,addr:addr,status:status};
+  if(!_editParkId){data.createdAt=Date.now();}
+  if(pw.length>=4)data.pw=pw;
+  try{
+    await firebase.firestore().collection('parks').doc(pid).set(data,{merge:true});
+    closeParkModal(); toast('저장되었습니다.'); renderParks();
+  }catch(e){errEl.textContent='저장 오류: '+e.message;errEl.style.display='block';}
 }
 
 /* ── 이메일 도메인 드롭다운 ── */
@@ -1508,6 +1737,7 @@ function changePw(){
   document.addEventListener('keydown',function(e){
     if(e.key==='Escape'){
       closeCreateModal();
+      closeParkModal();
       $('info-modal').classList.remove('open');
     }
   });

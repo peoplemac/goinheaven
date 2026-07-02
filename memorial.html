@@ -503,151 +503,7 @@ label{font-size:13px;color:var(--mid);display:block;margin-bottom:5px}
 <!-- ② HOME → 비활성화 (직접 접근 불가) -->
 <div id="s-home" class="screen" style="display:none!important"></div>
 
-<!-- ② AUTH -->
-<div id="s-auth" class="screen">
-  <div class="auth-hdr">
-    <div class="auth-hdr-icon">🕯</div>
-    <h1 class="auth-hdr-title">사이버 추모관</h1>
-    <p class="auth-hdr-sub">소중한 분의 기억을 영원히<br>보존하고 나눠보세요</p>
-  </div>
-  <div class="auth-box">
-    <div class="auth-tabs">
-      <button class="auth-tab active" id="tab-login" onclick="authTab('login')">로그인</button>
-      <button class="auth-tab" id="tab-signup" onclick="authTab('signup')">회원가입</button>
-    </div>
-    <button class="btn-google" onclick="signInGoogle()">
-      <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#FFC107" d="M43.6 20H24v8h11.3C33.6 33.1 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.9 1.1 8.1 3l5.7-5.7C34.2 6.5 29.4 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.7-.4-4z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.5 16 18.9 13 24 13c3.1 0 5.9 1.1 8.1 3l5.7-5.7C34.2 6.5 29.4 4 24 4 16.3 4 9.7 8.4 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-1.9 13.5-5.1l-6.2-5.3C29.4 35.3 26.8 36 24 36c-5.1 0-9.5-2.9-11.3-7.1l-6.5 5C9.6 39.5 16.3 44 24 44z"/><path fill="#1976D2" d="M43.6 20H24v8h11.3c-.8 2.2-2.3 4.1-4.2 5.5l6.2 5.3C41.1 35.3 44 30 44 24c0-1.3-.1-2.7-.4-4z"/></svg>
-      Google로 계속하기
-    </button>
-    <div class="auth-divider">또는 이메일로</div>
-    <div class="fg">
-      <div class="email-row">
-        <input type="email" id="auth-email" placeholder="이메일 주소" onkeydown="if(event.key==='Enter'&&!event.isComposing)authSubmit()" oninput="_emailChecked=false;$('email-chk-msg').textContent='';$('email-chk-msg').className='email-chk-msg'">
-        <button type="button" id="btn-email-chk" class="btn-email-chk" onclick="checkEmailDupe()">중복확인</button>
-      </div>
-      <div class="email-chk-msg" id="email-chk-msg"></div>
-    </div>
-    <div class="fg">
-      <input type="password" id="auth-pw" placeholder="비밀번호 (6자 이상)" onkeydown="if(event.key==='Enter'&&!event.isComposing)authSubmit()">
-    </div>
-    <div class="fg" id="auth-pw2-wrap" style="display:none">
-      <input type="password" id="auth-pw2" placeholder="비밀번호 확인" onkeydown="if(event.key==='Enter'&&!event.isComposing)authSubmit()">
-    </div>
-    <div class="auth-agree-wrap" id="auth-agree-wrap">
-      <div class="auth-agree-row" onclick="toggleAgree('agree-privacy')">
-        <input type="checkbox" id="agree-privacy" onclick="event.stopPropagation()">
-        <label>[필수] <a onclick="openPrivacyModal('privacy');event.stopPropagation()">개인정보처리방침</a>에 동의합니다.</label>
-      </div>
-      <div class="auth-agree-row" onclick="toggleAgree('agree-use')">
-        <input type="checkbox" id="agree-use" onclick="event.stopPropagation()">
-        <label>[필수] <a onclick="openPrivacyModal('use');event.stopPropagation()">개인정보 수집·이용</a>에 동의합니다.</label>
-      </div>
-      <div class="auth-agree-divider">선택 동의 항목</div>
-      <div class="auth-agree-row optional" onclick="toggleAgree('agree-marketing')">
-        <input type="checkbox" id="agree-marketing" onclick="event.stopPropagation()">
-        <label>[선택] <a onclick="openPrivacyModal('marketing');event.stopPropagation()">마케팅·이벤트 안내</a> 수신에 동의합니다.</label>
-      </div>
-    </div>
-    <div class="auth-err" id="auth-err"></div>
-    <button class="btn btn-gold btn-block" id="auth-submit-btn" onclick="authSubmit()">로그인</button>
-  </div>
-</div>
-
-<!-- 개인정보처리방침 모달 -->
-<div class="privacy-modal-bg" id="privacy-modal-bg" onclick="if(event.target===this)closePrivacyModal()">
-  <div class="privacy-modal">
-    <div class="privacy-modal-hdr">
-      <h3 id="privacy-modal-title">개인정보처리방침</h3>
-      <button onclick="closePrivacyModal()">✕</button>
-    </div>
-    <div id="privacy-modal-body"></div>
-  </div>
-</div>
-
-<!-- ② MY PAGE (로그인 후 홈) -->
-<div id="s-mypage" class="screen">
-  <div class="mypage-topbar">
-    <span class="mypage-topbar-logo">🕯 사이버 추모관</span>
-    <span class="mypage-user" id="mypage-user-email"></span>
-    <button class="mypage-logout" onclick="signOutUser()">로그아웃</button>
-  </div>
-  <div class="mypage-body">
-    <div class="mypage-plan" id="mypage-plan-badge">무료 플랜</div>
-    <div class="mypage-section-title">나의 추모관</div>
-    <div id="mypage-cards"></div>
-  </div>
-</div>
-
-<!-- ③ SETUP -->
-<div id="s-setup" class="screen">
-  <div class="top-bar">
-    <button class="top-bar-back" onclick="setupBack()">‹</button>
-    <h2 id="setup-title">추모관 개설</h2>
-    <button class="top-bar-action" onclick="saveMemorial()">완료</button>
-  </div>
-  <div class="setup-body">
-
-    <!-- 첫 번째 고인 -->
-    <div class="section-title">고인 정보</div>
-    <div class="portrait-row">
-      <div class="portrait-slot">
-        <div class="portrait-upload" id="su-p1-wrap" onclick="$('su-p1-file').click()">
-          <div id="su-p1-prev">☺</div>
-        </div>
-        <span class="portrait-slot-label" id="su-p1-label">첫 번째 고인</span>
-      </div>
-      <div class="portrait-slot" id="su-p2-slot">
-        <div class="portrait-upload" id="su-p2-wrap" onclick="$('su-p2-file').click()">
-          <div id="su-p2-prev">☺</div>
-        </div>
-        <span class="portrait-slot-label">두 번째 고인</span>
-      </div>
-    </div>
-    <input type="file" id="su-p1-file" accept="image/*" style="display:none" onchange="previewP(this,1)">
-    <input type="file" id="su-p2-file" accept="image/*" style="display:none" onchange="previewP(this,2)">
-
-    <div class="fg"><label>성함 *</label><input type="text" id="su-n1" placeholder="홍길동" maxlength="30"></div>
-    <div class="row2">
-      <div class="fg"><label>생년월일</label><input type="date" id="su-b1"></div>
-      <div class="fg"><label>기일</label><input type="date" id="su-d1"></div>
-    </div>
-    <div class="fg"><label>약력 · 소개</label><textarea id="su-bio1" rows="2" placeholder="고인의 삶을 간략히 적어주세요."></textarea></div>
-
-    <!-- 두 번째 고인 추가 토글 -->
-    <button class="add-person-btn" id="btn-add-p2" onclick="toggleP2(true)" style="display:none">＋ 두 번째 고인 추가 (예: 아버지·어머니)</button>
-
-    <div class="person2-section open" id="person2-section">
-      <div class="section-title" style="display:flex;align-items:center">
-        두 번째 고인
-        <button class="remove-person-btn" onclick="toggleP2(false)">제거</button>
-      </div>
-      <div class="fg"><label>성함 *</label><input type="text" id="su-n2" placeholder="홍어머니" maxlength="30"></div>
-      <div class="row2">
-        <div class="fg"><label>생년월일</label><input type="date" id="su-b2"></div>
-        <div class="fg"><label>기일</label><input type="date" id="su-d2"></div>
-      </div>
-      <div class="fg"><label>약력 · 소개</label><textarea id="su-bio2" rows="2" placeholder="두 번째 고인의 소개를 적어주세요."></textarea></div>
-    </div>
-
-    <!-- 비밀번호 -->
-    <div class="section-title">입장 비밀번호</div>
-    <div class="fg">
-      <label>비밀번호 * <span style="font-size:11px;color:var(--ash)">(유가족 공유용)</span></label>
-      <input type="password" id="su-pw" placeholder="4~20자" maxlength="20">
-    </div>
-    <div class="fg"><label>비밀번호 확인 *</label><input type="password" id="su-pw2" placeholder="재입력" maxlength="20"></div>
-
-    <!-- 관리자 비밀번호 -->
-    <div class="section-title">관리자 비밀번호 <span style="font-size:11px;color:var(--ash);font-weight:400">(유가족 대표 전용)</span></div>
-    <div class="fg">
-      <label>관리자 비밀번호 * <span style="font-size:11px;color:var(--ash)">(⚙️ 관리 탭 전용, 입장 비번과 다르게 설정)</span></label>
-      <input type="password" id="su-apw" placeholder="4~20자" maxlength="20">
-    </div>
-    <div class="fg"><label>관리자 비밀번호 확인 *</label><input type="password" id="su-apw2" placeholder="재입력" maxlength="20"></div>
-
-    <button class="btn btn-gold btn-block" onclick="saveMemorial()" style="margin-top:.5rem">저장 완료</button>
-  </div>
-</div>
+<!-- C안: s-auth, s-mypage, s-setup 제거됨. 추모관은 admin/park에서만 개설 가능 -->
 
 <!-- ④ LOGIN -->
 <div id="s-login" class="screen">
@@ -938,324 +794,19 @@ label{font-size:13px;color:var(--mid);display:block;margin-bottom:5px}
 ══════════════════════════════════════════ */
 var _fbReady=false;
 var _fbLoading=false;
-var _authUser=null;
-var _authReady=false;
-var _chkingDupe=false;
 
 function _fbInit(){
   try{
     if(typeof FIREBASE_CONFIG==='undefined'||!FIREBASE_CONFIG.apiKey||FIREBASE_CONFIG.apiKey.indexOf('YOUR')===0)return;
     if(!firebase.apps.length)firebase.initializeApp(FIREBASE_CONFIG);
     _fbReady=true;
-    firebase.auth().onAuthStateChanged(function(user){
-      if(_chkingDupe)return; /* 중복확인 임시 계정 생성/삭제 중에는 무시 */
-      _authUser=user;
-      _authReady=true;
-      /* ?gid= 링크로 접속한 경우 Auth와 무관하게 기존 흐름 유지 */
-      if(getParam('gid'))return;
-      if(user){
-        $('mypage-user-email').textContent=user.email||'';
-        _loadUserGroups(user.uid);
-      } else {
-        db.groups=[];
-        goTo('s-auth');
-      }
-    });
   }catch(e){}
 }
 
-/* ══════════════════════
-   AUTH
-══════════════════════ */
-var _authMode='login';
+/* AUTH 섹션 제거됨 (C안: 회원가입·로그인 없음) */
 
-var _emailChecked=false;
+/* (auth 함수들 제거됨) */
 
-function toggleAgree(id){
-  var cb=document.getElementById(id);
-  if(cb)cb.checked=!cb.checked;
-}
-
-async function checkEmailDupe(){
-  var email=$('auth-email').value.trim();
-  var msgEl=$('email-chk-msg');
-  var btn=$('btn-email-chk');
-  if(!email){msgEl.textContent='이메일을 입력해 주세요.';msgEl.className='email-chk-msg err';return;}
-  var re=/^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  if(!re.test(email)){msgEl.textContent='이메일 형식이 올바르지 않습니다.';msgEl.className='email-chk-msg err';return;}
-  if(!_fbReady){msgEl.textContent='잠시 후 다시 시도해 주세요.';msgEl.className='email-chk-msg err';return;}
-  btn.disabled=true;btn.textContent='확인 중…';
-  _emailChecked=false;_chkingDupe=true;
-  try{
-    /* 임시 계정 생성 시도 → 성공 시 즉시 삭제 → 사용 가능 확인 */
-    var cred=await firebase.auth().createUserWithEmailAndPassword(email,'_Chk#'+Date.now()+'!x');
-    await cred.user.delete();
-    msgEl.textContent='✓ 사용 가능한 이메일입니다.';
-    msgEl.className='email-chk-msg ok';
-    _emailChecked=true;
-  }catch(e){
-    if(e.code==='auth/email-already-in-use'){
-      msgEl.textContent='이미 가입된 이메일입니다.';
-      msgEl.className='email-chk-msg err';
-    } else if(e.code==='auth/invalid-email'){
-      msgEl.textContent='이메일 형식이 올바르지 않습니다.';
-      msgEl.className='email-chk-msg err';
-    } else {
-      msgEl.textContent='확인 중 오류가 발생했습니다. 다시 시도해 주세요.';
-      msgEl.className='email-chk-msg err';
-    }
-    _emailChecked=false;
-  }finally{
-    _chkingDupe=false;
-    btn.disabled=false;btn.textContent='중복확인';
-  }
-}
-
-function authTab(mode){
-  _authMode=mode;
-  var isLogin=mode==='login';
-  $('tab-login').classList.toggle('active',isLogin);
-  $('tab-signup').classList.toggle('active',!isLogin);
-  $('auth-pw2-wrap').style.display=isLogin?'none':'';
-  $('auth-agree-wrap').classList.toggle('show',!isLogin);
-  $('btn-email-chk').classList.toggle('show',!isLogin);
-  $('auth-submit-btn').textContent=isLogin?'로그인':'회원가입';
-  $('auth-err').textContent='';
-  $('email-chk-msg').textContent='';$('email-chk-msg').className='email-chk-msg';
-  _emailChecked=false;
-  if(isLogin){$('agree-privacy').checked=false;$('agree-use').checked=false;$('agree-marketing').checked=false;}
-}
-
-async function authSubmit(){
-  var email=$('auth-email').value.trim();
-  var pw=$('auth-pw').value;
-  var errEl=$('auth-err');
-  errEl.textContent='';
-  if(!email||!pw){errEl.textContent='이메일과 비밀번호를 입력해 주세요.';return;}
-  var btn=$('auth-submit-btn');btn.disabled=true;
-  try{
-    if(_authMode==='login'){
-      await firebase.auth().signInWithEmailAndPassword(email,pw);
-    } else {
-      var pw2=$('auth-pw2').value;
-      if(pw!==pw2){errEl.textContent='비밀번호가 일치하지 않습니다.';btn.disabled=false;return;}
-      if(!_emailChecked){errEl.textContent='이메일 중복 확인을 해주세요.';btn.disabled=false;return;}
-      if(!$('agree-privacy').checked||!$('agree-use').checked){
-        errEl.textContent='필수 동의 항목을 모두 체크해 주세요.';btn.disabled=false;return;
-      }
-      await firebase.auth().createUserWithEmailAndPassword(email,pw);
-    }
-  }catch(e){
-    if(e.code==='auth/email-already-in-use'){
-      var msgEl=$('email-chk-msg');
-      msgEl.textContent='이미 가입된 이메일입니다.';
-      msgEl.className='email-chk-msg err';
-      _emailChecked=false;
-    }
-    errEl.textContent=_authErrMsg(e.code);btn.disabled=false;
-  }
-}
-
-var _PRIVACY_CONTENT={
-  privacy:
-    '<p><strong>(주)피플맥</strong>(이하 "회사")은 「개인정보 보호법」 제30조에 따라 정보주체의 개인정보를 보호하고 이와 관련한 고충을 신속하고 원활하게 처리할 수 있도록 다음과 같이 개인정보처리방침을 수립·공개합니다.</p>'+
-
-    '<h4>제1조 (개인정보의 처리 목적)</h4>'+
-    '<p>회사는 다음의 목적을 위하여 개인정보를 처리합니다. 처리하고 있는 개인정보는 다음의 목적 이외의 용도로는 이용되지 않으며, 이용 목적이 변경되는 경우에는 「개인정보 보호법」 제18조에 따라 별도의 동의를 받는 등 필요한 조치를 이행할 예정입니다.</p>'+
-    '<p>① 회원 가입 및 관리: 회원 식별·본인 확인, 서비스 부정이용 방지, 각종 고지·통지<br>'+
-    '② 사이버 추모관 서비스 제공: 추모관 개설·관리, AI 대화 서비스, 미디어 저장 및 공유<br>'+
-    '③ 고충처리: 민원인 식별, 민원사항 확인, 처리 결과 통보</p>'+
-
-    '<h4>제2조 (처리하는 개인정보의 항목 및 수집 방법)</h4>'+
-    '<table>'+
-    '<tr><th>구분</th><th>수집 항목</th><th>수집 방법</th></tr>'+
-    '<tr><td>필수</td><td>성명, 연락처, 이메일 주소</td><td>회원가입 시 직접 입력</td></tr>'+
-    '<tr><td>자동 수집</td><td>서비스 이용 기록, 접속 로그, 쿠키</td><td>서비스 이용 과정에서 자동 생성</td></tr>'+
-    '</table>'+
-
-    '<h4>제3조 (개인정보의 처리 및 보유 기간)</h4>'+
-    '<p>① 회사는 법령에 따른 개인정보 보유·이용 기간 또는 정보주체로부터 개인정보를 수집 시에 동의받은 개인정보 보유·이용 기간 내에서 개인정보를 처리·보유합니다.<br>'+
-    '② 각각의 개인정보 처리 및 보유 기간은 다음과 같습니다.</p>'+
-    '<table>'+
-    '<tr><th>항목</th><th>보유 기간</th><th>근거</th></tr>'+
-    '<tr><td>회원 정보(성명, 이메일 등)</td><td>회원 탈퇴 시까지</td><td>동의</td></tr>'+
-    '<tr><td>전자상거래 계약·청약철회 기록</td><td>5년</td><td>전자상거래법</td></tr>'+
-    '<tr><td>대금결제 및 재화 공급 기록</td><td>5년</td><td>전자상거래법</td></tr>'+
-    '<tr><td>소비자 불만·분쟁처리 기록</td><td>3년</td><td>전자상거래법</td></tr>'+
-    '<tr><td>접속 로그</td><td>3개월</td><td>통신비밀보호법</td></tr>'+
-    '</table>'+
-
-    '<h4>제4조 (개인정보의 제3자 제공)</h4>'+
-    '<p>회사는 정보주체의 개인정보를 제1조에서 명시한 목적 범위 내에서만 처리하며, 정보주체의 동의, 법률의 특별한 규정 등 「개인정보 보호법」 제17조 및 제18조에 해당하는 경우에만 개인정보를 제3자에게 제공합니다. 현재 제3자 제공은 없습니다.</p>'+
-
-    '<h4>제5조 (개인정보처리의 위탁)</h4>'+
-    '<p>회사는 원활한 서비스 제공을 위하여 다음과 같이 개인정보 처리 업무를 위탁하고 있습니다.</p>'+
-    '<table>'+
-    '<tr><th>수탁업체</th><th>위탁 업무</th><th>보유·이용 기간</th></tr>'+
-    '<tr><td>Google LLC (Firebase)</td><td>회원 인증, 데이터베이스 저장, 파일 스토리지 운영</td><td>위탁 계약 종료 시까지</td></tr>'+
-    '<tr><td>Anthropic, PBC</td><td>AI 추모 대화 서비스(Claude) 제공</td><td>위탁 계약 종료 시까지</td></tr>'+
-    '</table>'+
-    '<p>회사는 위탁계약 체결 시 「개인정보 보호법」 제26조에 따라 위탁업무 수행 목적 외 개인정보 처리 금지, 기술적·관리적 보호조치, 재위탁 제한, 수탁자에 대한 관리·감독, 손해배상 등의 내용을 계약서 등 문서에 명시하고 있습니다.</p>'+
-
-    '<h4>제6조 (정보주체의 권리·의무 및 행사 방법)</h4>'+
-    '<p>① 정보주체는 회사에 대해 언제든지 다음 각 호의 개인정보 보호 관련 권리를 행사할 수 있습니다.<br>'+
-    '1. 개인정보 열람 요구<br>2. 오류 등이 있을 경우 정정 요구<br>3. 삭제 요구<br>4. 처리 정지 요구</p>'+
-    '<p>② 권리 행사는 회사에 대해 「개인정보 보호법」 시행령 제41조 제1항에 따라 서면, 전자우편, 모사전송(FAX) 등을 통하여 하실 수 있으며 회사는 이에 대해 지체 없이 조치하겠습니다.</p>'+
-    '<p>③ 권리 행사는 정보주체의 법정대리인이나 위임을 받은 자 등 대리인을 통하여 하실 수도 있습니다. 이 경우 「개인정보 보호법」 시행규칙 별지 제11호 서식에 따른 위임장을 제출하셔야 합니다.</p>'+
-    '<p>④ 개인정보 열람 및 처리 정지 요구는 「개인정보 보호법」 제35조 제4항, 제37조 제2항에 의하여 정보주체의 권리가 제한될 수 있습니다.<br>'+
-    '⑤ 개인정보의 정정 및 삭제 요구는 다른 법령에서 그 개인정보가 수집 대상으로 명시되어 있는 경우에는 그 삭제를 요구할 수 없습니다.</p>'+
-    '<p><strong>요청 방법:</strong> 이메일 peoplemac.inc@gmail.com 또는 전화 070-4407-2004</p>'+
-
-    '<h4>제7조 (개인정보의 파기)</h4>'+
-    '<p>① 회사는 개인정보 보유 기간의 경과, 처리 목적 달성 등 개인정보가 불필요하게 되었을 때에는 지체 없이 해당 개인정보를 파기합니다.<br>'+
-    '② 정보주체로부터 동의받은 개인정보 보유 기간이 경과하거나 처리 목적이 달성되었음에도 불구하고 다른 법령에 따라 개인정보를 계속 보존하여야 하는 경우에는, 해당 개인정보를 별도의 데이터베이스(DB)로 옮기거나 보관 장소를 달리하여 보존합니다.<br>'+
-    '③ 파기 방법: 전자적 파일 형태의 정보는 기록을 재생할 수 없는 기술적 방법으로 삭제합니다.</p>'+
-
-    '<h4>제8조 (개인정보의 안전성 확보 조치)</h4>'+
-    '<p>회사는 「개인정보 보호법」 제29조에 따라 다음과 같이 안전성 확보에 필요한 기술적·관리적·물리적 조치를 하고 있습니다.</p>'+
-    '<p>① <strong>개인정보 취급 직원의 최소화 및 교육:</strong> 개인정보를 취급하는 직원을 지정하고 최소화하여 운영하고 있습니다.<br>'+
-    '② <strong>내부관리계획의 수립 및 시행:</strong> 개인정보의 안전한 처리를 위하여 내부관리계획을 수립하고 시행하고 있습니다.<br>'+
-    '③ <strong>해킹 등에 대비한 기술적 대책:</strong> 해킹이나 컴퓨터 바이러스 등에 의한 개인정보 유출 및 훼손을 막기 위하여 보안프로그램을 설치하고 주기적으로 갱신·점검합니다.<br>'+
-    '④ <strong>개인정보의 암호화:</strong> 비밀번호 등 중요 개인정보는 암호화하여 저장·관리하고 있습니다. 또한 중요한 데이터는 저장 및 전송 시 암호화 기능을 사용합니다.<br>'+
-    '⑤ <strong>접속기록의 보관 및 위변조 방지:</strong> 개인정보처리시스템에 접속한 기록을 최소 1년 이상 보관, 관리하고 있습니다.<br>'+
-    '⑥ <strong>개인정보에 대한 접근 제한:</strong> 개인정보를 처리하는 데이터베이스시스템에 대한 접근권한의 부여·변경·말소를 통하여 개인정보에 대한 접근통제를 위하여 필요한 조치를 하고 있습니다.</p>'+
-
-    '<h4>제9조 (개인정보 자동 수집 장치의 설치·운영 및 거부)</h4>'+
-    '<p>① 회사는 이용자에게 개별적인 맞춤서비스를 제공하기 위해 이용 정보를 저장하고 수시로 불러오는 쿠키(cookie)를 사용합니다.<br>'+
-    '② 쿠키는 웹사이트를 운영하는데 이용되는 서버(https)가 이용자의 컴퓨터 브라우저에게 보내는 소량의 정보이며 이용자들의 PC 컴퓨터 내의 하드디스크에 저장되기도 합니다.<br>'+
-    '③ 이용자는 쿠키 설치에 대한 선택권을 가지고 있습니다. 웹브라우저에서 옵션을 설정함으로써 모든 쿠키를 허용하거나, 쿠키가 저장될 때마다 확인을 거치거나, 아니면 모든 쿠키의 저장을 거부할 수도 있습니다. 단, 쿠키 저장을 거부할 경우 일부 서비스 이용이 어려울 수 있습니다.</p>'+
-
-    '<h4>제10조 (개인정보 보호책임자)</h4>'+
-    '<p>① 회사는 개인정보 처리에 관한 업무를 총괄해서 책임지고, 개인정보 처리와 관련한 정보주체의 불만처리 및 피해구제 등을 위하여 아래와 같이 개인정보 보호책임자를 지정하고 있습니다.</p>'+
-    '<table>'+
-    '<tr><th>구분</th><th>내용</th></tr>'+
-    '<tr><td>개인정보 보호책임자</td><td>이윤범</td></tr>'+
-    '<tr><td>소속·직책</td><td>(주)피플맥 대표</td></tr>'+
-    '<tr><td>연락처</td><td>070-4407-2004 / peoplemac.inc@gmail.com</td></tr>'+
-    '</table>'+
-    '<p>② 정보주체께서는 회사의 서비스를 이용하시면서 발생한 모든 개인정보 보호 관련 문의, 불만처리, 피해구제 등에 관한 사항을 개인정보 보호책임자 및 담당부서로 문의하실 수 있습니다. 회사는 정보주체의 문의에 대해 지체 없이 답변 및 처리해 드릴 것입니다.</p>'+
-
-    '<h4>제11조 (개인정보처리방침의 변경)</h4>'+
-    '<p>① 이 개인정보처리방침은 2025년 7월 1일부터 적용됩니다.<br>'+
-    '② 이전의 개인정보처리방침은 아래에서 확인하실 수 있습니다.<br>'+
-    '③ 개인정보처리방침이 변경될 경우 변경 사항을 서비스 공지사항을 통해 최소 7일 전에 안내하겠습니다.</p>'+
-    '<p style="font-size:11px;color:var(--ash)">시행일: 2025년 7월 1일 | (주)피플맥</p>',
-
-  use:
-    '<p>사이버 추모관 서비스 이용을 위해 아래와 같이 개인정보를 수집·이용합니다. 내용을 확인하시고 동의 여부를 결정해 주세요.</p>'+
-    '<h4 style="margin:.75rem 0 .4rem;font-size:13px">[필수] 서비스 제공을 위한 개인정보 수집·이용</h4>'+
-    '<table>'+
-    '<tr><th>수집 항목</th><td>성명, 연락처, 이메일 주소</td></tr>'+
-    '<tr><th>수집 목적</th><td>회원 식별 및 본인 확인, 사이버 추모관 서비스 제공, 고지·안내, 고충처리</td></tr>'+
-    '<tr><th>보유 기간</th><td>회원 탈퇴 시까지 (관련 법령에 따른 의무 보존 기간 별도 적용)</td></tr>'+
-    '</table>'+
-    '<p>※ 위 동의를 거부할 권리가 있으며, 동의를 거부하실 경우 서비스 이용이 제한될 수 있습니다.</p>'+
-    '<h4 style="margin:.75rem 0 .4rem;font-size:13px">[선택] 마케팅·이벤트 안내를 위한 개인정보 수집·이용</h4>'+
-    '<table>'+
-    '<tr><th>수집 항목</th><td>이메일 주소</td></tr>'+
-    '<tr><th>수집 목적</th><td>신규 서비스 안내, 이벤트·혜택 정보 제공, 서비스 관련 뉴스레터 발송</td></tr>'+
-    '<tr><th>보유 기간</th><td>동의 철회 시까지</td></tr>'+
-    '</table>'+
-    '<p>※ 선택 동의는 거부하셔도 서비스 이용에 제한이 없습니다.</p>'+
-    '<h4 style="margin:.75rem 0 .4rem;font-size:13px">개인정보 보호책임자</h4>'+
-    '<table>'+
-    '<tr><th>기업명</th><td>(주)피플맥</td></tr>'+
-    '<tr><th>책임자</th><td>이윤범</td></tr>'+
-    '<tr><th>연락처</th><td>070-4407-2004</td></tr>'+
-    '</table>'+
-    '<p style="font-size:11px;color:var(--ash)">필수 동의는 철회 시 서비스 이용이 중단될 수 있습니다. 선택 동의는 언제든지 철회 가능합니다.</p>',
-
-  marketing:
-    '<p>더 좋은 서비스와 혜택을 안내해 드리기 위해 아래와 같이 마케팅 목적의 개인정보 수집·이용에 동의를 구합니다.</p>'+
-    '<table>'+
-    '<tr><th>수집 항목</th><td>이메일 주소</td></tr>'+
-    '<tr><th>수집 목적</th><td>신규 서비스 출시 안내, 이벤트·프로모션 정보 제공, 서비스 업데이트 뉴스레터 발송</td></tr>'+
-    '<tr><th>보유 기간</th><td>동의 철회 시까지</td></tr>'+
-    '</table>'+
-    '<p>※ 본 동의는 선택 사항으로, 동의하지 않아도 서비스를 정상적으로 이용하실 수 있습니다.</p>'+
-    '<p>※ 동의 후 언제든지 고객센터(070-4407-2004) 또는 이메일(peoplemac.inc@gmail.com)을 통해 수신 동의를 철회하실 수 있습니다.</p>'+
-    '<p style="font-size:11px;color:var(--ash)">광고성 정보 수신 동의 | (주)피플맥</p>'
-};
-
-function openPrivacyModal(type){
-  var titles={privacy:'개인정보처리방침',use:'개인정보 수집·이용 동의',marketing:'마케팅·이벤트 안내 동의(선택)'};
-  $('privacy-modal-title').textContent=titles[type]||'개인정보처리방침';
-  $('privacy-modal-body').innerHTML=_PRIVACY_CONTENT[type];
-  $('privacy-modal-bg').classList.add('open');
-}
-function closePrivacyModal(){$('privacy-modal-bg').classList.remove('open');}
-
-async function signInGoogle(){
-  if(!_fbReady){$('auth-err').textContent='Firebase가 준비되지 않았습니다.';return;}
-  try{
-    var provider=new firebase.auth.GoogleAuthProvider();
-    await firebase.auth().signInWithPopup(provider);
-  }catch(e){$('auth-err').textContent='구글 로그인에 실패했습니다.';}
-}
-
-function signOutUser(){
-  firebase.auth().signOut().then(function(){
-    db.groups=[];_authUser=null;
-    goTo('s-auth');
-  });
-}
-
-function _authErrMsg(code){
-  var m={
-    'auth/email-already-in-use':'이미 사용 중인 이메일입니다.',
-    'auth/invalid-email':'이메일 형식이 올바르지 않습니다.',
-    'auth/weak-password':'비밀번호는 6자 이상이어야 합니다.',
-    'auth/user-not-found':'등록되지 않은 이메일입니다.',
-    'auth/wrong-password':'비밀번호가 틀렸습니다.',
-    'auth/invalid-credential':'이메일 또는 비밀번호가 올바르지 않습니다.',
-    'auth/too-many-requests':'잠시 후 다시 시도해 주세요.',
-    'auth/network-request-failed':'네트워크 연결을 확인해 주세요.'
-  };
-  return m[code]||'오류가 발생했습니다. 다시 시도해 주세요.';
-}
-
-async function _loadUserGroups(uid){
-  if(!_fbReady){renderMyPage();return;}
-  try{
-    var fs=firebase.firestore();
-    var snap=await fs.collection('groups').where('ownerUid','==',uid).get();
-    db.groups=[];
-    snap.forEach(function(doc){
-      var g=doc.data();
-      g.posts=g.posts||[];
-      g.members=(g.members||[]).map(function(m){m.portrait=m.portraitUrl||null;return m;});
-      db.groups.push(g);
-    });
-    db.groups.sort(function(a,b){return (b.createdAt||0)-(a.createdAt||0);});
-  }catch(e){}
-  renderMyPage();
-}
-
-function renderMyPage(){
-  if(_authUser)$('mypage-user-email').textContent=_authUser.email||'';
-  var wrap=$('mypage-cards');wrap.innerHTML='';
-  db.groups.forEach(function(g){
-    var card=document.createElement('div');card.className='mem-select-card';
-    card.style.marginBottom='14px';
-    var portraits='<div class="msc-portraits">';
-    g.members.forEach(function(m,mi){
-      portraits+='<div class="msc-portrait'+(mi>0?' p2':'')+'">'+
-        (m.portrait?'<img src="'+m.portrait+'">':(m.name?m.name.charAt(0):'☺'))+'</div>';
-    });
-    portraits+='</div>';
-    var names=g.members.map(function(m){return m.name;}).join(' · ');
-    card.innerHTML=portraits+
-      '<div class="msc-info"><div class="msc-name">'+esc(names)+'</div></div>'+
-      '<div class="msc-arrow">›</div>';
-    card.addEventListener('click',function(){showLogin(g.id);});
-    wrap.appendChild(card);
-  });
-  var addCard=document.createElement('div');addCard.className='add-mem-card';
-  addCard.innerHTML='<span class="add-icon">＋</span><span>새 추모관 개설</span>';
-  addCard.addEventListener('click',function(){openSetup(null);});
-  wrap.appendChild(addCard);
-  goTo('s-mypage');
-}
 
 /* Firebase → 메모리: 현재 추모관 단독 조회 (curGid 기준) */
 async function _fbLoad(){
@@ -1331,8 +882,10 @@ async function _fbSave(){
     }
     await fs.collection('groups').doc(g.id).set({
       id:g.id,pw:g.pw,adminPw:g.adminPw||'',visits:g.visits||0,
+      managementKey:g.managementKey||'',
+      parkId:g.parkId||null,
       members:mems,contact:g.contact||{},subscription:g.subscription||{},note:g.note||'',
-      ownerUid:g.ownerUid||null,ownerEmail:g.ownerEmail||null,createdAt:g.createdAt||Date.now()
+      createdAt:g.createdAt||Date.now()
     });
     for(var k=0;k<g.posts.length;k++){
       var p=g.posts[k];
@@ -1364,6 +917,7 @@ function _localSave(){
   try{
     var data={groups:db.groups.map(function(g){
       return{id:g.id,pw:g.pw,adminPw:g.adminPw||'',visits:g.visits,
+        managementKey:g.managementKey||'',parkId:g.parkId||null,
         members:g.members.map(function(m){return{id:m.id,name:m.name,birth:m.birth,death:m.death,bio:m.bio,portrait:m.portrait||null};}),
         posts:g.posts.map(function(p){return{id:p.id,author:p.author,rel:p.rel,text:p.text,date:p.date,likes:p.likes,liked:p.liked,comments:p.comments,media:p.media.map(function(m){return{type:m.type,name:m.name};})};}),
         contact:g.contact||{},subscription:g.subscription||{},note:g.note||''};
@@ -1428,51 +982,56 @@ window.addEventListener('load',function(){
   _fbInit();
   loadDB();
   var gid=getParam('gid');
-  var hasLocal=gid&&db.groups.find(function(g){return g.id==gid;});
+  var mkey=getParam('mkey');
 
   if(!gid){
-    /* gid 없이 직접 접속 → Auth 상태 확인 (onAuthStateChanged가 처리) */
-    /* Firebase 미설정이면 바로 auth 화면 */
-    if(!_fbReady)goTo('s-auth');
-    /* else: onAuthStateChanged가 s-auth 또는 s-mypage로 이동 */
+    goTo('s-landing');
     return;
-  } else if(hasLocal){
-    /* 관리자 직접 입장 바이패스 확인 */
+  }
+
+  function _tryMKey(g){
+    if(!mkey||!g.managementKey||mkey!==g.managementKey)return false;
+    curGid=g.id; g.visits++; saveDB();
+    openMemorial(); _adminAuthed=true;
+    return true;
+  }
+
+  var hasLocal=db.groups.find(function(g){return g.id==gid;});
+  if(hasLocal){
+    if(_tryMKey(hasLocal))return;
+    /* 관리자 직접 입장 바이패스 (admin.html 아바타 클릭) */
     var _bypass=localStorage.getItem('adm_bypass');
     if(_bypass){
       localStorage.removeItem('adm_bypass');
       var _bp=_bypass.split('|');
-      if(_bp.length>=3&&_bp[0]===gid&&(Date.now()-parseInt(_bp[2]))<15000){
-        var _bpg=db.groups.find(function(g){return g.id===gid;});
-        if(_bpg&&_bpg.pw===_bp[1]){
-          curGid=gid; _bpg.visits++; saveDB();
-          openMemorial(); _adminAuthed=true;
-          if(_fbReady)_fbLoad().catch(function(){});
-          return;
-        }
+      if(_bp.length>=3&&_bp[0]===gid&&(Date.now()-parseInt(_bp[2]))<15000&&hasLocal.pw===_bp[1]){
+        curGid=gid; hasLocal.visits++; saveDB();
+        openMemorial(); _adminAuthed=true;
+        if(_fbReady)_fbLoad().catch(function(){});
+        return;
       }
     }
-    /* 세션 복원: 같은 탭에서 새로고침(F5)이면 로그인 생략 */
     if(sessionStorage.getItem('mem_sess')===gid){
       curGid=gid; openMemorial();
       if(_fbReady)_fbLoad().catch(function(){});
       return;
     }
-    /* 로컬 데이터 있으면 로그인 화면, Firebase는 백그라운드 갱신 */
     showLogin(gid);
     if(_fbReady)_fbLoad().catch(function(){});
   } else if(_fbReady){
-    /* 로컬 없고 Firebase 있으면 데이터 로드 후 로그인 또는 세션 복원 */
     toast('추모관 정보를 불러오는 중...');
-    curGid=gid; /* _fbLoad()가 curGid 기준으로 동작하므로 먼저 설정 */
+    curGid=gid;
     _fbLoad().then(function(ok){
-      if(ok&&db.groups.find(function(g){return g.id==gid;})){
-        if(sessionStorage.getItem('mem_sess')===gid){curGid=gid;openMemorial();}
-        else showLogin(gid);
+      if(ok){
+        var g=db.groups.find(function(g){return g.id==gid;});
+        if(g){
+          if(_tryMKey(g))return;
+          if(sessionStorage.getItem('mem_sess')===gid){openMemorial();}
+          else showLogin(gid);
+        } else goTo('s-landing');
       } else goTo('s-landing');
     }).catch(function(){goTo('s-landing');});
   } else {
-    /* Firebase 없고 로컬도 없으면 잠금 화면 */
     goTo('s-landing');
   }
 });
@@ -1480,13 +1039,11 @@ window.addEventListener('load',function(){
 /* ── 유틸 ── */
 function $(id){return document.getElementById(id);}
 function goTo(id){
-  if(id==='s-home')id=(_authUser?'s-mypage':'s-auth');
+  if(id==='s-home')id='s-landing';
   document.querySelectorAll('.screen').forEach(function(s){s.classList.remove('active');});
   $(id).classList.add('active');
 }
-function _goHome(){return _authUser?'s-mypage':'s-auth';}
-function setupBack(){if(curGid)showLogin(curGid);else goTo(_goHome());}
-function homeFromMemorial(){sessionStorage.removeItem('mem_sess');if(curGid)showLogin(curGid);else goTo(_goHome());}
+function homeFromMemorial(){sessionStorage.removeItem('mem_sess');if(curGid)showLogin(curGid);else goTo('s-landing');}
 function fmtDate(d){if(!d)return'';var p=d.split('-');return p[0]+'년 '+parseInt(p[1])+'월 '+parseInt(p[2])+'일';}
 function fmtRel(ds){var d=new Date(ds),n=new Date(),df=Math.floor((n-d)/1000);if(df<60)return'방금';if(df<3600)return Math.floor(df/60)+'분 전';if(df<86400)return Math.floor(df/3600)+'시간 전';if(df<604800)return Math.floor(df/86400)+'일 전';return d.toLocaleDateString('ko-KR');}
 function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
@@ -1552,11 +1109,6 @@ function renderHome(){
     wrap.appendChild(card);
   });
 
-  // 추가 버튼 (개수 무제한)
-  var addCard=document.createElement('div'); addCard.className='add-mem-card';
-  addCard.innerHTML='<span class="add-icon">＋</span><span>새 추모관 개설</span>';
-  addCard.addEventListener('click',function(){openSetup(null);});
-  wrap.appendChild(addCard);
 
   if(db.groups.length===0){
     var emp=document.createElement('p');
@@ -1571,108 +1123,6 @@ function deleteGroup(gid){
   g.posts.forEach(function(p){p.media.forEach(function(m,i){localStorage.removeItem(DB_KEY+'_pm_'+p.id+'_'+i);});});
   db.groups=db.groups.filter(function(x){return x.id!==gid;});
   saveDB(); renderHome();
-}
-
-/* ══════════════════════
-   SETUP
-══════════════════════ */
-var _setupGid=null;
-var _p1data=null,_p2data=null;
-
-function openSetup(gid){
-  _setupGid=gid; _p1data=null; _p2data=null;
-  if(gid){
-    var g=db.groups.find(function(x){return x.id===gid;});
-    $('setup-title').textContent='추모관 수정';
-    var m1=g.members[0];
-    $('su-n1').value=m1.name; $('su-b1').value=m1.birth||''; $('su-d1').value=m1.death||''; $('su-bio1').value=m1.bio||'';
-    $('su-p1-prev').innerHTML=m1.portrait?'<img src="'+m1.portrait+'" style="width:100%;height:100%;object-fit:cover">':'☺';
-    if(g.members.length>1){
-      var m2=g.members[1];
-      $('su-n2').value=m2.name; $('su-b2').value=m2.birth||''; $('su-d2').value=m2.death||''; $('su-bio2').value=m2.bio||'';
-      $('su-p2-prev').innerHTML=m2.portrait?'<img src="'+m2.portrait+'" style="width:100%;height:100%;object-fit:cover">':'☺';
-      toggleP2(true);
-    } else { toggleP2(false); $('su-n2').value=''; $('su-b2').value=''; $('su-d2').value=''; $('su-bio2').value=''; $('su-p2-prev').innerHTML='☺'; }
-    $('su-pw').value=''; $('su-pw2').value='';
-  } else {
-    $('setup-title').textContent='추모관 개설';
-    ['su-n1','su-b1','su-d1','su-bio1','su-n2','su-b2','su-d2','su-bio2','su-pw','su-pw2','su-apw','su-apw2'].forEach(function(id){$(id).value='';});
-    $('su-p1-prev').innerHTML='☺'; $('su-p2-prev').innerHTML='☺';
-    toggleP2(true);
-  }
-  goTo('s-setup');
-}
-
-function toggleP2(open){
-  $('person2-section').classList.toggle('open',open);
-  $('btn-add-p2').style.display=open?'none':'';
-  $('su-p2-slot').style.display=open?'':'none';
-  $('su-p1-label').textContent=open?'첫 번째 고인':'사진 선택';
-}
-
-function previewP(input,idx){
-  if(!input.files[0])return;
-  var r=new FileReader(); r.onload=function(e){
-    if(idx===1){_p1data=e.target.result;$('su-p1-prev').innerHTML='<img src="'+e.target.result+'" style="width:100%;height:100%;object-fit:cover">';}
-    else{_p2data=e.target.result;$('su-p2-prev').innerHTML='<img src="'+e.target.result+'" style="width:100%;height:100%;object-fit:cover">';}
-  }; r.readAsDataURL(input.files[0]);
-}
-
-function saveMemorial(){
-  var name1=$('su-n1').value.trim();
-  var pw=$('su-pw').value, pw2=$('su-pw2').value;
-  if(!name1)return toast('첫 번째 고인 성함을 입력해 주세요.');
-  var p2open=$('person2-section').classList.contains('open')&&!!$('su-n2').value.trim();
-  var apw=$('su-apw').value, apw2=$('su-apw2').value;
-  if(!_setupGid){
-    if(!pw||pw.length<4)return toast('비밀번호를 4자 이상 입력해 주세요.');
-    if(pw!==pw2)return toast('비밀번호가 일치하지 않습니다.');
-    if(!apw||apw.length<4)return toast('관리자 비밀번호를 4자 이상 입력해 주세요.');
-    if(apw!==apw2)return toast('관리자 비밀번호가 일치하지 않습니다.');
-  } else {
-    if(pw&&pw.length<4)return toast('비밀번호를 4자 이상 입력해 주세요.');
-    if(pw&&pw!==pw2)return toast('비밀번호가 일치하지 않습니다.');
-    if(apw&&apw.length<4)return toast('관리자 비밀번호를 4자 이상 입력해 주세요.');
-    if(apw&&apw!==apw2)return toast('관리자 비밀번호가 일치하지 않습니다.');
-  }
-  if(!_setupGid){
-    /* 신규: 새 id 발급 */
-    var m1={id:uid(),name:name1,birth:$('su-b1').value,death:$('su-d1').value,bio:$('su-bio1').value.trim(),portrait:_p1data};
-    var members=[m1];
-    if(p2open){members.push({id:uid(),name:$('su-n2').value.trim(),birth:$('su-b2').value,death:$('su-d2').value,bio:$('su-bio2').value.trim(),portrait:_p2data});}
-    var newG={id:uid(),pw:pw,adminPw:apw,visits:0,members:members,posts:[],
-      ownerUid:_authUser?_authUser.uid:null,
-      ownerEmail:_authUser?_authUser.email:null,
-      createdAt:Date.now()};
-    db.groups.push(newG);
-  } else {
-    /* 수정: 기존 id 유지하여 portrait 키 보존 */
-    var g=db.groups.find(function(x){return x.id===_setupGid;});
-    var existM1=g.members[0]||{};
-    var existM2=g.members[1]||{};
-    g.members[0]={
-      id:existM1.id||uid(),
-      name:name1, birth:$('su-b1').value, death:$('su-d1').value, bio:$('su-bio1').value.trim(),
-      portrait:_p1data!==null?_p1data:existM1.portrait
-    };
-    if(p2open){
-      g.members[1]={
-        id:existM2.id||uid(),
-        name:$('su-n2').value.trim(), birth:$('su-b2').value, death:$('su-d2').value, bio:$('su-bio2').value.trim(),
-        portrait:_p2data!==null?_p2data:existM2.portrait
-      };
-      g.members=g.members.slice(0,2);
-    } else {
-      g.members=g.members.slice(0,1);
-    }
-    if(pw) g.pw=pw;
-    if(apw) g.adminPw=apw;
-  }
-  saveDB(); toast('저장되었습니다.');
-  setTimeout(function(){
-    if(_authUser)renderMyPage();
-    else goTo('s-landing');
-  },500);
 }
 
 /* ══════════════════════

@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>추모공원 관리 - 사이버 추모관</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage-compat.js"></script>
+<script src="firebase-config.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{
+  --ivory:#F8F5F0;--stone:#E8E3DB;--ash:#C4BDB4;
+  --deep:#3D3530;--mid:#6B5F58;--warm:#8B7355;
+  --gold:#B8965A;--gold2:#9a7a45;--white:#FFFFFF;
+}
+html{min-height:100%;background:#ddd8d0}
+body{min-height:100vh;background:var(--ivory);color:var(--deep);
+  font-family:-apple-system,'Apple SD Gothic Neo','Noto Sans KR',sans-serif;
+  max-width:600px;margin:0 auto;box-shadow:0 0 40px rgba(0,0,0,.1)}
+
+.btn{font-size:14px;cursor:pointer;border:1px solid var(--ash);border-radius:8px;
+  padding:11px 22px;background:var(--white);color:var(--deep);
+  transition:background .15s;font-family:inherit;-webkit-appearance:none}
+.btn:active{background:var(--stone)}
+.btn-gold{background:var(--gold);color:#fff;border-color:var(--gold)}
+.btn-gold:active{background:var(--gold2)}
+.btn-block{width:100%;display:block}
+.btn-sm{padding:7px 14px;font-size:13px;border-radius:6px}
+input,textarea{font-family:inherit;font-size:15px;border:1px solid var(--ash);
+  border-radius:8px;padding:11px 14px;background:var(--white);color:var(--deep);
+  width:100%;-webkit-appearance:none;box-sizing:border-box}
+input:not([type=checkbox]):focus,textarea:focus{outline:none;border-color:var(--gold)}
+label{font-size:13px;color:var(--mid);display:block;margin-bottom:5px}
+.fg{margin-bottom:1rem}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.err-msg{font-size:12px;color:#c0392b;margin-top:5px;min-height:1.2em}
+
+/* 화면 */
+.screen{display:none;min-height:100vh}
+.screen.active{display:block}
+
+/* 로그인 */
+#s-login{display:none;flex-direction:column;align-items:center;
+  justify-content:center;min-height:100vh;padding:2rem 1.5rem;
+  background:linear-gradient(145deg,#3D3530 0%,#5a4f48 100%)}
+#s-login.active{display:flex}
+.login-box{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.15);
+  border-radius:20px;padding:2.5rem 2rem;width:100%;max-width:360px;
+  text-align:center;backdrop-filter:blur(8px)}
+.login-logo{font-size:22px;letter-spacing:.4em;color:var(--gold);margin-bottom:.6rem;opacity:.85}
+.login-title{font-size:20px;font-weight:300;color:#fff;letter-spacing:.08em;margin-bottom:.3rem}
+.login-sub{font-size:12px;color:rgba(255,255,255,.45);margin-bottom:2rem;line-height:1.9}
+.login-box label{color:rgba(255,255,255,.65);text-align:left}
+.login-box input{background:rgba(255,255,255,.1);border-color:rgba(255,255,255,.2);
+  color:#fff;margin-bottom:.75rem}
+.login-box input::placeholder{color:rgba(255,255,255,.3)}
+.login-box input:focus{border-color:var(--gold)}
+.login-err{font-size:12px;color:#ff9090;text-align:center;margin-bottom:.75rem;display:none}
+
+/* 헤더 */
+.top-bar{background:var(--deep);color:#fff;padding:13px 16px;
+  display:flex;align-items:center;gap:10px;position:sticky;top:0;z-index:100}
+.top-bar-logo{font-size:11px;letter-spacing:.08em;color:var(--gold);opacity:.85}
+.top-bar-name{font-size:15px;font-weight:500;flex:1;color:#fff}
+.top-bar-btn{font-size:12px;color:rgba(255,255,255,.5);background:none;
+  border:1px solid rgba(255,255,255,.2);border-radius:5px;cursor:pointer;
+  padding:4px 10px;font-family:inherit}
+
+/* 대시보드 */
+.dash-content{padding:1rem}
+.stat-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:1rem}
+.stat-card{background:var(--white);border:1px solid var(--stone);border-radius:12px;
+  padding:16px;text-align:center}
+.stat-n{font-size:28px;font-weight:300;color:var(--gold);line-height:1}
+.stat-l{font-size:11px;color:var(--ash);margin-top:5px}
+
+/* 추모관 목록 */
+.mem-card{background:var(--white);border:1px solid var(--stone);border-radius:12px;
+  margin-bottom:8px;overflow:hidden}
+.mem-card-head{display:flex;align-items:center;gap:10px;padding:12px 14px;cursor:pointer}
+.mem-card-head:active{background:var(--ivory)}
+.mem-avatar{width:44px;height:44px;border-radius:50%;background:var(--stone);
+  border:2px solid var(--gold);flex-shrink:0;overflow:hidden;
+  display:flex;align-items:center;justify-content:center;
+  font-size:16px;font-weight:600;color:var(--mid)}
+.mem-avatar img{width:100%;height:100%;object-fit:cover}
+.mem-info{flex:1;min-width:0}
+.mem-name{font-size:14px;font-weight:600;color:var(--deep)}
+.mem-dates{font-size:11px;color:var(--ash);margin-top:2px}
+.mem-arr{font-size:18px;color:var(--ash);flex-shrink:0}
+.empty-msg{text-align:center;padding:3rem 1rem;color:var(--ash);font-size:14px;line-height:2}
+
+/* 섹션 타이틀 */
+.sec-title{font-size:13px;font-weight:600;color:var(--gold);letter-spacing:.06em;
+  margin:1.5rem 0 .75rem;padding-bottom:.4rem;border-bottom:1px solid var(--stone)}
+
+/* 개설 화면 */
+.create-content{padding:1rem}
+.portrait-upload{width:90px;height:90px;border-radius:50%;border:2px dashed var(--ash);
+  cursor:pointer;display:flex;align-items:center;justify-content:center;
+  overflow:hidden;background:var(--stone);font-size:28px;color:var(--ash);
+  margin:0 auto 1rem;transition:border-color .15s}
+.portrait-upload:active{border-color:var(--gold)}
+.portrait-upload img{width:100%;height:100%;object-fit:cover}
+
+/* 결과 화면 */
+.result-content{padding:1.25rem 1rem 4rem}
+.result-hero{text-align:center;padding:1.5rem 0 1rem}
+.result-icon{font-size:48px;margin-bottom:.5rem}
+.result-name{font-size:20px;font-weight:500;color:var(--deep);margin-bottom:.25rem}
+.result-sub{font-size:13px;color:var(--ash)}
+.result-card{background:var(--white);border:1px solid var(--stone);
+  border-radius:14px;padding:1.25rem;margin-bottom:10px}
+.result-label{font-size:11px;font-weight:700;color:var(--gold);letter-spacing:.05em;margin-bottom:.5rem}
+.link-row{display:flex;align-items:center;gap:8px}
+.link-text{font-size:12px;color:var(--mid);flex:1;word-break:break-all;line-height:1.6}
+.copy-btn{flex-shrink:0;font-size:12px;background:var(--gold);color:#fff;border:none;
+  border-radius:6px;padding:6px 12px;cursor:pointer;font-family:inherit;white-space:nowrap}
+.copy-btn:active{background:var(--gold2)}
+.qr-center{display:flex;flex-direction:column;align-items:center;gap:10px}
+.qr-box{background:#fff;border:1px solid var(--stone);border-radius:8px;
+  padding:8px;display:inline-flex;align-items:center;justify-content:center}
+.qr-box canvas,.qr-box img{display:block}
+.print-note{font-size:11px;color:var(--ash);text-align:center;line-height:1.8}
+
+/* 인쇄 */
+@media print{
+  body *{visibility:hidden!important}
+  #print-area,#print-area *{visibility:visible!important}
+  #print-area{position:fixed;inset:0;display:flex;flex-direction:column;
+    align-items:center;justify-content:center;gap:16px;
+    background:#fff;font-family:sans-serif}
+  .print-title{font-size:20px;font-weight:600;color:#333}
+  .print-sub{font-size:13px;color:#666;margin-top:4px}
+}
+
+/* 토스트 */
+.toast{position:fixed;bottom:28px;left:50%;transform:translateX(-50%);
+  background:rgba(40,30,25,.92);color:#fff;padding:10px 22px;
+  border-radius:50px;font-size:13px;pointer-events:none;opacity:0;
+  transition:opacity .25s;white-space:nowrap;z-index:9999}
+.toast.show{opacity:1}
+</style>
+</head>
+<body>
+
+<!-- ① 로그인 -->
+<div id="s-login" class="screen">
+  <div class="login-box">
+    <div class="login-logo">🕯</div>
+    <div class="login-title">추모공원 관리</div>
+    <div class="login-sub">사이버 추모관 추모공원 전용<br>관리 시스템입니다.</div>
+    <div class="fg">
+      <label>공원 ID</label>
+      <input type="text" id="l-pid" placeholder="부여받은 공원 ID" autocomplete="username"
+        onkeydown="if(event.key==='Enter')submitLogin()">
+    </div>
+    <div class="fg">
+      <label>비밀번호</label>
+      <input type="password" id="l-pw" placeholder="비밀번호" autocomplete="current-password"
+        onkeydown="if(event.key==='Enter')submitLogin()">
+    </div>
+    <div class="login-err" id="l-err">ID 또는 비밀번호가 올바르지 않습니다.</div>
+    <button class="btn btn-gold btn-block" id="l-btn" onclick="submitLogin()">로그인</button>
+  </div>
+</div>
+
+<!-- ② 대시보드 -->
+<div id="s-dashboard" class="screen">
+  <div class="top-bar">
+    <div class="top-bar-logo">🕯 사이버 추모관</div>
+    <div class="top-bar-name" id="park-name"></div>
+    <button class="top-bar-btn" onclick="logout()">로그아웃</button>
+  </div>
+  <div class="dash-content">
+    <div class="stat-row">
+      <div class="stat-card">
+        <div class="stat-n" id="stat-total">0</div>
+        <div class="stat-l">개설 추모관</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-n" id="stat-visits">0</div>
+        <div class="stat-l">누적 방문</div>
+      </div>
+    </div>
+    <button class="btn btn-gold btn-block" style="margin-bottom:1rem" onclick="goCreate()">
+      ＋ 추모관 현장 개설
+    </button>
+    <div class="sec-title">개설한 추모관</div>
+    <div id="mem-list"><div class="empty-msg">로딩 중...</div></div>
+  </div>
+</div>
+
+<!-- ③ 추모관 개설 -->
+<div id="s-create" class="screen">
+  <div class="top-bar">
+    <button class="top-bar-btn" onclick="showScreen('s-dashboard')" style="border:none;font-size:20px;padding:0;color:rgba(255,255,255,.7)">‹</button>
+    <div class="top-bar-name">추모관 개설</div>
+  </div>
+  <div class="create-content">
+    <div class="sec-title">고인 정보</div>
+    <div class="portrait-upload" onclick="$('c-p1-file').click()" id="c-p1-upload">
+      <div id="c-p1-prev">☺</div>
+    </div>
+    <input type="file" id="c-p1-file" accept="image/*" style="display:none" onchange="prevPortrait(this)">
+    <div class="fg">
+      <label>성함 <span style="color:#c0392b">*</span></label>
+      <input type="text" id="c-n1" placeholder="홍길동" maxlength="30">
+    </div>
+    <div class="row2">
+      <div class="fg"><label>생년월일</label><input type="date" id="c-b1"></div>
+      <div class="fg"><label>기일</label><input type="date" id="c-d1"></div>
+    </div>
+
+    <div class="sec-title">입장 비밀번호</div>
+    <div class="fg">
+      <label>비밀번호 <span style="color:#c0392b">*</span> <span style="font-size:11px;color:var(--ash)">(유가족 공유용, 4자 이상)</span></label>
+      <input type="password" id="c-pw" placeholder="예: 0101" maxlength="20">
+    </div>
+    <div class="fg">
+      <label>비밀번호 확인 <span style="color:#c0392b">*</span></label>
+      <input type="password" id="c-pw2" placeholder="재입력" maxlength="20">
+    </div>
+
+    <div class="sec-title">담당자 (선택)</div>
+    <div class="fg">
+      <label>담당 유가족 이름</label>
+      <input type="text" id="c-cname" placeholder="홍길순" maxlength="20">
+    </div>
+    <div class="fg">
+      <label>전화번호 <span style="font-size:11px;color:var(--ash)">(분실 복구 안내용)</span></label>
+      <input type="tel" id="c-cphone" placeholder="010-0000-0000">
+    </div>
+
+    <div class="err-msg" id="c-err"></div>
+    <button class="btn btn-gold btn-block" id="c-save-btn" onclick="saveCreate()" style="margin-top:.5rem">
+      추모관 개설 완료
+    </button>
+  </div>
+</div>
+
+<!-- ④ 개설 완료 / 기존 추모관 상세 -->
+<div id="s-result" class="screen">
+  <div class="top-bar">
+    <button class="top-bar-btn" onclick="showScreen('s-dashboard')" style="border:none;font-size:20px;padding:0;color:rgba(255,255,255,.7)">‹</button>
+    <div class="top-bar-name" id="res-screen-title">개설 완료</div>
+    <button class="top-bar-btn" onclick="printQR()">인쇄</button>
+  </div>
+  <div class="result-content">
+    <div class="result-hero">
+      <div class="result-icon">🕯</div>
+      <div class="result-name" id="res-name"></div>
+      <div class="result-sub" id="res-sub">추모관이 개설되었습니다</div>
+    </div>
+
+    <div class="result-card">
+      <div class="result-label">방문자 링크 (QR 코드)</div>
+      <div class="qr-center">
+        <div class="qr-box" id="res-qr-wrap"></div>
+        <div class="print-note">유가족에게 QR 코드를 인쇄하여 전달하세요.<br>방문자는 이 QR로 추모관에 접속합니다.</div>
+      </div>
+    </div>
+
+    <div class="result-card">
+      <div class="result-label">방문자 링크</div>
+      <div class="link-row">
+        <div class="link-text" id="res-url"></div>
+        <button class="copy-btn" onclick="copyLink('url')">복사</button>
+      </div>
+    </div>
+
+    <div class="result-card">
+      <div class="result-label">관리 링크 <span style="font-weight:400;color:var(--ash)">(공원 보관용 — 외부 공개 금지)</span></div>
+      <div class="link-row">
+        <div class="link-text" id="res-mgt"></div>
+        <button class="copy-btn" onclick="copyLink('mgt')">복사</button>
+      </div>
+    </div>
+
+    <div class="result-card" id="res-pw-card">
+      <div class="result-label">입장 비밀번호</div>
+      <div class="link-row">
+        <div class="link-text" id="res-pw" style="font-size:18px;font-weight:600;letter-spacing:.1em"></div>
+        <button class="copy-btn" onclick="copyLink('pw')">복사</button>
+      </div>
+    </div>
+
+    <div class="result-card" id="res-contact-card" style="display:none">
+      <div class="result-label">담당 유가족</div>
+      <div style="font-size:13px;color:var(--mid)" id="res-contact"></div>
+    </div>
+
+    <button class="btn btn-block" style="margin-top:.5rem" onclick="sendSmsInfo()">
+      📱 안내 문자 복사
+    </button>
+  </div>
+</div>
+
+<!-- 인쇄 영역 (숨김) -->
+<div id="print-area" style="display:none">
+  <div class="print-title" id="print-name"></div>
+  <div class="print-sub">사이버 추모관</div>
+  <div id="print-qr"></div>
+  <div style="font-size:11px;color:#888;margin-top:8px">QR 코드로 추모관에 방문하세요</div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+var _fs=null;
+var _parkData=null;
+var _memorials=[];
+var _curGid=null;
+var _curPw=null;
+
+/* ── Firebase 초기화 ── */
+(function(){
+  try{
+    if(typeof FIREBASE_CONFIG==='undefined')return;
+    if(!firebase.apps.length)firebase.initializeApp(FIREBASE_CONFIG);
+    _fs=firebase.firestore();
+    _fs.settings({merge:true});
+  }catch(e){}
+})();
+
+/* ── 유틸 ── */
+function $(id){return document.getElementById(id);}
+function uid(){return Math.random().toString(36).slice(2,10)+Math.random().toString(36).slice(2,10);}
+function genKey(){var c='0123456789abcdef',r='';for(var i=0;i<32;i++)r+=c[Math.floor(Math.random()*16)];return r;}
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(function(s){s.classList.remove('active');});
+  var el=$(id);
+  if(id==='s-login'){el.style.cssText='display:flex;flex-direction:column;align-items:center;justify-content:center'}
+  else el.style.cssText='';
+  el.classList.add('active');
+}
+function toast(msg){
+  var el=$('toast');el.textContent=msg;el.classList.add('show');
+  setTimeout(function(){el.classList.remove('show');},2200);
+}
+function copyText(text){
+  try{navigator.clipboard.writeText(text).then(function(){toast('복사됨');});}
+  catch(e){
+    var ta=document.createElement('textarea');ta.value=text;
+    ta.style.cssText='position:fixed;opacity:0;top:0;left:0';
+    document.body.appendChild(ta);ta.focus();ta.select();
+    try{document.execCommand('copy');toast('복사됨');}catch(e2){}
+    document.body.removeChild(ta);
+  }
+}
+
+/* ── 세션 복원 ── */
+window.addEventListener('load',function(){
+  var sess=sessionStorage.getItem('park_sess');
+  if(sess){
+    try{_parkData=JSON.parse(sess);loadDashboard();}
+    catch(e){sessionStorage.removeItem('park_sess');showScreen('s-login');}
+  } else {
+    showScreen('s-login');
+  }
+});
+
+/* ── 로그인 ── */
+async function submitLogin(){
+  var pid=$('l-pid').value.trim();
+  var pw=$('l-pw').value;
+  $('l-err').style.display='none';
+  if(!pid||!pw){$('l-err').textContent='공원 ID와 비밀번호를 입력해 주세요.';$('l-err').style.display='block';return;}
+  if(!_fs){$('l-err').textContent='서버 연결에 실패했습니다.';$('l-err').style.display='block';return;}
+  var btn=$('l-btn');btn.disabled=true;btn.textContent='확인 중…';
+  try{
+    var snap=await _fs.collection('parks').doc(pid).get();
+    if(!snap.exists||snap.data().pw!==pw||snap.data().status==='inactive'){
+      $('l-err').textContent='ID 또는 비밀번호가 올바르지 않습니다.';
+      $('l-err').style.display='block';
+    } else {
+      _parkData=Object.assign({},snap.data(),{parkId:pid});
+      sessionStorage.setItem('park_sess',JSON.stringify(_parkData));
+      loadDashboard();
+    }
+  }catch(e){
+    $('l-err').textContent='연결 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.';
+    $('l-err').style.display='block';
+  }
+  btn.disabled=false;btn.textContent='로그인';
+}
+
+function logout(){
+  sessionStorage.removeItem('park_sess');
+  _parkData=null;_memorials=[];
+  $('l-pid').value='';$('l-pw').value='';
+  showScreen('s-login');
+}
+
+/* ── 대시보드 ── */
+async function loadDashboard(){
+  $('park-name').textContent=_parkData.name||'추모공원';
+  showScreen('s-dashboard');
+  if(!_fs){$('mem-list').innerHTML='<div class="empty-msg">서버 연결 오류</div>';return;}
+  try{
+    var snap=await _fs.collection('groups')
+      .where('parkId','==',_parkData.parkId)
+      .orderBy('createdAt','desc')
+      .get();
+    _memorials=snap.docs.map(function(d){return d.data();});
+  }catch(e){_memorials=[];}
+  renderDashboard();
+}
+
+function renderDashboard(){
+  var totalVisits=_memorials.reduce(function(s,g){return s+(g.visits||0);},0);
+  $('stat-total').textContent=_memorials.length;
+  $('stat-visits').textContent=totalVisits;
+  var el=$('mem-list');
+  if(_memorials.length===0){
+    el.innerHTML='<div class="empty-msg">개설된 추모관이 없습니다.<br>위의 버튼으로 첫 추모관을 개설해 주세요.</div>';
+    return;
+  }
+  el.innerHTML=_memorials.map(function(g){
+    var m=(g.members||[])[0]||{};
+    return '<div class="mem-card"><div class="mem-card-head" onclick="openDetail(\''+g.id+'\')">'+
+      '<div class="mem-avatar">'+(m.portraitUrl?'<img src="'+m.portraitUrl+'">':( (m.name||'?')[0]))+'</div>'+
+      '<div class="mem-info">'+
+        '<div class="mem-name">'+(m.name||'이름 없음')+'</div>'+
+        '<div class="mem-dates">'+
+          (m.death?m.death+' 기일':'기일 미입력')+
+          ' · 방문 '+(g.visits||0)+'회'+
+        '</div>'+
+      '</div>'+
+      '<div class="mem-arr">›</div>'+
+    '</div></div>';
+  }).join('');
+}
+
+function openDetail(gid){
+  var g=_memorials.find(function(x){return x.id===gid;});
+  if(!g)return;
+  var m=(g.members||[])[0]||{};
+  _curGid=gid;_curPw=g.pw||'';
+  showResult(gid,g.managementKey||'',g.pw||'',m.name||'추모관',g.contact||{},false);
+}
+
+/* ── 추모관 개설 ── */
+var _p1File=null;
+function goCreate(){
+  $('c-n1').value='';$('c-b1').value='';$('c-d1').value='';
+  $('c-pw').value='';$('c-pw2').value='';
+  $('c-cname').value='';$('c-cphone').value='';
+  $('c-err').textContent='';
+  $('c-p1-prev').innerHTML='☺';
+  _p1File=null;
+  showScreen('s-create');
+}
+
+function prevPortrait(input){
+  if(!input.files||!input.files[0])return;
+  _p1File=input.files[0];
+  var reader=new FileReader();
+  reader.onload=function(e){
+    $('c-p1-prev').innerHTML='<img src="'+e.target.result+'" style="width:100%;height:100%;object-fit:cover;border-radius:50%">';
+  };
+  reader.readAsDataURL(_p1File);
+}
+
+async function saveCreate(){
+  var name=$('c-n1').value.trim();
+  var pw=$('c-pw').value;
+  var pw2=$('c-pw2').value;
+  var errEl=$('c-err');
+  errEl.textContent='';
+  if(!name){errEl.textContent='고인 성함을 입력해 주세요.';return;}
+  if(!pw||pw.length<4){errEl.textContent='입장 비밀번호를 4자 이상 입력해 주세요.';return;}
+  if(pw!==pw2){errEl.textContent='비밀번호가 일치하지 않습니다.';return;}
+  if(!_fs){errEl.textContent='서버 연결 오류입니다.';return;}
+  var btn=$('c-save-btn');btn.disabled=true;btn.textContent='개설 중…';
+  try{
+    var gid=uid();
+    var mkey=genKey();
+    var portraitUrl=null;
+    if(_p1File){
+      try{
+        var ref=firebase.storage().ref('portraits/'+gid+'_1_'+Date.now());
+        await ref.put(_p1File);
+        portraitUrl=await ref.getDownloadURL();
+      }catch(e){/* 사진 업로드 실패 시 계속 진행 */}
+    }
+    var contact={name:$('c-cname').value.trim(),phone:$('c-cphone').value.trim()};
+    var member={id:uid(),name:name,birth:$('c-b1').value||'',death:$('c-d1').value||'',bio:'',portraitUrl:portraitUrl};
+    await _fs.collection('groups').doc(gid).set({
+      id:gid,pw:pw,adminPw:'',
+      managementKey:mkey,
+      parkId:_parkData.parkId,
+      parkName:_parkData.name||'',
+      contact:contact,
+      members:[member],
+      posts:[],visits:0,
+      createdAt:Date.now(),
+      subscription:{plan:'trial',status:'trial',startDate:'',endDate:''}
+    });
+    _curGid=gid;_curPw=pw;
+    _memorials.unshift({id:gid,pw:pw,adminPw:'',managementKey:mkey,
+      parkId:_parkData.parkId,members:[member],visits:0,contact:contact,createdAt:Date.now()});
+    showResult(gid,mkey,pw,name,contact,true);
+  }catch(e){
+    errEl.textContent='개설 중 오류가 발생했습니다: '+e.message;
+  }
+  btn.disabled=false;btn.textContent='추모관 개설 완료';
+}
+
+/* ── 결과 화면 ── */
+function showResult(gid,mkey,pw,name,contact,isNew){
+  var baseUrl=location.origin+location.pathname.replace('park.html','memorial.html');
+  var visitUrl=baseUrl+'?gid='+gid;
+  var mgtUrl=baseUrl+'?gid='+gid+'&mkey='+mkey;
+  $('res-screen-title').textContent=isNew?'개설 완료':'추모관 상세';
+  $('res-name').textContent=name;
+  $('res-sub').textContent=isNew?'추모관이 개설되었습니다':'';
+  $('res-url').textContent=visitUrl;
+  $('res-mgt').textContent=mgtUrl;
+  $('res-pw').textContent=pw;
+  /* QR */
+  $('res-qr-wrap').innerHTML='';
+  new QRCode($('res-qr-wrap'),{text:visitUrl,width:200,height:200,
+    colorDark:'#3D3530',colorLight:'#ffffff',correctLevel:QRCode.CorrectLevel.M});
+  /* 담당자 */
+  if(contact&&(contact.name||contact.phone)){
+    $('res-contact').textContent=(contact.name||'')+(contact.phone?' · '+contact.phone:'');
+    $('res-contact-card').style.display='';
+  } else {
+    $('res-contact-card').style.display='none';
+  }
+  /* 인쇄 영역 준비 */
+  $('print-name').textContent=name;
+  $('print-qr').innerHTML='';
+  new QRCode($('print-qr'),{text:visitUrl,width:180,height:180,
+    colorDark:'#000',colorLight:'#fff',correctLevel:QRCode.CorrectLevel.M});
+  showScreen('s-result');
+}
+
+function copyLink(type){
+  var text='';
+  if(type==='url')text=$('res-url').textContent;
+  else if(type==='mgt')text=$('res-mgt').textContent;
+  else if(type==='pw')text=$('res-pw').textContent;
+  copyText(text);
+}
+
+function sendSmsInfo(){
+  var name=$('res-name').textContent;
+  var url=$('res-url').textContent;
+  var pw=$('res-pw').textContent;
+  var msg='[사이버 추모관] '+name+' 님의 추모관이 개설되었습니다.\n\n'+
+    '▶ 추모관 링크\n'+url+'\n\n'+
+    '▶ 입장 비밀번호: '+pw+'\n\n'+
+    'QR 코드 또는 링크로 방문하시면 고인을 추모하실 수 있습니다.';
+  copyText(msg);
+  toast('안내 문자 내용이 복사되었습니다');
+}
+
+function printQR(){
+  $('print-area').style.display='flex';
+  window.print();
+  $('print-area').style.display='none';
+}
+</script>
+</body>
+</html>

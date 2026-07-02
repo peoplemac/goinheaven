@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>사이버추모관 바로가기</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,'Apple SD Gothic Neo','Noto Sans KR',sans-serif;
+  background:#F0EDE8;min-height:100vh;display:flex;align-items:center;justify-content:center}
+.wrap{text-align:center;padding:2rem}
+.title{font-size:15px;color:#8B7355;letter-spacing:.2em;margin-bottom:.6rem}
+.logo{font-size:28px;font-weight:300;color:#3D3530;letter-spacing:.12em;margin-bottom:2.5rem}
+.cards{display:flex;gap:16px;justify-content:center;flex-wrap:wrap}
+.card{width:200px;background:#fff;border-radius:16px;padding:1.75rem 1.25rem 1.5rem;
+  box-shadow:0 4px 20px rgba(0,0,0,.08);text-decoration:none;color:#3D3530;
+  transition:transform .15s,box-shadow .15s;display:block;position:relative}
+.card:hover{transform:translateY(-4px);box-shadow:0 8px 28px rgba(0,0,0,.13)}
+.card-icon{font-size:38px;margin-bottom:.85rem}
+.card-name{font-size:16px;font-weight:600;margin-bottom:.35rem}
+.card-desc{font-size:12px;color:#9B8F87;line-height:1.7}
+.card-memorial{border-top:3px solid #B8965A}
+.card-admin{border-top:3px solid #6B8CAE}
+.card-park{border-top:3px solid #7BAE7B}
+.badge{display:inline-block;font-size:10px;font-weight:700;padding:2px 8px;
+  border-radius:20px;margin-bottom:.6rem;letter-spacing:.03em}
+.badge-new{background:#d4edda;color:#155724}
+.badge-updated{background:#cce5ff;color:#004085}
+.badge-c{background:#fff3cd;color:#856404}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="title">✦ &nbsp;CYBER MEMORIAL&nbsp; ✦</div>
+  <div class="logo">사이버 추모관</div>
+
+  <div class="cards">
+
+    <a class="card card-park" href="https://peoplemac.github.io/goinheaven/park.html" target="_blank">
+      <div class="card-icon">🏛</div>
+      <div class="badge badge-new">신규</div>
+      <div class="card-name">추모공원</div>
+      <div class="card-desc">현장 추모관 개설·<br>QR 출력·관리</div>
+    </a>
+
+    <a class="card card-admin" href="https://peoplemac.github.io/goinheaven/admin.html" target="_blank">
+      <div class="card-icon">⚙️</div>
+      <div class="badge badge-updated">수정됨</div>
+      <div class="card-name">관리자</div>
+      <div class="card-desc">슈퍼어드민·추모공원<br>등록·구독 관리</div>
+    </a>
+
+    <a class="card card-memorial" href="https://peoplemac.github.io/goinheaven/memorial.html" target="_blank">
+      <div class="card-icon">🕯</div>
+      <div class="badge badge-c">C안 적용</div>
+      <div class="card-name">추모관</div>
+      <div class="card-desc">유가족이 접속하는<br>추모 공간 (회원가입 제거)</div>
+    </a>
+
+  </div>
+</div>
+</body>
+</html>
