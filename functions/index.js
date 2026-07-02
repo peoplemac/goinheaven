@@ -10,6 +10,21 @@ function getByteLen(str) {
   return b;
 }
 
+/* 발신 서버 IP 확인용 엔드포인트 */
+exports.checkOutboundIp = functions
+  .region('asia-northeast3')
+  .https.onRequest((req, res) => {
+    res.set('Access-Control-Allow-Origin', '*');
+    https.get('https://api.ipify.org?format=json', (r) => {
+      let d = '';
+      r.on('data', (c) => { d += c; });
+      r.on('end', () => {
+        try { res.json(JSON.parse(d)); }
+        catch (e) { res.json({ ip: d.trim() }); }
+      });
+    }).on('error', (e) => res.status(500).json({ error: e.message }));
+  });
+
 exports.sendAligoSms = functions
   .region('asia-northeast3')
   .https.onRequest((req, res) => {
