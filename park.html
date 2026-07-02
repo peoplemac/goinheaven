@@ -266,6 +266,7 @@ label{font-size:13px;color:var(--mid);display:block;margin-bottom:5px}
       <div class="result-label">방문자 링크 (QR 코드)</div>
       <div class="qr-center">
         <div class="qr-box" id="res-qr-wrap"></div>
+        <button class="btn btn-sm" onclick="downloadQR()" style="margin-top:2px">⬇ QR 이미지 저장</button>
         <div class="print-note">유가족에게 QR 코드를 인쇄하여 전달하세요.<br>방문자는 이 QR로 추모관에 접속합니다.</div>
       </div>
     </div>
@@ -275,14 +276,6 @@ label{font-size:13px;color:var(--mid);display:block;margin-bottom:5px}
       <div class="link-row">
         <div class="link-text" id="res-url"></div>
         <button class="copy-btn" onclick="copyLink('url')">복사</button>
-      </div>
-    </div>
-
-    <div class="result-card">
-      <div class="result-label">관리 링크 <span style="font-weight:400;color:var(--ash)">(공원 보관용 — 외부 공개 금지)</span></div>
-      <div class="link-row">
-        <div class="link-text" id="res-mgt"></div>
-        <button class="copy-btn" onclick="copyLink('mgt')">복사</button>
       </div>
     </div>
 
@@ -299,8 +292,8 @@ label{font-size:13px;color:var(--mid);display:block;margin-bottom:5px}
       <div style="font-size:13px;color:var(--mid)" id="res-contact"></div>
     </div>
 
-    <button class="btn btn-block" style="margin-top:.5rem" onclick="sendSmsInfo()">
-      📱 안내 문자 복사
+    <button class="btn btn-gold btn-block" id="sms-send-btn" style="margin-top:.5rem" onclick="sendSmsInfo()">
+      📱 안내 문자 발송
     </button>
   </div>
 </div>
@@ -321,6 +314,9 @@ var _parkData=null;
 var _memorials=[];
 var _curGid=null;
 var _curPw=null;
+var _curContact={};
+var _isAdmin=false;
+var ALIGO_FN_URL='https://send-aligo-sms-103442976148.asia-northeast3.run.app';
 
 /* ── Firebase 초기화 ── */
 (function(){
@@ -360,8 +356,11 @@ function copyText(text){
 window.addEventListener('load',function(){
   var sess=sessionStorage.getItem('park_sess');
   if(sess){
-    try{_parkData=JSON.parse(sess);loadDashboard();}
-    catch(e){sessionStorage.removeItem('park_sess');initLogin();}
+    try{
+      _parkData=JSON.parse(sess);
+      _isAdmin=!!(_parkData._isAdmin);
+      loadDashboard();
+    }catch(e){sessionStorage.removeItem('park_sess');initLogin();}
   } else {
     initLogin();
   }
@@ -385,14 +384,25 @@ async function submitLogin(){
   if(!_fs){$('l-err').textContent='서버 연결에 실패했습니다.';$('l-err').style.display='block';return;}
   var btn=$('l-btn');btn.disabled=true;btn.textContent='확인 중…';
   try{
+    /* ① 추모공원 로그인 */
     var snap=await _fs.collection('parks').doc(pid).get();
-    if(!snap.exists||snap.data().pw!==pw||snap.data().status==='inactive'){
-      $('l-err').textContent='ID 또는 비밀번호가 올바르지 않습니다.';
-      $('l-err').style.display='block';
-    } else {
+    if(snap.exists&&snap.data().pw===pw&&snap.data().status!=='inactive'){
+      _isAdmin=false;
       _parkData=Object.assign({},snap.data(),{parkId:pid});
       sessionStorage.setItem('park_sess',JSON.stringify(_parkData));
       loadDashboard();
+    } else {
+      /* ② 슈퍼 관리자 로그인 (Firestore settings/superAdmin) */
+      var admSnap=await _fs.collection('settings').doc('superAdmin').get();
+      if(admSnap.exists&&admSnap.data().id===pid&&admSnap.data().pw===pw){
+        _isAdmin=true;
+        _parkData={parkId:'__admin__',name:'슈퍼 관리자',_isAdmin:true};
+        sessionStorage.setItem('park_sess',JSON.stringify(_parkData));
+        loadDashboard();
+      } else {
+        $('l-err').textContent='ID 또는 비밀번호가 올바르지 않습니다.';
+        $('l-err').style.display='block';
+      }
     }
   }catch(e){
     $('l-err').textContent='연결 오류가 발생했습니다. 다시 시도해 주세요.';
@@ -411,13 +421,20 @@ async function loadDashboard(){
   if(!_parkData)return;
   var pid=_parkData.parkId;
   $('park-name').textContent=_parkData.name||'추모공원';
+  /* 어드민 모드: 개설 버튼 숨김 */
+  var createBtn=document.querySelector('[onclick="goCreate()"]');
+  if(createBtn)createBtn.style.display=_isAdmin?'none':'';
   showScreen('s-dashboard');
   if(!_fs){$('mem-list').innerHTML='<div class="empty-msg">서버 연결 오류</div>';return;}
   try{
-    var snap=await _fs.collection('groups')
-      .where('parkId','==',pid)
-      .get();
-    _memorials=snap.docs.map(function(d){return d.data();});
+    var snap;
+    if(_isAdmin){
+      snap=await _fs.collection('groups').get();
+      _memorials=snap.docs.map(function(d){return d.data();}).filter(function(g){return !g.deleted;});
+    } else {
+      snap=await _fs.collection('groups').where('parkId','==',pid).get();
+      _memorials=snap.docs.map(function(d){return d.data();});
+    }
     _memorials.sort(function(a,b){return (b.createdAt||0)-(a.createdAt||0);});
   }catch(e){_memorials=[];}
   if(_parkData)renderDashboard();
@@ -434,10 +451,11 @@ function renderDashboard(){
   }
   el.innerHTML=_memorials.map(function(g){
     var m=(g.members||[])[0]||{};
+    var parkTag=_isAdmin&&g.parkName?'<span style="font-size:10px;color:var(--ash);font-weight:400"> · '+g.parkName+'</span>':'';
     return '<div class="mem-card"><div class="mem-card-head" onclick="openDetail(\''+g.id+'\')">'+
       '<div class="mem-avatar">'+(m.portraitUrl?'<img src="'+m.portraitUrl+'">':( (m.name||'?')[0]))+'</div>'+
       '<div class="mem-info">'+
-        '<div class="mem-name">'+(m.name||'이름 없음')+'</div>'+
+        '<div class="mem-name">'+(m.name||'이름 없음')+parkTag+'</div>'+
         '<div class="mem-dates">'+
           (m.death?m.death+' 기일':'기일 미입력')+
           ' · 방문 '+(g.visits||0)+'회'+
@@ -528,12 +546,11 @@ async function saveCreate(){
 function showResult(gid,mkey,pw,name,contact,isNew){
   var baseUrl=location.origin+location.pathname.replace('park.html','memorial.html');
   var visitUrl=baseUrl+'?gid='+gid;
-  var mgtUrl=baseUrl+'?gid='+gid+'&mkey='+mkey;
+  _curContact=contact||{};
   $('res-screen-title').textContent=isNew?'개설 완료':'추모관 상세';
   $('res-name').textContent=name;
   $('res-sub').textContent=isNew?'추모관이 개설되었습니다':'';
   $('res-url').textContent=visitUrl;
-  $('res-mgt').textContent=mgtUrl;
   $('res-pw').textContent=pw;
   /* QR */
   $('res-qr-wrap').innerHTML='';
@@ -557,21 +574,65 @@ function showResult(gid,mkey,pw,name,contact,isNew){
 function copyLink(type){
   var text='';
   if(type==='url')text=$('res-url').textContent;
-  else if(type==='mgt')text=$('res-mgt').textContent;
   else if(type==='pw')text=$('res-pw').textContent;
   copyText(text);
 }
 
-function sendSmsInfo(){
+function downloadQR(){
+  var wrap=$('res-qr-wrap');
+  var canvas=wrap.querySelector('canvas');
+  var img=wrap.querySelector('img');
+  var name=$('res-name').textContent||'추모관';
+  var link=document.createElement('a');
+  link.download=name+'_QR.png';
+  if(canvas){link.href=canvas.toDataURL('image/png');}
+  else if(img){link.href=img.src;}
+  else{toast('QR 이미지를 찾을 수 없습니다.');return;}
+  link.click();
+}
+
+async function sendSmsInfo(){
   var name=$('res-name').textContent;
   var url=$('res-url').textContent;
   var pw=$('res-pw').textContent;
+  var phone=(_curContact&&_curContact.phone)?_curContact.phone.replace(/-/g,''):'';
   var msg='[사이버 추모관] '+name+' 님의 추모관이 개설되었습니다.\n\n'+
     '▶ 추모관 링크\n'+url+'\n\n'+
     '▶ 입장 비밀번호: '+pw+'\n\n'+
     'QR 코드 또는 링크로 방문하시면 고인을 추모하실 수 있습니다.';
-  copyText(msg);
-  toast('안내 문자 내용이 복사되었습니다');
+
+  /* 알리고 설정 읽기 (admin.html과 동일 origin — localStorage 공유) */
+  var adm={};
+  try{adm=JSON.parse(localStorage.getItem('cmv4_svc_adm')||'{}');}catch(e){}
+  var aligoKey=adm.aligoKey,aligoId=adm.aligoId,aligoSender=adm.aligoSender;
+
+  if(aligoKey&&aligoId&&aligoSender&&phone){
+    /* 알리고로 직접 발송 */
+    var btn=$('sms-send-btn');
+    btn.disabled=true;btn.textContent='발송 중…';
+    try{
+      var resp=await fetch(ALIGO_FN_URL,{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({apiKey:aligoKey,userId:aligoId,sender:aligoSender,receivers:[phone],message:msg})
+      });
+      var result=await resp.json();
+      if(String(result.result_code)==='1'){
+        toast('📨 문자 발송 완료 ('+phone+')');
+      } else {
+        toast('발송 오류: '+(result.message||'알 수 없는 오류'));
+      }
+    }catch(e){toast('발송 오류: '+e.message);}
+    btn.disabled=false;btn.textContent='📱 안내 문자 발송';
+  } else if(!aligoKey||!aligoId||!aligoSender){
+    /* 알리고 미설정 — 클립보드 복사 후 안내 */
+    copyText(msg);
+    toast('📋 복사됨 (admin에서 알리고 설정 후 자동발송 가능)');
+  } else {
+    /* 수신번호 없음 — 클립보드 복사 */
+    copyText(msg);
+    toast('📋 복사됨 (담당자 전화번호 미입력)');
+  }
 }
 
 function printQR(){

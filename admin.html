@@ -763,6 +763,7 @@ function submitLogin(){
   if(id===svcAdm.id && pw===svcAdm.pw){
     $('l-err').style.display='none';
     sessionStorage.setItem('adm_sess','1');
+    _syncSuperAdmin();
     loadDB();
     showScreen('s-dash');
     switchTab('overview');
@@ -1567,10 +1568,16 @@ async function backupDownload(){
     st.style.color='#c0392b'; st.textContent='⚠ 오류: '+e.message;
   }
 }
+function _syncSuperAdmin(){
+  if(!_fbReady)return;
+  firebase.firestore().collection('settings').doc('superAdmin').set({
+    id:svcAdm.id, pw:svcAdm.pw
+  }).catch(function(){});
+}
 function saveAccount(){
   var n=$('set-name').value.trim(), id=$('set-id').value.trim();
   if(!n||!id)return toast('이름과 ID를 입력해 주세요.');
-  svcAdm.name=n; svcAdm.id=id; saveSvcAdm(); toast('저장되었습니다.');
+  svcAdm.name=n; svcAdm.id=id; saveSvcAdm(); _syncSuperAdmin(); toast('저장되었습니다.');
 }
 function changePw(){
   loadSvcAdm();
@@ -1578,7 +1585,7 @@ function changePw(){
   if(cur!==svcAdm.pw)return toast('현재 비밀번호가 틀렸습니다.');
   if(!nw||nw.length<4)return toast('새 비밀번호 4자 이상 입력해 주세요.');
   if(nw!==nw2)return toast('비밀번호가 일치하지 않습니다.');
-  svcAdm.pw=nw; saveSvcAdm();
+  svcAdm.pw=nw; saveSvcAdm(); _syncSuperAdmin();
   $('set-cur-pw').value=''; $('set-new-pw').value=''; $('set-new-pw2').value='';
   toast('비밀번호가 변경되었습니다.');
 }
