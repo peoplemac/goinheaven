@@ -381,7 +381,7 @@ async function submitLogin(){
       loadDashboard();
     }
   }catch(e){
-    $('l-err').textContent='연결 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.';
+    $('l-err').textContent='오류: '+e.message;
     $('l-err').style.display='block';
   }
   btn.disabled=false;btn.textContent='로그인';
