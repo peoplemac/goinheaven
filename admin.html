@@ -650,6 +650,12 @@ async function _fbLoad(){
   if(!_fbReady)return false;
   try{
     var fs=firebase.firestore();
+    /* 추모공원 이름 맵 (parkId → name) */
+    var parksMap={};
+    try{
+      var pSnap=await fs.collection('parks').get();
+      pSnap.docs.forEach(function(d){var p=d.data();parksMap[d.id]=p.name||d.id;});
+    }catch(e){}
     var snap=await fs.collection('groups').get();
     if(snap.empty)return false;
     var gs=[];
@@ -664,6 +670,7 @@ async function _fbLoad(){
         return p;
       }).filter(Boolean);
       g.members=(g.members||[]).map(function(m){m.portrait=m.portraitUrl||null;return m;});
+      if(g.parkId)g.parkName=parksMap[g.parkId]||g.parkName||g.parkId;
       gs.push(g);
     }
     db.groups=gs;
@@ -671,6 +678,7 @@ async function _fbLoad(){
     try{
       var slim={groups:db.groups.map(function(g){
         return{id:g.id,pw:g.pw,adminPw:g.adminPw||'',visits:g.visits||0,
+          parkId:g.parkId||null,parkName:g.parkName||null,
           members:g.members.map(function(m){return{id:m.id,name:m.name,birth:m.birth,death:m.death,bio:m.bio,portrait:m.portrait||null};}),
           posts:(g.posts||[]).map(function(p){return{id:p.id,author:p.author,rel:p.rel,text:p.text,date:p.date,likes:p.likes,liked:p.liked||false,comments:p.comments||[],media:(p.media||[]).map(function(m){return{type:m.type,name:m.name};})};}),
           contact:g.contact||{},subscription:g.subscription||{},note:g.note||''};
@@ -808,8 +816,9 @@ function buildOvRow(g){
   var smsBtnHtml=ct.phone
     ?'<button class="sms-quick-btn" onclick="event.stopPropagation();_quickSms(\''+g.id+'\')">💬 문자</button>'
     :'';
+  var ovParkBadge=g.parkId?'&nbsp;<span class="park-badge">🏛 '+esc(g.parkName||g.parkId)+'</span>':'';
   row.innerHTML='<div>'
-    +'<div class="ov-row-name ov-row-link" onclick="goToMemorial(\''+g.id+'\')">'+namesHtml+'</div>'
+    +'<div class="ov-row-name ov-row-link" onclick="goToMemorial(\''+g.id+'\')">'+namesHtml+ovParkBadge+'</div>'
     +(ct.phone?'<div class="ov-row-sub">'+(ct.name?esc(ct.name)+' · ':'')+esc(ct.phone)+smsBtnHtml+'</div>':'')
     +'</div>'
     +'<div>'+badgeHtml(sub.status,sub.endDate)+'</div>';
@@ -1038,8 +1047,8 @@ function buildMgCard(g){
   av.style.cursor='pointer';
   (function(gid,pw){av.addEventListener('click',function(e){e.stopPropagation();openMemorialDirect(gid,pw);});})(g.id,g.pw);
   var info=document.createElement('div'); info.className='mg-info';
-  var parkBadge=g.parkId?'<span class="park-badge">🏛 '+(g.parkName||g.parkId)+'</span>':'';
-  info.innerHTML='<div class="mg-name">'+esc(names)+badgeHtml(sub.status,sub.endDate)+parkBadge+'</div>'
+  var parkBadge=g.parkId?'<span class="park-badge">🏛 '+esc(g.parkName||g.parkId)+'</span>':'';
+  info.innerHTML='<div class="mg-name">'+esc(names)+parkBadge+badgeHtml(sub.status,sub.endDate)+'</div>'
     +'<div class="mg-contact">'+(ct.name?esc(ct.name)+' · ':'')+(ct.phone?'📞 '+esc(ct.phone):'<span style="color:var(--ash)">연락처 미등록</span>')+'</div>';
   var arr=document.createElement('span'); arr.className='mg-arr'; arr.textContent='›';
   head.appendChild(av); head.appendChild(info); head.appendChild(arr);
@@ -1139,7 +1148,7 @@ function buildMgCard(g){
     };
     g.note=body.querySelector('.mg-note').value.trim();
     saveDB(); renderOverview();
-    info.querySelector('.mg-name').innerHTML=esc(names)+badgeHtml(g.subscription.status,g.subscription.endDate);
+    info.querySelector('.mg-name').innerHTML=esc(names)+parkBadge+badgeHtml(g.subscription.status,g.subscription.endDate);
     toast('저장되었습니다.');
   };
 
