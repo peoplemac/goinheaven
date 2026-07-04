@@ -551,7 +551,7 @@ label{font-size:13px;color:var(--mid);display:block;margin-bottom:5px}
       <button class="link-copy" onclick="copyInfo('url')">복사</button>
     </div>
 
-    <div class="info-label">QR 코드</div>
+    <div class="info-label">방문자 링크 QR 코드</div>
     <div style="display:flex;flex-direction:column;align-items:center;gap:8px;margin-bottom:.75rem">
       <div id="info-qr" class="qr-box"></div>
       <button class="btn btn-sm" onclick="downloadInfoQR()">⬇ QR 이미지 저장 (인쇄용)</button>
@@ -1062,15 +1062,17 @@ function buildMgCard(g){
   /* 링크 / 비번 / QR */
   var memUrl=getMemorialUrl(g.id);
   var mgtUrl=memUrl+'&mkey='+(g.managementKey||'');
-  var linkHtml='<div class="sub-sec-title">추모관 링크</div>'
+  var linkHtml='<div class="sub-sec-title">방문자 링크</div>'
     +'<div class="link-box"><div class="link-text" style="font-size:10px">'+esc(memUrl)+'</div>'
     +'<button class="link-copy" id="lc-url-'+g.id+'">링크복사</button></div>'
-    +'<div class="link-box" style="margin-bottom:7px"><div class="link-text" style="font-size:10px;color:var(--warm)">🔑 관리링크: '+esc(mgtUrl)+'</div>'
-    +'<button class="link-copy" id="lc-mgt-'+g.id+'">복사</button></div>'
     +'<div style="display:flex;flex-direction:column;align-items:center;gap:6px;padding:.5rem 0 .25rem">'
     +'<div id="qr-'+g.id+'" class="qr-box"></div>'
+    +'<div style="font-size:10px;color:var(--ash)">방문자 링크 QR — 유가족·방문자 공유용</div>'
     +'<button class="btn btn-sm" id="qr-dl-'+g.id+'">⬇ QR 이미지 저장</button>'
     +'</div>'
+    +'<div class="sub-sec-title">관리 링크 <span style="font-weight:400;font-size:10px;color:var(--ash)">(외부 공개 금지)</span></div>'
+    +'<div class="link-box" style="margin-bottom:7px"><div class="link-text" style="font-size:10px;color:var(--warm)">🔑 '+esc(mgtUrl)+'</div>'
+    +'<button class="link-copy" id="lc-mgt-'+g.id+'">복사</button></div>'
     +'<div class="sub-sec-title">현재 비밀번호</div>'
     +'<div style="display:flex;gap:6px;margin-bottom:6px">'
     +'<div class="link-box" style="flex:1;margin:0"><div class="link-text">입장: <strong id="lc-pw-show-'+g.id+'">'+esc(g.pw)+'</strong></div><button class="link-copy" id="lc-pw-'+g.id+'">복사</button></div>'
