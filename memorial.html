@@ -873,58 +873,62 @@ async function _fbSoftDeletePost(gid,pid){
 
 async function _fbSave(){
   if(!_fbReady)return;
+  /* ⚠ 현재 열람 중인 추모관 1개만 저장한다.
+     (예전: 기기 캐시의 모든 추모관을 통째로 set → 다른 기기에서
+      삭제된 추모관의 deleted 플래그가 지워져 "부활"하는 버그) */
+  if(!curGid)return;
+  var g=db.groups.find(function(x){return x.id===curGid;});
+  if(!g)return;
   var fs=firebase.firestore();
   var storageOk=false;
   var st=null;
   try{st=firebase.storage();storageOk=true;}catch(e){}
 
-  for(var i=0;i<db.groups.length;i++){
-    var g=db.groups[i];
-    var mems=[];
-    for(var j=0;j<g.members.length;j++){
-      var m=g.members[j];
-      var pu=m.portrait||null;
-      if(storageOk&&pu&&pu.startsWith('data:')){
+  var mems=[];
+  for(var j=0;j<g.members.length;j++){
+    var m=g.members[j];
+    var pu=m.portrait||null;
+    if(storageOk&&pu&&pu.startsWith('data:')){
+      try{
+        var ref=st.ref('portraits/'+g.id+'/'+m.id);
+        await ref.putString(pu,'data_url');
+        pu=await ref.getDownloadURL();
+        m.portrait=pu;
+      }catch(e){pu=null;} /* Storage 실패 시 null(Firestore 용량 초과 방지) */
+    } else if(pu&&pu.startsWith('data:')){
+      pu=null; /* Spark 플랜: base64는 Firestore에 저장 안 함 */
+    }
+    mems.push({id:m.id,name:m.name||'',birth:m.birth||'',death:m.death||'',bio:m.bio||'',portraitUrl:pu});
+  }
+  /* merge:true — deleted·createdAt·parkName 등 기존 필드를 지우지 않음 */
+  await fs.collection('groups').doc(g.id).set({
+    id:g.id,pw:g.pw,adminPw:g.adminPw||'',visits:g.visits||0,
+    managementKey:g.managementKey||'',
+    parkId:g.parkId||null,
+    members:mems,contact:g.contact||{},subscription:g.subscription||{},note:g.note||'',
+    createdAt:g.createdAt||Date.now()
+  },{merge:true});
+  for(var k=0;k<g.posts.length;k++){
+    var p=g.posts[k];
+    var med=[];
+    for(var l=0;l<p.media.length;l++){
+      var mm=p.media[l];var u=mm.src||'';
+      if(storageOk&&u&&u.startsWith('data:')){
         try{
-          var ref=st.ref('portraits/'+g.id+'/'+m.id);
-          await ref.putString(pu,'data_url');
-          pu=await ref.getDownloadURL();
-          m.portrait=pu;
-        }catch(e){pu=null;} /* Storage 실패 시 null(Firestore 용량 초과 방지) */
-      } else if(pu&&pu.startsWith('data:')){
-        pu=null; /* Spark 플랜: base64는 Firestore에 저장 안 함 */
+          var mref=st.ref('posts/'+p.id+'/'+l);
+          await mref.putString(u,'data_url');
+          u=await mref.getDownloadURL();
+          mm.src=u;
+        }catch(e){u='';}
+      } else if(u&&u.startsWith('data:')){
+        u=''; /* Spark 플랜: 이미지는 Firestore에 저장 안 함 */
       }
-      mems.push({id:m.id,name:m.name||'',birth:m.birth||'',death:m.death||'',bio:m.bio||'',portraitUrl:pu});
+      if(u)med.push({type:mm.type,name:mm.name||'',url:u});
     }
-    await fs.collection('groups').doc(g.id).set({
-      id:g.id,pw:g.pw,adminPw:g.adminPw||'',visits:g.visits||0,
-      managementKey:g.managementKey||'',
-      parkId:g.parkId||null,
-      members:mems,contact:g.contact||{},subscription:g.subscription||{},note:g.note||'',
-      createdAt:g.createdAt||Date.now()
-    });
-    for(var k=0;k<g.posts.length;k++){
-      var p=g.posts[k];
-      var med=[];
-      for(var l=0;l<p.media.length;l++){
-        var mm=p.media[l];var u=mm.src||'';
-        if(storageOk&&u&&u.startsWith('data:')){
-          try{
-            var mref=st.ref('posts/'+p.id+'/'+l);
-            await mref.putString(u,'data_url');
-            u=await mref.getDownloadURL();
-            mm.src=u;
-          }catch(e){u='';}
-        } else if(u&&u.startsWith('data:')){
-          u=''; /* Spark 플랜: 이미지는 Firestore에 저장 안 함 */
-        }
-        if(u)med.push({type:mm.type,name:mm.name||'',url:u});
-      }
-      await fs.collection('groups').doc(g.id).collection('posts').doc(p.id).set({
-        id:p.id,author:p.author,rel:p.rel||'',text:p.text||'',pw:p.pw||'',date:p.date,
-        likes:p.likes||0,comments:p.comments||[],media:med
-      });
-    }
+    await fs.collection('groups').doc(g.id).collection('posts').doc(p.id).set({
+      id:p.id,author:p.author,rel:p.rel||'',text:p.text||'',pw:p.pw||'',date:p.date,
+      likes:p.likes||0,comments:p.comments||[],media:med
+    },{merge:true});
   }
 }
 

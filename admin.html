@@ -638,12 +638,14 @@ async function _fbSave(){
       if(pu&&pu.startsWith('data:'))pu=null;
       return{id:m.id,name:m.name||'',birth:m.birth||'',death:m.death||'',bio:m.bio||'',portraitUrl:pu};
     });
+    /* merge:true — deleted·createdAt·parkName 등 기존 필드를 지우지 않음
+       (전체 덮어쓰기 시 삭제 플래그가 지워져 추모관이 부활하는 버그 방지) */
     await fs.collection('groups').doc(g.id).set({
       id:g.id,pw:g.pw,adminPw:g.adminPw||'',visits:g.visits||0,
       managementKey:g.managementKey||'',
       parkId:g.parkId||null,
       members:mems,contact:g.contact||{},subscription:g.subscription||{},note:g.note||''
-    });
+    },{merge:true});
   }
 }
 async function _fbLoad(){
