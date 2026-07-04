@@ -919,7 +919,7 @@ function badgeHtml(status,endDate){
 function _openCardQR(gid,url){
   var qrEl=document.getElementById('qr-'+gid);
   if(qrEl&&!qrEl.children.length&&typeof QRCode!=='undefined'){
-    new QRCode(qrEl,{text:url||getMemorialUrl(gid),width:160,height:160,colorDark:'#3D3530',colorLight:'#ffffff',correctLevel:QRCode.CorrectLevel.H});
+    new QRCode(qrEl,{text:url||getMemorialUrl(gid),width:200,height:200,colorDark:'#3D3530',colorLight:'#ffffff',correctLevel:QRCode.CorrectLevel.M});
   }
 }
 function goToMemorial(gid){
@@ -1304,27 +1304,11 @@ function saveNewMemorial(){
 }
 
 /* ── QR 다운로드 ── */
+/* 순수 QR 이미지만 저장 (park.html과 동일 — 액자·문구 없음) */
 function downloadQRPng(srcCanvas, label){
-  var size=srcCanvas.width;
-  var pad=20;
-  var textH=52;
-  var c=document.createElement('canvas');
-  c.width=size+pad*2;
-  c.height=size+pad*2+textH;
-  var ctx=c.getContext('2d');
-  ctx.fillStyle='#FFFFFF';
-  ctx.fillRect(0,0,c.width,c.height);
-  ctx.drawImage(srcCanvas,pad,pad,size,size);
-  ctx.fillStyle='#3D3530';
-  ctx.textAlign='center';
-  ctx.font='bold 14px sans-serif';
-  ctx.fillText(label||'추모관 QR',c.width/2,size+pad*2+18);
-  ctx.font='11px sans-serif';
-  ctx.fillStyle='#6B5F58';
-  ctx.fillText('스캔하여 추모관 입장',c.width/2,size+pad*2+38);
   var a=document.createElement('a');
   a.download=(label||'추모관')+'_QR.png';
-  a.href=c.toDataURL('image/png');
+  a.href=srcCanvas.toDataURL('image/png');
   document.body.appendChild(a); a.click(); document.body.removeChild(a);
 }
 function downloadInfoQR(){
@@ -1354,7 +1338,7 @@ function showInfoModal(g){
   qrEl.innerHTML='';
   if(typeof QRCode!=='undefined'){
     setTimeout(function(){
-      new QRCode(qrEl,{text:url,width:180,height:180,colorDark:'#3D3530',colorLight:'#ffffff',correctLevel:QRCode.CorrectLevel.H});
+      new QRCode(qrEl,{text:url,width:200,height:200,colorDark:'#3D3530',colorLight:'#ffffff',correctLevel:QRCode.CorrectLevel.M});
     },80);
   }
 
