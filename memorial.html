@@ -808,6 +808,22 @@ function _fbInit(){
 /* (auth 함수들 제거됨) */
 
 
+/* 서버에서 삭제/없음 확인 시: 로컬 캐시 제거 후 접근 제한 화면으로 강제 전환
+   (기기에 캐시가 남아 삭제된 추모관이 계속 열리는 문제 방지) */
+function _purgeAndRestrict(gid){
+  try{
+    var idx=db.groups.findIndex(function(x){return x.id===gid;});
+    if(idx>=0){
+      var g=db.groups[idx];
+      try{(g.posts||[]).forEach(function(p){(p.media||[]).forEach(function(m,i){localStorage.removeItem(DB_KEY+'_pm_'+p.id+'_'+i);});});}catch(e){}
+      db.groups.splice(idx,1);
+      _localSave();
+    }
+  }catch(e){}
+  try{if(sessionStorage.getItem('mem_sess')===gid)sessionStorage.removeItem('mem_sess');}catch(e){}
+  goTo('s-landing');
+}
+
 /* Firebase → 메모리: 현재 추모관 단독 조회 (curGid 기준) */
 async function _fbLoad(){
   if(!_fbReady||_fbLoading)return false;
@@ -816,9 +832,9 @@ async function _fbLoad(){
   try{
     var fs=firebase.firestore();
     var gdoc=await fs.collection('groups').doc(curGid).get();
-    if(!gdoc.exists){_fbLoading=false;return false;}
+    if(!gdoc.exists){_fbLoading=false;_purgeAndRestrict(curGid);return false;}
     var g=gdoc.data();
-    if(g.deleted){_fbLoading=false;return false;}
+    if(g.deleted){_fbLoading=false;_purgeAndRestrict(curGid);return false;}
     var ps=await fs.collection('groups').doc(curGid).collection('posts').get();
     var localG=db.groups.find(function(x){return x.id===curGid;});
     g.posts=ps.docs.map(function(d){
@@ -993,6 +1009,7 @@ window.addEventListener('load',function(){
     if(!mkey||!g.managementKey||mkey!==g.managementKey)return false;
     curGid=g.id; g.visits++; saveDB();
     openMemorial(); _adminAuthed=true;
+    if(_fbReady)_fbLoad().catch(function(){});
     return true;
   }
 
