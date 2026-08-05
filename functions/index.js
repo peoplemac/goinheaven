@@ -84,10 +84,9 @@ exports.startSubscription = functions
         secret,
         {
           storeId: PORTONE_STORE_ID,
-          channelKey: PORTONE_CHANNEL_KEY,
           billingKey: billingKey,
           orderName: '사이버 추모관 ' + (plan === 'yearly' ? '연' : '월') + ' 구독 - ' + names,
-          customer: { id: custId, name: cust.name || '', phoneNumber: cust.phone || '', email: cust.email || '' },
+          customer: { id: custId },
           amount: { total: amount },
           currency: 'KRW',
         }
