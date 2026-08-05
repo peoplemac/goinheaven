@@ -146,7 +146,7 @@ async function startSubscribe(){
       billingKeyMethod:'CARD',
       issueId:'issue-'+_gid+'-'+Date.now(),
       issueName:'사이버 추모관 구독',
-      customer:{customerId:'cust-'+_gid,fullName:name,phoneNumber:phone,email:email},
+      customer:{customerId:'cust'+_gid.replace(/[^A-Za-z0-9]/g,''),fullName:name,phoneNumber:phone,email:email},
       redirectUrl:location.origin+location.pathname+'?gid='+encodeURIComponent(_gid)
     });
     if(resp&&resp.code!==undefined&&resp.code!==null){

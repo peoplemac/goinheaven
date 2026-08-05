@@ -76,6 +76,7 @@ exports.startSubscription = functions
       const amount = PLAN_AMOUNT[plan];
       const paymentId = 'pay-' + gid + '-' + Date.now();
       const cust = customer || {};
+      const custId = 'cust' + gid.replace(/[^A-Za-z0-9]/g, ''); // Toss customerKey 허용문자만
 
       const charge = await portoneRequest(
         'POST',
@@ -86,7 +87,7 @@ exports.startSubscription = functions
           channelKey: PORTONE_CHANNEL_KEY,
           billingKey: billingKey,
           orderName: '사이버 추모관 ' + (plan === 'yearly' ? '연' : '월') + ' 구독 - ' + names,
-          customer: { id: 'cust-' + gid, name: cust.name || '', phoneNumber: cust.phone || '', email: cust.email || '' },
+          customer: { id: custId, name: cust.name || '', phoneNumber: cust.phone || '', email: cust.email || '' },
           amount: { total: amount },
           currency: 'KRW',
         }
@@ -107,7 +108,7 @@ exports.startSubscription = functions
       const end = _addPeriod(plan);
       await gref.set({
         billingKey: billingKey,
-        customerId: 'cust-' + gid,
+        customerId: custId,
         subscription: {
           plan: plan, status: 'active',
           startDate: _ymd(now), endDate: _ymd(end),
