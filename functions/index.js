@@ -3,6 +3,123 @@ const functions = require('firebase-functions');
 const https = require('https');
 const crypto = require('crypto');
 const { URLSearchParams } = require('url');
+const admin = require('firebase-admin');
+if (!admin.apps.length) admin.initializeApp();
+
+/* ── 포트원(PortOne) V2 정기결제 ── */
+/* API Secret은 Secret Manager 로만 주입 (firebase functions:secrets:set PORTONE_V2_SECRET) */
+const PORTONE_STORE_ID = 'store-153fb7b9-afb0-4876-90a9-9427c552330b';
+const PORTONE_CHANNEL_KEY = 'channel-key-8ceaf3c4-3ec1-4c8c-8483-2b14dcb8246e';
+const PLAN_AMOUNT = { monthly: 4900, yearly: 49000 };
+
+/* PortOne V2 REST 호출 (Authorization: PortOne {secret}) */
+function portoneRequest(method, path, secret, body) {
+  return new Promise((resolve) => {
+    const data = body ? JSON.stringify(body) : '';
+    const req = https.request({
+      hostname: 'api.portone.io', path, method,
+      headers: {
+        'Authorization': 'PortOne ' + secret,
+        'Content-Type': 'application/json',
+        'Content-Length': Buffer.byteLength(data, 'utf8'),
+      },
+    }, (res) => {
+      let d = '';
+      res.on('data', (c) => { d += c; });
+      res.on('end', () => {
+        let parsed = null; try { parsed = JSON.parse(d); } catch (e) {}
+        resolve({ status: res.statusCode, body: parsed, raw: d });
+      });
+    });
+    req.on('error', (e) => resolve({ status: 0, body: null, error: e.message }));
+    if (data) req.write(data);
+    req.end();
+  });
+}
+function _addPeriod(plan) {
+  const d = new Date();
+  if (plan === 'yearly') d.setFullYear(d.getFullYear() + 1);
+  else d.setMonth(d.getMonth() + 1);
+  return d;
+}
+function _ymd(d) {
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+}
+
+/* 최초 결제 + 구독 활성화 (클라이언트가 빌링키 발급 후 호출) */
+exports.startSubscription = functions
+  .region('asia-northeast3')
+  .runWith({ secrets: ['PORTONE_V2_SECRET'] })
+  .https.onRequest(async (req, res) => {
+    res.set('Access-Control-Allow-Origin', '*');
+    res.set('Access-Control-Allow-Methods', 'POST, OPTIONS');
+    res.set('Access-Control-Allow-Headers', 'Content-Type');
+    if (req.method === 'OPTIONS') { res.status(204).send(''); return; }
+    if (req.method !== 'POST') { res.status(405).json({ success: false, message: 'Method not allowed' }); return; }
+
+    const { gid, plan, billingKey, customer } = req.body || {};
+    if (!gid || !plan || !billingKey || !PLAN_AMOUNT[plan]) {
+      res.status(400).json({ success: false, message: '필수 항목 누락 또는 잘못된 플랜' }); return;
+    }
+    const secret = process.env.PORTONE_V2_SECRET;
+    if (!secret) { res.status(500).json({ success: false, message: '서버 결제키(PORTONE_V2_SECRET) 미설정' }); return; }
+
+    try {
+      const db = admin.firestore();
+      const gref = db.collection('groups').doc(gid);
+      const gsnap = await gref.get();
+      if (!gsnap.exists || gsnap.data().deleted) {
+        res.status(404).json({ success: false, message: '추모관을 찾을 수 없습니다.' }); return;
+      }
+      const g = gsnap.data();
+      const names = (g.members || []).map((m) => m.name).filter(Boolean).join(' · ') || '추모관';
+      const amount = PLAN_AMOUNT[plan];
+      const paymentId = 'pay-' + gid + '-' + Date.now();
+      const cust = customer || {};
+
+      const charge = await portoneRequest(
+        'POST',
+        '/payments/' + encodeURIComponent(paymentId) + '/billing-key',
+        secret,
+        {
+          storeId: PORTONE_STORE_ID,
+          channelKey: PORTONE_CHANNEL_KEY,
+          billingKey: billingKey,
+          orderName: '사이버 추모관 ' + (plan === 'yearly' ? '연' : '월') + ' 구독 - ' + names,
+          customer: { id: 'cust-' + gid, name: cust.name || '', phoneNumber: cust.phone || '', email: cust.email || '' },
+          amount: { total: amount },
+          currency: 'KRW',
+        }
+      );
+
+      const ok = charge.status >= 200 && charge.status < 300;
+      await gref.collection('payments').doc(paymentId).set({
+        paymentId: paymentId, plan: plan, amount: amount, at: Date.now(),
+        status: ok ? 'PAID' : 'FAILED', portone: charge.body || charge.raw || null,
+      });
+
+      if (!ok) {
+        const msg = (charge.body && charge.body.message) || ('결제 실패 (HTTP ' + charge.status + ')');
+        res.status(200).json({ success: false, message: msg, detail: charge.body }); return;
+      }
+
+      const now = new Date();
+      const end = _addPeriod(plan);
+      await gref.set({
+        billingKey: billingKey,
+        customerId: 'cust-' + gid,
+        subscription: {
+          plan: plan, status: 'active',
+          startDate: _ymd(now), endDate: _ymd(end),
+          lastPaymentAt: now.getTime(), amount: amount, autoRenew: true,
+        },
+      }, { merge: true });
+
+      res.status(200).json({ success: true, plan: plan, amount: amount, endDate: _ymd(end) });
+    } catch (e) {
+      res.status(500).json({ success: false, message: '오류: ' + e.message });
+    }
+  });
 
 /* 알리고 바이트 계산 (한글 2byte, 영문 1byte) */
 function getByteLen(str) {

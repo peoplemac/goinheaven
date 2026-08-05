@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>구독 결제 · 사이버 추모관</title>
+<script src="https://cdn.portone.io/v2/browser-sdk.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+<script src="firebase-config.js"></script>
+<script src="portone-config.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{--ivory:#F8F5F0;--stone:#E8E3DB;--ash:#C4BDB4;--deep:#3D3530;--mid:#6B5F58;--warm:#8B7355;--gold:#B8965A;--gold2:#9a7a45;--white:#fff}
+body{min-height:100vh;background:var(--ivory);color:var(--deep);
+  font-family:-apple-system,'Apple SD Gothic Neo','Noto Sans KR',sans-serif;
+  max-width:520px;margin:0 auto;box-shadow:0 0 40px rgba(0,0,0,.08);padding-bottom:3rem}
+.top{background:var(--deep);color:#fff;padding:15px 18px;font-size:15px;font-weight:500;letter-spacing:.04em}
+.top span{color:var(--gold);font-size:11px;letter-spacing:.1em}
+.wrap{padding:1.5rem 1.25rem}
+.hero{text-align:center;padding:1rem 0 1.5rem}
+.hero-icon{font-size:38px;margin-bottom:.5rem}
+.hero-name{font-size:20px;font-weight:600}
+.hero-sub{font-size:13px;color:var(--ash);margin-top:.35rem}
+.label{font-size:12px;color:var(--warm);font-weight:600;letter-spacing:.03em;margin:1.4rem 0 .6rem}
+.plans{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.plan{border:2px solid var(--stone);background:var(--white);border-radius:14px;padding:1.1rem .75rem;text-align:center;cursor:pointer;transition:border-color .15s,background .15s}
+.plan.on{border-color:var(--gold);background:#fffdf8}
+.plan-n{font-size:13px;color:var(--mid);margin-bottom:.4rem}
+.plan-p{font-size:22px;font-weight:300;color:var(--deep)}
+.plan-p small{font-size:12px;color:var(--ash)}
+.plan-tag{font-size:10px;color:var(--gold);font-weight:700;margin-top:.35rem;min-height:13px}
+.fg{margin-bottom:.85rem}
+.fg label{font-size:12px;color:var(--mid);display:block;margin-bottom:5px}
+.fg input{width:100%;font-size:15px;border:1px solid var(--ash);border-radius:9px;padding:11px 13px;background:var(--white);font-family:inherit;-webkit-appearance:none}
+.fg input:focus{outline:none;border-color:var(--gold)}
+.pay-btn{width:100%;margin-top:1.2rem;background:var(--gold);color:#fff;border:none;border-radius:11px;padding:15px;font-size:16px;font-weight:600;font-family:inherit;cursor:pointer;transition:background .15s}
+.pay-btn:active{background:var(--gold2)}
+.pay-btn:disabled{opacity:.55}
+.terms{font-size:11px;color:var(--ash);text-align:center;line-height:1.8;margin-top:1rem}
+.terms a{color:var(--warm);text-decoration:underline}
+.err{font-size:13px;color:#c0392b;text-align:center;margin-top:.85rem;min-height:1.2em}
+.result{text-align:center;padding:3rem 1.5rem;display:none}
+.result-icon{font-size:56px;margin-bottom:1rem}
+.result-title{font-size:22px;font-weight:600;margin-bottom:.5rem}
+.result-desc{font-size:14px;color:var(--mid);line-height:1.9}
+.result-card{background:var(--white);border:1px solid var(--stone);border-radius:12px;padding:1rem;margin:1.5rem 0;font-size:14px;color:var(--deep);line-height:2}
+.loading{position:fixed;inset:0;background:rgba(248,245,240,.85);display:none;align-items:center;justify-content:center;flex-direction:column;gap:1rem;z-index:99}
+.spin{width:38px;height:38px;border:3px solid var(--stone);border-top-color:var(--gold);border-radius:50%;animation:sp 1s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+
+<div class="top">🕯 사이버 추모관 <span>SUBSCRIPTION</span></div>
+
+<!-- 결제 폼 -->
+<div class="wrap" id="form-area">
+  <div class="hero">
+    <div class="hero-icon">🕯</div>
+    <div class="hero-name" id="mem-name">추모관</div>
+    <div class="hero-sub">구독하고 추모관을 계속 유지하세요</div>
+  </div>
+
+  <div class="label">구독 플랜 선택</div>
+  <div class="plans">
+    <div class="plan on" id="plan-monthly" onclick="selectPlan('monthly')">
+      <div class="plan-n">월 구독</div>
+      <div class="plan-p">4,900<small>원/월</small></div>
+      <div class="plan-tag"></div>
+    </div>
+    <div class="plan" id="plan-yearly" onclick="selectPlan('yearly')">
+      <div class="plan-n">연 구독</div>
+      <div class="plan-p">49,000<small>원/년</small></div>
+      <div class="plan-tag">2개월 할인</div>
+    </div>
+  </div>
+
+  <div class="label">결제자 정보</div>
+  <div class="fg"><label>이름</label><input type="text" id="c-name" placeholder="홍길동" maxlength="30"></div>
+  <div class="fg"><label>휴대전화</label><input type="tel" id="c-phone" placeholder="010-0000-0000"></div>
+  <div class="fg"><label>이메일 <span style="color:var(--ash)">(영수증 수신)</span></label><input type="email" id="c-email" placeholder="email@example.com"></div>
+
+  <button class="pay-btn" id="pay-btn" onclick="startSubscribe()">카드 등록하고 구독 시작</button>
+  <div class="err" id="err"></div>
+  <div class="terms">
+    구독 시 <a href="index.html#policy" target="_blank">이용약관·환불정책</a>에 동의하는 것으로 간주합니다.<br>
+    매월(연) 자동 결제되며 언제든 해지할 수 있습니다.
+  </div>
+</div>
+
+<!-- 결과 -->
+<div class="result" id="result-area">
+  <div class="result-icon" id="res-icon">✅</div>
+  <div class="result-title" id="res-title">구독이 시작되었습니다</div>
+  <div class="result-desc" id="res-desc"></div>
+  <div class="result-card" id="res-card"></div>
+  <button class="pay-btn" id="res-btn" style="max-width:280px;margin:0 auto" onclick="goMemorial()">추모관으로 이동</button>
+</div>
+
+<div class="loading" id="loading"><div class="spin"></div><div style="font-size:13px;color:var(--mid)">결제 처리 중…</div></div>
+
+<script>
+var FN_URL='https://asia-northeast3-goinheaven-90c3e.cloudfunctions.net/startSubscription';
+var _fs=null, _plan='monthly', _gid='';
+function $(id){return document.getElementById(id);}
+function getParam(k){return new URLSearchParams(location.search).get(k);}
+
+(function(){try{if(typeof FIREBASE_CONFIG!=='undefined'){if(!firebase.apps.length)firebase.initializeApp(FIREBASE_CONFIG);_fs=firebase.firestore();}}catch(e){}})();
+
+function selectPlan(p){_plan=p;$('plan-monthly').classList.toggle('on',p==='monthly');$('plan-yearly').classList.toggle('on',p==='yearly');}
+function goMemorial(){location.href='memorial.html?gid='+encodeURIComponent(_gid);}
+
+window.addEventListener('load',async function(){
+  _gid=getParam('gid')||'';
+  if(!_gid){$('err').textContent='잘못된 접근입니다. (추모관 정보 없음)';$('pay-btn').disabled=true;return;}
+  /* 고인 성함 표시 */
+  if(_fs){try{
+    var snap=await _fs.collection('groups').doc(_gid).get();
+    if(snap.exists&&!snap.data().deleted){
+      var m=(snap.data().members||[])[0]||{};
+      $('mem-name').textContent=(m.name||'추모관')+'님 추모관';
+    }
+  }catch(e){}}
+  /* 모바일 리다이렉트 복귀 처리 */
+  var bk=getParam('billingKey');
+  if(bk){
+    var pend=null;try{pend=JSON.parse(sessionStorage.getItem('sub_pending')||'null');}catch(e){}
+    if(pend&&pend.gid===_gid){selectPlan(pend.plan);charge(bk,pend.customer);}
+  }
+});
+
+async function startSubscribe(){
+  $('err').textContent='';
+  var name=$('c-name').value.trim(), phone=$('c-phone').value.trim(), email=$('c-email').value.trim();
+  if(!name){$('err').textContent='결제자 이름을 입력해 주세요.';return;}
+  if(!phone){$('err').textContent='휴대전화 번호를 입력해 주세요.';return;}
+  if(typeof PortOne==='undefined'){$('err').textContent='결제 모듈 로드 실패. 새로고침 해주세요.';return;}
+  var customer={name:name,phone:phone,email:email};
+  sessionStorage.setItem('sub_pending',JSON.stringify({gid:_gid,plan:_plan,customer:customer}));
+  $('pay-btn').disabled=true;
+  try{
+    var resp=await PortOne.requestIssueBillingKey({
+      storeId:PORTONE_CONFIG.storeId,
+      channelKey:PORTONE_CONFIG.channelKey,
+      billingKeyMethod:'CARD',
+      issueId:'issue-'+_gid+'-'+Date.now(),
+      issueName:'사이버 추모관 구독',
+      customer:{customerId:'cust-'+_gid,fullName:name,phoneNumber:phone,email:email},
+      redirectUrl:location.origin+location.pathname+'?gid='+encodeURIComponent(_gid)
+    });
+    if(resp&&resp.code!==undefined&&resp.code!==null){
+      $('err').textContent='카드 등록 실패: '+(resp.message||resp.code);$('pay-btn').disabled=false;return;
+    }
+    if(resp&&resp.billingKey){await charge(resp.billingKey,customer);}
+    else{$('pay-btn').disabled=false;}
+  }catch(e){$('err').textContent='오류: '+e.message;$('pay-btn').disabled=false;}
+}
+
+async function charge(billingKey,customer){
+  $('loading').style.display='flex';
+  try{
+    var r=await fetch(FN_URL,{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({gid:_gid,plan:_plan,billingKey:billingKey,customer:customer})});
+    var out=await r.json();
+    $('loading').style.display='none';
+    sessionStorage.removeItem('sub_pending');
+    if(out.success){showResult(true,out);}
+    else{$('form-area').style.display='block';$('pay-btn').disabled=false;$('err').textContent='결제 실패: '+(out.message||'알 수 없는 오류');}
+  }catch(e){
+    $('loading').style.display='none';
+    $('form-area').style.display='block';$('pay-btn').disabled=false;
+    $('err').textContent='결제 서버 오류: '+e.message;
+  }
+}
+
+function showResult(ok,out){
+  $('form-area').style.display='none';
+  $('result-area').style.display='block';
+  if(ok){
+    $('res-icon').textContent='✅';
+    $('res-title').textContent='구독이 시작되었습니다';
+    $('res-desc').textContent='결제가 완료되어 추모관이 활성화되었습니다.';
+    $('res-card').innerHTML='플랜 : <b>'+(out.plan==='yearly'?'연 구독':'월 구독')+'</b><br>'
+      +'결제 금액 : <b>'+Number(out.amount).toLocaleString()+'원</b><br>'
+      +'다음 결제일 : <b>'+out.endDate+'</b>';
+  }
+}
+</script>
+</body>
+</html>
