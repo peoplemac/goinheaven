@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>사이버 추모관 · Go in Heaven Memorial</title>
+<meta name="description" content="언제 어디서나 고인을 추모할 수 있는 온라인 추모 공간, 사이버 추모관 Go in Heaven Memorial.">
+<!-- 카카오/SNS 공유 미리보기 -->
+<meta property="og:type" content="website">
+<meta property="og:title" content="Go in Heaven Memorial">
+<meta property="og:description" content="언제 어디서나 고인을 추모하는 온라인 추모 공간 · 사이버 추모관">
+<meta property="og:image" content="https://peoplemac.github.io/goinheaven/og-banner.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:url" content="https://peoplemac.github.io/goinheaven/">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{
+  --ivory:#F8F5F0;--stone:#E8E3DB;--ash:#C4BDB4;
+  --deep:#3D3530;--mid:#6B5F58;--warm:#8B7355;
+  --gold:#B8965A;--gold2:#9a7a45;--white:#FFFFFF;
+}
+html{scroll-behavior:smooth}
+body{background:var(--ivory);color:var(--deep);line-height:1.7;
+  font-family:-apple-system,'Apple SD Gothic Neo','Noto Sans KR',sans-serif;
+  -webkit-font-smoothing:antialiased}
+a{color:inherit;text-decoration:none}
+.wrap{max-width:960px;margin:0 auto;padding:0 20px}
+.serif{font-family:Georgia,'Times New Roman',serif}
+
+/* 상단바 */
+.nav{position:sticky;top:0;z-index:50;background:rgba(248,245,240,.9);
+  backdrop-filter:blur(8px);border-bottom:1px solid var(--stone)}
+.nav-in{display:flex;align-items:center;justify-content:space-between;height:60px}
+.brand{font-size:15px;letter-spacing:.06em;color:var(--deep);font-weight:600}
+.brand span{color:var(--gold)}
+.nav-links{display:flex;gap:22px;font-size:14px;color:var(--mid)}
+.nav-links a:hover{color:var(--gold)}
+@media(max-width:640px){.nav-links{gap:14px;font-size:13px}}
+
+/* 히어로 */
+.hero{background:linear-gradient(145deg,#3D3530 0%,#4a413a 55%,#221d19 100%);
+  color:#fff;text-align:center;padding:5rem 20px 5.5rem;position:relative}
+.hero-tag{font-size:13px;letter-spacing:.35em;color:var(--gold);margin-bottom:1.2rem;opacity:.9}
+.hero-title{font-size:52px;font-weight:300;letter-spacing:.02em;line-height:1.25}
+.hero-title .g{color:#F2EEE7}.hero-title .m{color:#C9A567}
+.hero-kr{font-size:18px;color:rgba(255,255,255,.75);letter-spacing:.2em;margin-top:1rem}
+.hero-sub{font-size:14px;color:rgba(255,255,255,.55);margin-top:1.4rem;line-height:2}
+.hero-cta{display:inline-block;margin-top:2.2rem;background:var(--gold);color:#fff;
+  font-size:15px;padding:13px 34px;border-radius:30px;font-weight:600;transition:background .15s}
+.hero-cta:hover{background:var(--gold2)}
+@media(max-width:640px){.hero-title{font-size:38px}.hero{padding:3.5rem 20px 4rem}}
+
+/* 섹션 공통 */
+section{padding:4rem 0}
+.sec-tag{text-align:center;font-size:12px;letter-spacing:.25em;color:var(--gold);margin-bottom:.6rem}
+.sec-title{text-align:center;font-size:26px;font-weight:400;color:var(--deep);margin-bottom:2.5rem}
+.sec-title.sm{margin-bottom:1.5rem;font-size:22px}
+
+/* 소개 */
+.lead{text-align:center;font-size:16px;color:var(--mid);max-width:640px;margin:0 auto;line-height:2}
+
+/* 이용방법 */
+.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:1rem}
+.step{background:var(--white);border:1px solid var(--stone);border-radius:16px;padding:1.75rem 1.25rem;text-align:center}
+.step-n{width:40px;height:40px;border-radius:50%;background:var(--gold);color:#fff;
+  display:flex;align-items:center;justify-content:center;font-weight:600;margin:0 auto .9rem}
+.step-t{font-size:16px;font-weight:600;margin-bottom:.4rem}
+.step-d{font-size:13px;color:var(--mid);line-height:1.8}
+@media(max-width:640px){.steps{grid-template-columns:1fr}}
+
+/* 요금 */
+.plans{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:1rem}
+.plan{background:var(--white);border:1px solid var(--stone);border-radius:16px;padding:2rem 1.25rem;text-align:center;position:relative}
+.plan.feature{border:2px solid var(--gold);box-shadow:0 8px 28px rgba(184,150,90,.15)}
+.plan-badge{position:absolute;top:-12px;left:50%;transform:translateX(-50%);
+  background:var(--gold);color:#fff;font-size:11px;font-weight:700;padding:3px 12px;border-radius:20px}
+.plan-name{font-size:15px;font-weight:600;color:var(--warm);margin-bottom:.75rem}
+.plan-price{font-size:34px;font-weight:300;color:var(--deep);line-height:1}
+.plan-price small{font-size:15px;color:var(--ash)}
+.plan-note{font-size:13px;color:var(--mid);margin-top:.85rem;line-height:1.8}
+@media(max-width:640px){.plans{grid-template-columns:1fr}}
+.pay-note{text-align:center;font-size:12px;color:var(--ash);margin-top:1.5rem;line-height:1.9}
+
+/* 고객센터 */
+.cs{background:var(--white);border:1px solid var(--stone);border-radius:16px;
+  padding:2rem;text-align:center;max-width:520px;margin:0 auto}
+.cs-row{font-size:15px;color:var(--deep);margin:.4rem 0}
+.cs-row b{color:var(--warm)}
+
+/* 정책 아코디언 */
+.policy{max-width:760px;margin:0 auto}
+details{background:var(--white);border:1px solid var(--stone);border-radius:12px;margin-bottom:10px;overflow:hidden}
+summary{cursor:pointer;padding:15px 18px;font-size:15px;font-weight:600;color:var(--deep);list-style:none;display:flex;justify-content:space-between;align-items:center}
+summary::-webkit-details-marker{display:none}
+summary::after{content:'+';color:var(--gold);font-size:20px;font-weight:300}
+details[open] summary::after{content:'−'}
+.policy-body{padding:4px 18px 18px;font-size:13px;color:var(--mid);line-height:1.9}
+.policy-body h4{font-size:13px;color:var(--deep);margin:.8rem 0 .3rem}
+.policy-body ul{padding-left:18px;margin:.3rem 0}
+.policy-body .ph{color:var(--gold);font-weight:600}
+
+/* 푸터 */
+footer{background:var(--deep);color:rgba(255,255,255,.7);font-size:12px;line-height:2;padding:2.5rem 0 3rem;margin-top:2rem}
+.foot-brand{color:#fff;font-size:15px;font-weight:600;margin-bottom:1rem;letter-spacing:.05em}
+.foot-brand span{color:var(--gold)}
+.foot-info{display:grid;grid-template-columns:1fr 1fr;gap:2px 24px;max-width:640px}
+.foot-info .ph{color:var(--gold);opacity:.9}
+.foot-links{margin-top:1.2rem;display:flex;gap:16px;flex-wrap:wrap}
+.foot-links a{color:rgba(255,255,255,.85);border-bottom:1px solid rgba(255,255,255,.25);padding-bottom:1px}
+.foot-copy{margin-top:1.5rem;color:rgba(255,255,255,.4)}
+@media(max-width:640px){.foot-info{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<!-- 상단바 -->
+<nav class="nav"><div class="wrap nav-in">
+  <div class="brand">🕯 사이버 추모관 <span>· Go in Heaven</span></div>
+  <div class="nav-links">
+    <a href="#service">서비스</a>
+    <a href="#price">요금</a>
+    <a href="#policy">약관</a>
+    <a href="#cs">문의</a>
+  </div>
+</div></nav>
+
+<!-- 히어로 -->
+<header class="hero">
+  <div class="hero-tag">✦&nbsp;&nbsp;CYBER MEMORIAL&nbsp;&nbsp;✦</div>
+  <h1 class="hero-title serif"><span class="g">Go in Heaven</span> <span class="m">Memorial</span></h1>
+  <div class="hero-kr">사&nbsp;이&nbsp;버&nbsp;&nbsp;추&nbsp;모&nbsp;관</div>
+  <p class="hero-sub">시간과 장소에 얽매이지 않고<br>언제 어디서나 고인을 기억하고 추모하는 온라인 공간입니다.</p>
+  <a href="#cs" class="hero-cta">추모관 개설 문의</a>
+</header>
+
+<!-- 서비스 소개 -->
+<section id="service"><div class="wrap">
+  <div class="sec-tag">SERVICE</div>
+  <h2 class="sec-title">사이버 추모관이란</h2>
+  <p class="lead">
+    사랑하는 분을 위한 온라인 추모 공간입니다.<br>
+    고인의 사진과 생애를 담고, 유가족과 지인들이 QR코드·링크로 방문하여
+    추모의 글과 마음을 함께 나눕니다. 개인정보 수집을 최소화하고,
+    소중한 추모 기록을 안전하게 보관합니다.
+  </p>
+</div></section>
+
+<!-- 이용 방법 -->
+<section style="background:var(--stone)"><div class="wrap">
+  <div class="sec-tag">HOW IT WORKS</div>
+  <h2 class="sec-title">이용 방법</h2>
+  <div class="steps">
+    <div class="step"><div class="step-n">1</div><div class="step-t">추모관 개설</div>
+      <div class="step-d">고인 정보와 사진으로<br>전용 추모관을 만듭니다.</div></div>
+    <div class="step"><div class="step-n">2</div><div class="step-t">QR·링크 공유</div>
+      <div class="step-d">유가족·지인에게 QR코드와<br>개인 링크를 전달합니다.</div></div>
+    <div class="step"><div class="step-n">3</div><div class="step-t">함께 추모</div>
+      <div class="step-d">방문하여 추모의 글과<br>사진으로 마음을 나눕니다.</div></div>
+  </div>
+</div></section>
+
+<!-- 요금 안내 -->
+<section id="price"><div class="wrap">
+  <div class="sec-tag">PRICING</div>
+  <h2 class="sec-title">요금 안내</h2>
+  <div class="plans">
+    <div class="plan"><div class="plan-name">무료 체험</div>
+      <div class="plan-price">30<small>일</small></div>
+      <div class="plan-note">전 기능 무료 체험<br>체험 종료 후 자동 전환</div></div>
+    <div class="plan feature"><div class="plan-badge">인기</div><div class="plan-name">월 구독</div>
+      <div class="plan-price">4,900<small>원/월</small></div>
+      <div class="plan-note">매월 자동결제<br>언제든 해지 가능</div></div>
+    <div class="plan"><div class="plan-name">연 구독</div>
+      <div class="plan-price">49,000<small>원/년</small></div>
+      <div class="plan-note">약 2개월분 할인<br>매년 자동결제</div></div>
+  </div>
+  <p class="pay-note">
+    · 결제수단: 신용/체크카드, 카카오페이, 네이버페이 (포트원 결제)<br>
+    · 무료체험은 종료 3일 전 안내 후 유료로 자동 전환됩니다. 원치 않으시면 전환 전 해지하실 수 있습니다.<br>
+    · 부가세 포함 / 표시 가격은 변동될 수 있으며 변경 시 사전 고지합니다.
+  </p>
+</div></section>
+
+<!-- 정책 -->
+<section id="policy" style="background:var(--stone)"><div class="wrap">
+  <div class="sec-tag">POLICY</div>
+  <h2 class="sec-title sm">이용약관 · 개인정보 · 환불 안내</h2>
+  <div class="policy">
+
+    <details><summary>이용약관</summary><div class="policy-body">
+      <h4>제1조 (목적)</h4>
+      <p>본 약관은 <span class="ph">주식회사 피플맥</span>(이하 "회사")이 제공하는 사이버 추모관 서비스(이하 "서비스")의 이용조건 및 절차, 회사와 이용자의 권리·의무를 규정합니다.</p>
+      <h4>제2조 (서비스 내용)</h4>
+      <p>회사는 고인을 위한 온라인 추모관 개설·유지, 추모 게시물 등록, QR·링크를 통한 방문 기능을 제공합니다.</p>
+      <h4>제3조 (구독 및 결제)</h4>
+      <ul>
+        <li>서비스는 월 또는 연 단위 정기 자동결제(구독) 방식으로 제공됩니다.</li>
+        <li>무료체험 종료 후 등록된 결제수단으로 유료 구독이 자동 시작되며, 종료 3일 전 사전 고지합니다.</li>
+        <li>매 갱신 결제 전 결제 예정일·금액을 사전 고지합니다.</li>
+      </ul>
+      <h4>제4조 (해지)</h4>
+      <p>이용자는 언제든 해지할 수 있으며, 해지 시 다음 결제일까지 이용 후 자동결제가 중단됩니다.</p>
+      <h4>제5조 (데이터 보관)</h4>
+      <p>구독 종료 시 추모관은 즉시 삭제되지 않고 비공개 보관되며, 유예기간(30일) 내 재결제 시 즉시 복구됩니다. 이후 12개월간 보관하며, 삭제 전 담당자에게 사전 통지합니다.</p>
+      <p style="color:var(--ash);margin-top:.8rem">※ 본 약관은 초안이며 시행 전 최종 검토 후 확정됩니다.</p>
+    </div></details>
+
+    <details><summary>개인정보처리방침</summary><div class="policy-body">
+      <h4>1. 수집 항목</h4>
+      <p>고인 정보(성명·생몰일·사진), 담당 유가족 연락처(이름·전화·이메일), 결제 관련 정보(결제수단은 결제대행사가 보관).</p>
+      <h4>2. 이용 목적</h4>
+      <p>추모관 개설·운영, 결제 및 구독 관리, 안내 문자·이메일 발송, 고객 문의 대응.</p>
+      <h4>3. 보유 및 이용기간</h4>
+      <p>서비스 이용기간 및 관련 법령이 정한 기간(전자상거래법 등) 동안 보관 후 파기합니다.</p>
+      <h4>4. 제3자 처리 위탁</h4>
+      <ul>
+        <li>결제 처리: 포트원(PortOne) 및 연동 결제대행사</li>
+        <li>문자 발송: SOLAPI</li>
+        <li>데이터 보관: Google Firebase</li>
+      </ul>
+      <h4>5. 이용자 권리</h4>
+      <p>이용자는 자신의 개인정보 열람·정정·삭제·처리정지를 요청할 수 있습니다.</p>
+      <h4>6. 개인정보 보호책임자</h4>
+      <p><span class="ph">이윤범</span> / <span class="ph">peoplemac.inc@gmail.com</span> / <span class="ph">070-4407-2004</span></p>
+      <p style="color:var(--ash);margin-top:.8rem">※ 본 방침은 초안이며 시행 전 법률 검토 후 확정됩니다.</p>
+    </div></details>
+
+    <details><summary>취소 및 환불 정책</summary><div class="policy-body">
+      <h4>청약철회</h4>
+      <p>결제 후 7일 이내이며 서비스를 실질적으로 이용하지 않은 경우 전액 환불됩니다. 다만 추모관 개설·게시물 등록 등 실사용을 시작한 경우 청약철회가 제한될 수 있습니다.</p>
+      <h4>자동 갱신분</h4>
+      <p>정기 갱신 결제 후 미사용 상태에서 7일 이내 요청 시 환불됩니다.</p>
+      <h4>중도 해지</h4>
+      <ul>
+        <li>월 구독: 결제된 당월분은 환불 없이 잔여기간 이용 가능합니다.</li>
+        <li>연 구독: 이용 개월 수를 월 요금(4,900원) 기준으로 정산 후 잔액을 환불합니다.</li>
+      </ul>
+      <h4>결제 실패</h4>
+      <p>결제 실패 시 3일 간격으로 최대 3회 재시도하며, 최종 실패 시 유예 상태로 전환 후 안내드립니다.</p>
+      <h4>환불 문의</h4>
+      <p>고객센터(<span class="ph">070-4407-2004</span> / <span class="ph">peoplemac.inc@gmail.com</span>)로 요청해 주세요.</p>
+    </div></details>
+
+  </div>
+</div></section>
+
+<!-- 고객센터 -->
+<section id="cs"><div class="wrap">
+  <div class="sec-tag">CONTACT</div>
+  <h2 class="sec-title">고객센터</h2>
+  <div class="cs">
+    <div class="cs-row"><b>전화</b> &nbsp; <span class="ph" style="color:var(--gold)">070-4407-2004</span></div>
+    <div class="cs-row"><b>이메일</b> &nbsp; <span class="ph" style="color:var(--gold)">peoplemac.inc@gmail.com</span></div>
+    <div class="cs-row"><b>운영시간</b> &nbsp; 평일 09:00 ~ 18:00</div>
+    <p style="font-size:13px;color:var(--mid);margin-top:1rem">추모관 개설·이용 문의를 남겨주시면 안내해 드립니다.</p>
+  </div>
+</div></section>
+
+<!-- 푸터 (사업자 정보) -->
+<footer><div class="wrap">
+  <div class="foot-brand">🕯 사이버 추모관 <span>Go in Heaven Memorial</span></div>
+  <div class="foot-info">
+    <div>상호 : <span class="ph">주식회사 피플맥</span></div>
+    <div>대표자 : <span class="ph">이윤범</span></div>
+    <div>사업자등록번호 : <span class="ph">441-81-00189</span></div>
+    <div>통신판매업신고 : <span class="ph">제2026-대전유성-0093호</span></div>
+    <div>주소 : <span class="ph">대전광역시 유성구 유성대로 776, 4층 403호(장대동)</span></div>
+    <div>개인정보책임자 : <span class="ph">이윤범</span></div>
+    <div>전화 : <span class="ph">070-4407-2004</span></div>
+    <div>이메일 : <span class="ph">peoplemac.inc@gmail.com</span></div>
+  </div>
+  <div class="foot-links">
+    <a href="#policy">이용약관</a>
+    <a href="#policy">개인정보처리방침</a>
+    <a href="#policy">취소·환불 정책</a>
+    <a href="#price">요금 안내</a>
+  </div>
+  <div class="foot-copy">© 2026 사이버 추모관 · Go in Heaven Memorial. All rights reserved.</div>
+</div></footer>
+
+</body>
+</html>
