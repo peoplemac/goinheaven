@@ -9,7 +9,7 @@ if (!admin.apps.length) admin.initializeApp();
 /* ── 포트원(PortOne) V2 정기결제 ── */
 /* API Secret은 Secret Manager 로만 주입 (firebase functions:secrets:set PORTONE_V2_SECRET) */
 const PORTONE_STORE_ID = 'store-153fb7b9-afb0-4876-90a9-9427c552330b';
-const PORTONE_CHANNEL_KEY = 'channel-key-8ceaf3c4-3ec1-4c8c-8483-2b14dcb8246e';
+const PORTONE_CHANNEL_KEY = 'channel-key-77cdefc5-a807-4b21-ab16-2d0e2bc51881';
 const PLAN_AMOUNT = { monthly: 4900, yearly: 49000 };
 
 /* PortOne V2 REST 호출 (Authorization: PortOne {secret}) */
