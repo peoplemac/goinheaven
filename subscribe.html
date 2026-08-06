@@ -98,10 +98,26 @@ body{min-height:100vh;background:var(--ivory);color:var(--deep);
   <button class="pay-btn" id="res-btn" style="max-width:280px;margin:0 auto" onclick="goMemorial()">추모관으로 이동</button>
 </div>
 
-<div class="loading" id="loading"><div class="spin"></div><div style="font-size:13px;color:var(--mid)">결제 처리 중…</div></div>
+<!-- 구독 관리 (이미 구독 중이거나 해지된 경우) -->
+<div class="wrap" id="manage-area" style="display:none">
+  <div class="hero">
+    <div class="hero-icon">🕯</div>
+    <div class="hero-name" id="mng-name">추모관</div>
+    <div class="hero-sub" id="mng-sub">구독 상태</div>
+  </div>
+  <div class="result-card" id="mng-card"></div>
+  <button class="pay-btn" id="mng-cancel-btn" style="background:#fff;color:#c0392b;border:1px solid #e2c4c4" onclick="cancelSubscribe()">구독 해지</button>
+  <button class="pay-btn" id="mng-resub-btn" style="display:none" onclick="showSubscribeForm()">다시 구독하기</button>
+  <div class="err" id="mng-err"></div>
+  <div class="terms">관리자 비밀번호를 모르시면 고객센터(070-4407-2004)로 문의해 주세요.</div>
+  <button class="pay-btn" style="background:none;color:var(--mid);margin-top:.25rem" onclick="goMemorial()">추모관으로 이동</button>
+</div>
+
+<div class="loading" id="loading"><div class="spin"></div><div style="font-size:13px;color:var(--mid)">처리 중…</div></div>
 
 <script>
 var FN_URL='https://asia-northeast3-goinheaven-90c3e.cloudfunctions.net/startSubscription';
+var CANCEL_FN_URL='https://asia-northeast3-goinheaven-90c3e.cloudfunctions.net/cancelSubscription';
 var _fs=null, _plan='monthly', _gid='';
 function $(id){return document.getElementById(id);}
 function getParam(k){return new URLSearchParams(location.search).get(k);}
@@ -114,21 +130,71 @@ function goMemorial(){location.href='memorial.html?gid='+encodeURIComponent(_gid
 window.addEventListener('load',async function(){
   _gid=getParam('gid')||'';
   if(!_gid){$('err').textContent='잘못된 접근입니다. (추모관 정보 없음)';$('pay-btn').disabled=true;return;}
-  /* 고인 성함 표시 */
+  var g=null;
   if(_fs){try{
     var snap=await _fs.collection('groups').doc(_gid).get();
-    if(snap.exists&&!snap.data().deleted){
-      var m=(snap.data().members||[])[0]||{};
-      $('mem-name').textContent=(m.name||'추모관')+'님 추모관';
-    }
+    if(snap.exists&&!snap.data().deleted)g=snap.data();
   }catch(e){}}
-  /* 모바일 리다이렉트 복귀 처리 */
+  var nm=g?(((g.members||[])[0]||{}).name||''):'';
+  $('mem-name').textContent=(nm||'추모관')+'님 추모관';
+  $('mng-name').textContent=(nm||'추모관')+'님 추모관';
+
+  /* 모바일 리다이렉트 복귀(결제 진행 중이었으면 우선 처리) */
   var bk=getParam('billingKey');
   if(bk){
     var pend=null;try{pend=JSON.parse(sessionStorage.getItem('sub_pending')||'null');}catch(e){}
-    if(pend&&pend.gid===_gid){selectPlan(pend.plan);charge(bk,pend.customer);}
+    if(pend&&pend.gid===_gid){selectPlan(pend.plan);charge(bk,pend.customer);return;}
   }
+
+  /* 구독 상태에 따라 화면 결정 */
+  var sub=(g&&g.subscription)||{};
+  if(sub.canceledAt){showManage(sub,true);}
+  else if(sub.status==='active'&&sub.autoRenew===true&&g&&g.billingKey){showManage(sub,false);}
+  /* 그 외(체험·만료·미구독): 기본 결제 폼 표시 */
 });
+
+function showManage(sub,canceled){
+  $('form-area').style.display='none';
+  $('manage-area').style.display='block';
+  var planLabel=sub.plan==='yearly'?'연 구독':'월 구독';
+  if(canceled){
+    $('mng-sub').textContent='구독이 해지되었습니다';
+    $('mng-card').innerHTML='상태 : <b style="color:#c0392b">해지됨</b><br>플랜 : <b>'+planLabel+'</b><br>이용 가능 : <b>'+(sub.endDate||'-')+'</b> 까지<br><span style="font-size:12px;color:var(--ash)">이후 자동 결제되지 않습니다.</span>';
+    $('mng-cancel-btn').style.display='none';
+    $('mng-resub-btn').style.display='block';
+  } else {
+    $('mng-sub').textContent='구독 중입니다';
+    $('mng-card').innerHTML='상태 : <b style="color:#27ae60">구독 중</b><br>플랜 : <b>'+planLabel+' ('+Number(sub.amount||0).toLocaleString()+'원)</b><br>다음 결제일 : <b>'+(sub.endDate||'-')+'</b>';
+    $('mng-cancel-btn').style.display='block';
+    $('mng-resub-btn').style.display='none';
+  }
+}
+function showSubscribeForm(){
+  $('manage-area').style.display='none';
+  $('form-area').style.display='block';
+}
+async function cancelSubscribe(){
+  var pw=prompt('구독을 해지하시겠습니까?\n\n확인을 위해 추모관 관리자 비밀번호를 입력해 주세요.');
+  if(pw===null)return;
+  if(!pw){$('mng-err').textContent='비밀번호를 입력해 주세요.';return;}
+  $('mng-err').textContent='';
+  var btn=$('mng-cancel-btn');btn.disabled=true;btn.textContent='해지 처리 중…';
+  try{
+    var r=await fetch(CANCEL_FN_URL,{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({gid:_gid,adminPw:pw})});
+    var out=await r.json();
+    if(out.success){
+      alert('구독이 해지되었습니다.'+(out.endDate?'\n'+out.endDate+'까지 이용 가능합니다.':''));
+      location.reload();
+    } else {
+      $('mng-err').textContent=out.message||'해지 실패';
+      btn.disabled=false;btn.textContent='구독 해지';
+    }
+  }catch(e){
+    $('mng-err').textContent='오류: '+e.message;
+    btn.disabled=false;btn.textContent='구독 해지';
+  }
+}
 
 async function startSubscribe(){
   $('err').textContent='';

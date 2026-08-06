@@ -1035,6 +1035,45 @@ function renderMemorials(skipLoad){
   db.groups.forEach(function(g){wrap.appendChild(buildMgCard(g));});
 }
 
+/* 자동결제(빌링) 현황 표시 */
+function _billingStatusHtml(g){
+  var sub=g.subscription||{};
+  var hasBilling=!!g.billingKey;
+  var state,color;
+  if(sub.canceledAt){state='해지됨 ('+(sub.endDate||'')+'까지)';color='#c0392b';}
+  else if(hasBilling&&sub.autoRenew){state='자동결제 ON';color='#27ae60';}
+  else if(sub.status==='past_due'){state='결제 실패 (유예)';color='#e67e22';}
+  else{state='자동결제 없음';color='var(--ash)';}
+  var last=sub.lastPaymentAt?new Date(sub.lastPaymentAt).toLocaleDateString('ko-KR'):'—';
+  return '<div class="sub-sec-title">자동결제 현황</div>'
+    +'<div style="font-size:12px;color:var(--mid);line-height:1.9;background:var(--ivory);border:1px solid var(--stone);border-radius:8px;padding:8px 10px">'
+    +'상태 : <b style="color:'+color+'">'+state+'</b><br>'
+    +'다음 결제일 : <b>'+(sub.endDate||'—')+'</b><br>'
+    +'마지막 결제 : '+last+(sub.amount?' · '+Number(sub.amount).toLocaleString()+'원':'')
+    +'</div>';
+}
+async function adminCancelSub(g,btn){
+  var sub=g.subscription||{};
+  if(!g.billingKey&&!sub.autoRenew)return toast('활성 자동결제가 없습니다.');
+  var names=g.members.map(function(m){return m.name;}).join(' · ');
+  if(!confirm('"'+names+'" 구독을 해지할까요?\n\n빌링키가 삭제되고 자동결제가 중단됩니다.\n'+(sub.endDate?'('+sub.endDate+'까지 이용 가능)':'')))return;
+  loadSvcAdm();
+  btn.disabled=true;btn.textContent='해지 중…';
+  try{
+    var r=await fetch(CANCEL_FN_URL,{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({gid:g.id,superPw:svcAdm.pw})});
+    var out=await r.json();
+    if(out.success){
+      toast('구독이 해지되었습니다.');
+      if(g.subscription){g.subscription.autoRenew=false;g.subscription.canceledAt=Date.now();}
+      delete g.billingKey;
+      renderMemorials();renderOverview();
+    } else {
+      toast('해지 실패: '+(out.message||'')); btn.disabled=false;btn.textContent='구독 해지';
+    }
+  }catch(e){ toast('오류: '+e.message); btn.disabled=false;btn.textContent='구독 해지'; }
+}
+
 function buildMgCard(g){
   var names=g.members.map(function(m){return m.name;}).join(' · ');
   var ct=g.contact||{};
@@ -1104,7 +1143,8 @@ function buildMgCard(g){
     +'<option value="expired"'+(sub.status==='expired'?' selected':'')+'>만료</option>'
     +'</select></div>'
     +'<div class="sub-row"><label>시작일</label><input type="date" class="mg-sdate" value="'+(sub.startDate||'')+'"></div>'
-    +'<div class="sub-row"><label>종료일</label><input type="date" class="mg-edate" value="'+(sub.endDate||'')+'"></div>';
+    +'<div class="sub-row"><label>종료일</label><input type="date" class="mg-edate" value="'+(sub.endDate||'')+'"></div>'
+    +_billingStatusHtml(g);
 
   var noteHtml='<div class="sub-sec-title">관리자 메모</div>'
     +'<textarea class="mg-note" rows="2" style="font-size:13px;padding:8px;border:1px solid var(--stone);border-radius:8px;width:100%;resize:none;background:var(--white);font-family:inherit">'+esc(g.note||'')+'</textarea>';
@@ -1169,6 +1209,9 @@ function buildMgCard(g){
   var infoBtn=document.createElement('button'); infoBtn.className='btn btn-sm'; infoBtn.textContent='🔗 링크 안내';
   infoBtn.onclick=function(){showInfoModal(g);};
 
+  var cancelBtn=document.createElement('button'); cancelBtn.className='btn btn-sm'; cancelBtn.textContent='구독 해지'; cancelBtn.style.color='#c0392b';
+  cancelBtn.onclick=function(){ adminCancelSub(g, cancelBtn); };
+
   var delBtn=document.createElement('button'); delBtn.className='btn btn-sm btn-danger'; delBtn.textContent='삭제';
   delBtn.onclick=function(){
     if(confirm('"'+names+'" 추모관을 삭제할까요?\n\n이 작업은 되돌릴 수 없습니다.')){
@@ -1176,7 +1219,7 @@ function buildMgCard(g){
     }
   };
 
-  btnRow.appendChild(saveBtn); btnRow.appendChild(smsBtn); btnRow.appendChild(infoBtn); btnRow.appendChild(delBtn);
+  btnRow.appendChild(saveBtn); btnRow.appendChild(smsBtn); btnRow.appendChild(infoBtn); btnRow.appendChild(cancelBtn); btnRow.appendChild(delBtn);
   body.appendChild(btnRow);
 
   head.onclick=function(){
@@ -1503,6 +1546,7 @@ function copySmsInfo(){
 
 /* ── 설정 ── */
 var SOLAPI_FN_URL='https://asia-northeast3-goinheaven-90c3e.cloudfunctions.net/sendSolapiSms';
+var CANCEL_FN_URL='https://asia-northeast3-goinheaven-90c3e.cloudfunctions.net/cancelSubscription';
 
 function renderSettings(){
   loadSvcAdm();

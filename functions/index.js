@@ -240,6 +240,52 @@ exports.chargeDueSubscriptions = functions
     return null;
   });
 
+/* 구독 해지 (3단계) — 유가족 adminPw 또는 슈퍼관리자 superPw 인증 */
+exports.cancelSubscription = functions
+  .region('asia-northeast3')
+  .runWith({ secrets: ['PORTONE_V2_SECRET'] })
+  .https.onRequest(async (req, res) => {
+    res.set('Access-Control-Allow-Origin', '*');
+    res.set('Access-Control-Allow-Methods', 'POST, OPTIONS');
+    res.set('Access-Control-Allow-Headers', 'Content-Type');
+    if (req.method === 'OPTIONS') { res.status(204).send(''); return; }
+    if (req.method !== 'POST') { res.status(405).json({ success: false, message: 'Method not allowed' }); return; }
+
+    const { gid, adminPw, superPw } = req.body || {};
+    if (!gid) { res.status(400).json({ success: false, message: 'gid가 필요합니다.' }); return; }
+    try {
+      const db = admin.firestore();
+      const gref = db.collection('groups').doc(gid);
+      const gsnap = await gref.get();
+      if (!gsnap.exists) { res.status(404).json({ success: false, message: '추모관을 찾을 수 없습니다.' }); return; }
+      const g = gsnap.data();
+
+      let authed = false;
+      if (adminPw && g.adminPw && adminPw === g.adminPw) authed = true;
+      if (!authed && superPw) {
+        const s = await db.collection('settings').doc('superAdmin').get();
+        if (s.exists && s.data().pw === superPw) authed = true;
+      }
+      if (!authed) { res.status(403).json({ success: false, message: '비밀번호가 일치하지 않습니다.' }); return; }
+
+      const sub = g.subscription || {};
+      /* 포트원 빌링키 삭제 (더 이상 청구 불가) */
+      const secret = process.env.PORTONE_V2_SECRET;
+      if (g.billingKey && secret) {
+        await portoneRequest('DELETE', '/billing-keys/' + encodeURIComponent(g.billingKey), secret, null);
+      }
+      /* 자동갱신 중단 + 해지 표시. 상태는 active 유지(다음 결제일까지 이용), 빌링키 제거 */
+      await gref.set({
+        billingKey: admin.firestore.FieldValue.delete(),
+        subscription: Object.assign({}, sub, { autoRenew: false, canceledAt: Date.now() }),
+      }, { merge: true });
+
+      res.status(200).json({ success: true, endDate: sub.endDate || null });
+    } catch (e) {
+      res.status(500).json({ success: false, message: '오류: ' + e.message });
+    }
+  });
+
 /* 알리고 바이트 계산 (한글 2byte, 영문 1byte) */
 function getByteLen(str) {
   let b = 0;
