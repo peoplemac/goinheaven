@@ -123,6 +123,61 @@ exports.startSubscription = functions
 
 /* ── 정기 자동청구 (2단계) ── */
 /* 결제 예정일(endDate) 도래분을 찾아 빌링키로 자동 청구. 실패 시 3일 간격 최대 3회 재시도 → 유예 */
+/* 구독 1건 청구 + 상태 갱신 (스케줄러·테스트 공용) */
+async function _chargeSubscriptionDoc(doc, secret) {
+  const g = doc.data();
+  const sub = g.subscription || {};
+  if (!g.billingKey) return { charged: false, message: '빌링키 없음(먼저 카드 등록 필요)' };
+  const plan = sub.plan === 'yearly' ? 'yearly' : 'monthly';
+  const amount = PLAN_AMOUNT[plan];
+  const gid = g.id || doc.id;
+  const custId = 'cust' + gid.replace(/[^A-Za-z0-9]/g, '');
+  const names = (g.members || []).map((m) => m.name).filter(Boolean).join(' · ') || '추모관';
+  const paymentId = 'pay-' + gid + '-' + Date.now();
+
+  const charge = await portoneRequest(
+    'POST', '/payments/' + encodeURIComponent(paymentId) + '/billing-key', secret,
+    {
+      storeId: PORTONE_STORE_ID,
+      billingKey: g.billingKey,
+      orderName: '사이버 추모관 ' + (plan === 'yearly' ? '연' : '월') + ' 구독 - ' + names,
+      customer: { id: custId },
+      amount: { total: amount },
+      currency: 'KRW',
+    }
+  );
+  const ok = charge.status >= 200 && charge.status < 300;
+
+  await doc.ref.collection('payments').doc(paymentId).set({
+    paymentId: paymentId, plan: plan, amount: amount, at: Date.now(),
+    kind: 'recurring', status: ok ? 'PAID' : 'FAILED',
+    portone: charge.body || charge.raw || null,
+  });
+
+  if (ok) {
+    const newEnd = _addPeriod(plan); // 오늘 기준 +1개월/1년
+    await doc.ref.set({
+      subscription: Object.assign({}, sub, {
+        status: 'active', endDate: _ymd(newEnd),
+        lastPaymentAt: Date.now(), retryCount: 0, nextAttemptDate: null,
+      }),
+    }, { merge: true });
+    return { charged: true, plan: plan, amount: amount, endDate: _ymd(newEnd) };
+  }
+  const retry = (sub.retryCount || 0) + 1;
+  if (retry >= 3) {
+    await doc.ref.set({
+      subscription: Object.assign({}, sub, { status: 'past_due', retryCount: retry, nextAttemptDate: null }),
+    }, { merge: true });
+  } else {
+    const next = new Date(); next.setDate(next.getDate() + 3);
+    await doc.ref.set({
+      subscription: Object.assign({}, sub, { retryCount: retry, nextAttemptDate: _ymd(next) }),
+    }, { merge: true });
+  }
+  return { charged: false, retryCount: retry, message: (charge.body && charge.body.message) || ('결제 실패 HTTP ' + charge.status) };
+}
+
 async function _processDueSubscriptions() {
   const secret = process.env.PORTONE_V2_SECRET;
   if (!secret) return { error: 'PORTONE_V2_SECRET 미설정' };
@@ -134,8 +189,7 @@ async function _processDueSubscriptions() {
   } catch (e) {
     return { error: 'query 실패: ' + e.message };
   }
-  const out = { checked: 0, charged: 0, failed: 0, pastDue: 0, skipped: 0 };
-
+  const out = { checked: 0, charged: 0, failed: 0, skipped: 0 };
   for (let i = 0; i < snap.docs.length; i++) {
     const doc = snap.docs[i];
     const g = doc.data();
@@ -144,61 +198,35 @@ async function _processDueSubscriptions() {
     if (sub.status !== 'active' && sub.status !== 'past_due') { out.skipped++; continue; }
     const dueDate = sub.nextAttemptDate || sub.endDate;
     if (!dueDate || dueDate > todayStr) { out.skipped++; continue; } // 아직 결제일 전
-
     out.checked++;
-    const plan = sub.plan === 'yearly' ? 'yearly' : 'monthly';
-    const amount = PLAN_AMOUNT[plan];
-    const gid = g.id || doc.id;
-    const custId = 'cust' + gid.replace(/[^A-Za-z0-9]/g, '');
-    const names = (g.members || []).map((m) => m.name).filter(Boolean).join(' · ') || '추모관';
-    const paymentId = 'pay-' + gid + '-' + Date.now();
-
-    const charge = await portoneRequest(
-      'POST', '/payments/' + encodeURIComponent(paymentId) + '/billing-key', secret,
-      {
-        storeId: PORTONE_STORE_ID,
-        billingKey: g.billingKey,
-        orderName: '사이버 추모관 ' + (plan === 'yearly' ? '연' : '월') + ' 구독 - ' + names,
-        customer: { id: custId },
-        amount: { total: amount },
-        currency: 'KRW',
-      }
-    );
-    const ok = charge.status >= 200 && charge.status < 300;
-
-    await doc.ref.collection('payments').doc(paymentId).set({
-      paymentId: paymentId, plan: plan, amount: amount, at: Date.now(),
-      kind: 'recurring', status: ok ? 'PAID' : 'FAILED',
-      portone: charge.body || charge.raw || null,
-    });
-
-    if (ok) {
-      const newEnd = _addPeriod(plan); // 오늘 기준 +1개월/1년
-      await doc.ref.set({
-        subscription: Object.assign({}, sub, {
-          status: 'active', endDate: _ymd(newEnd),
-          lastPaymentAt: Date.now(), retryCount: 0, nextAttemptDate: null,
-        }),
-      }, { merge: true });
-      out.charged++;
-    } else {
-      const retry = (sub.retryCount || 0) + 1;
-      if (retry >= 3) {
-        await doc.ref.set({
-          subscription: Object.assign({}, sub, { status: 'past_due', retryCount: retry, nextAttemptDate: null }),
-        }, { merge: true });
-        out.pastDue++;
-      } else {
-        const next = new Date(); next.setDate(next.getDate() + 3);
-        await doc.ref.set({
-          subscription: Object.assign({}, sub, { retryCount: retry, nextAttemptDate: _ymd(next) }),
-        }, { merge: true });
-      }
-      out.failed++;
-    }
+    const r = await _chargeSubscriptionDoc(doc, secret);
+    if (r.charged) out.charged++; else out.failed++;
   }
   return out;
 }
+
+/* ⚠️ 테스트 전용: 특정 gid 구독을 결제일 무시하고 즉시 청구. 운영 배포 전 삭제 권장. */
+const TEST_TRIGGER_TOKEN = 'gih-test-a7f39c2e8b41';
+exports.testChargeSubscription = functions
+  .region('asia-northeast3')
+  .runWith({ secrets: ['PORTONE_V2_SECRET'] })
+  .https.onRequest(async (req, res) => {
+    res.set('Access-Control-Allow-Origin', '*');
+    const gid = (req.query.gid || '').toString();
+    const token = (req.query.token || '').toString();
+    if (token !== TEST_TRIGGER_TOKEN) { res.status(403).json({ ok: false, message: 'token 불일치' }); return; }
+    if (!gid) { res.status(400).json({ ok: false, message: 'gid 파라미터가 필요합니다.' }); return; }
+    const secret = process.env.PORTONE_V2_SECRET;
+    if (!secret) { res.status(500).json({ ok: false, message: 'PORTONE_V2_SECRET 미설정' }); return; }
+    try {
+      const doc = await admin.firestore().collection('groups').doc(gid).get();
+      if (!doc.exists) { res.status(404).json({ ok: false, message: '추모관을 찾을 수 없습니다.' }); return; }
+      const r = await _chargeSubscriptionDoc(doc, secret);
+      res.status(200).json({ ok: true, gid: gid, result: r });
+    } catch (e) {
+      res.status(500).json({ ok: false, message: e.message });
+    }
+  });
 
 /* 매일 03:05(KST) 자동 실행 */
 exports.chargeDueSubscriptions = functions
