@@ -121,6 +121,97 @@ exports.startSubscription = functions
     }
   });
 
+/* ── 정기 자동청구 (2단계) ── */
+/* 결제 예정일(endDate) 도래분을 찾아 빌링키로 자동 청구. 실패 시 3일 간격 최대 3회 재시도 → 유예 */
+async function _processDueSubscriptions() {
+  const secret = process.env.PORTONE_V2_SECRET;
+  if (!secret) return { error: 'PORTONE_V2_SECRET 미설정' };
+  const db = admin.firestore();
+  const todayStr = _ymd(new Date());
+  let snap;
+  try {
+    snap = await db.collection('groups').where('subscription.autoRenew', '==', true).get();
+  } catch (e) {
+    return { error: 'query 실패: ' + e.message };
+  }
+  const out = { checked: 0, charged: 0, failed: 0, pastDue: 0, skipped: 0 };
+
+  for (let i = 0; i < snap.docs.length; i++) {
+    const doc = snap.docs[i];
+    const g = doc.data();
+    const sub = g.subscription || {};
+    if (g.deleted || !g.billingKey) { out.skipped++; continue; }
+    if (sub.status !== 'active' && sub.status !== 'past_due') { out.skipped++; continue; }
+    const dueDate = sub.nextAttemptDate || sub.endDate;
+    if (!dueDate || dueDate > todayStr) { out.skipped++; continue; } // 아직 결제일 전
+
+    out.checked++;
+    const plan = sub.plan === 'yearly' ? 'yearly' : 'monthly';
+    const amount = PLAN_AMOUNT[plan];
+    const gid = g.id || doc.id;
+    const custId = 'cust' + gid.replace(/[^A-Za-z0-9]/g, '');
+    const names = (g.members || []).map((m) => m.name).filter(Boolean).join(' · ') || '추모관';
+    const paymentId = 'pay-' + gid + '-' + Date.now();
+
+    const charge = await portoneRequest(
+      'POST', '/payments/' + encodeURIComponent(paymentId) + '/billing-key', secret,
+      {
+        storeId: PORTONE_STORE_ID,
+        billingKey: g.billingKey,
+        orderName: '사이버 추모관 ' + (plan === 'yearly' ? '연' : '월') + ' 구독 - ' + names,
+        customer: { id: custId },
+        amount: { total: amount },
+        currency: 'KRW',
+      }
+    );
+    const ok = charge.status >= 200 && charge.status < 300;
+
+    await doc.ref.collection('payments').doc(paymentId).set({
+      paymentId: paymentId, plan: plan, amount: amount, at: Date.now(),
+      kind: 'recurring', status: ok ? 'PAID' : 'FAILED',
+      portone: charge.body || charge.raw || null,
+    });
+
+    if (ok) {
+      const newEnd = _addPeriod(plan); // 오늘 기준 +1개월/1년
+      await doc.ref.set({
+        subscription: Object.assign({}, sub, {
+          status: 'active', endDate: _ymd(newEnd),
+          lastPaymentAt: Date.now(), retryCount: 0, nextAttemptDate: null,
+        }),
+      }, { merge: true });
+      out.charged++;
+    } else {
+      const retry = (sub.retryCount || 0) + 1;
+      if (retry >= 3) {
+        await doc.ref.set({
+          subscription: Object.assign({}, sub, { status: 'past_due', retryCount: retry, nextAttemptDate: null }),
+        }, { merge: true });
+        out.pastDue++;
+      } else {
+        const next = new Date(); next.setDate(next.getDate() + 3);
+        await doc.ref.set({
+          subscription: Object.assign({}, sub, { retryCount: retry, nextAttemptDate: _ymd(next) }),
+        }, { merge: true });
+      }
+      out.failed++;
+    }
+  }
+  return out;
+}
+
+/* 매일 03:05(KST) 자동 실행 */
+exports.chargeDueSubscriptions = functions
+  .region('asia-northeast3')
+  .runWith({ secrets: ['PORTONE_V2_SECRET'] })
+  .pubsub.schedule('5 3 * * *')
+  .timeZone('Asia/Seoul')
+  .onRun(async () => {
+    const r = await _processDueSubscriptions();
+    console.log('[chargeDueSubscriptions]', JSON.stringify(r));
+    return null;
+  });
+
 /* 알리고 바이트 계산 (한글 2byte, 영문 1byte) */
 function getByteLen(str) {
   let b = 0;
