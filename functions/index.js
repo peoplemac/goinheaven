@@ -46,6 +46,32 @@ function _ymd(d) {
   return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
 }
 
+/* 서버용 SOLAPI 문자 발송 — 인증정보는 Firestore settings/solapi 에서 읽음.
+   미설정 시 조용히 건너뜀(best-effort 알림). */
+async function _solapiSend(phone, text) {
+  const to = (phone || '').replace(/-/g, '');
+  if (!to) return { skipped: true };
+  let creds = null;
+  try {
+    const s = await admin.firestore().collection('settings').doc('solapi').get();
+    if (s.exists) creds = s.data();
+  } catch (e) { return { error: e.message }; }
+  if (!creds || !creds.key || !creds.secret || !creds.sender) return { skipped: true };
+  const date = new Date().toISOString();
+  const salt = crypto.randomBytes(16).toString('hex');
+  const signature = crypto.createHmac('sha256', creds.secret).update(date + salt).digest('hex');
+  const auth = 'HMAC-SHA256 apiKey=' + creds.key + ', date=' + date + ', salt=' + salt + ', signature=' + signature;
+  const body = JSON.stringify({ messages: [{ to: to, from: String(creds.sender).replace(/-/g, ''), text: text }] });
+  return new Promise((resolve) => {
+    const req = https.request({
+      hostname: 'api.solapi.com', path: '/messages/v4/send-many/detail', method: 'POST',
+      headers: { 'Authorization': auth, 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(body, 'utf8') },
+    }, (r) => { let d = ''; r.on('data', (c) => { d += c; }); r.on('end', () => { let p = null; try { p = JSON.parse(d); } catch (e) {} resolve({ status: r.statusCode, body: p }); }); });
+    req.on('error', (e) => resolve({ error: e.message }));
+    req.write(body); req.end();
+  });
+}
+
 /* 최초 결제 + 구독 활성화 (클라이언트가 빌링키 발급 후 호출) */
 exports.startSubscription = functions
   .region('asia-northeast3')
@@ -115,6 +141,7 @@ exports.startSubscription = functions
         },
       }, { merge: true });
 
+      await _solapiSend(cust.phone, '[사이버 추모관] ' + names + ' 추모관 구독이 시작되었습니다. ' + amount + '원 결제 완료, 다음 결제일 ' + _ymd(end));
       res.status(200).json({ success: true, plan: plan, amount: amount, endDate: _ymd(end) });
     } catch (e) {
       res.status(500).json({ success: false, message: '오류: ' + e.message });
@@ -162,6 +189,7 @@ async function _chargeSubscriptionDoc(doc, secret) {
         lastPaymentAt: Date.now(), retryCount: 0, nextAttemptDate: null,
       }),
     }, { merge: true });
+    await _solapiSend((g.contact || {}).phone, '[사이버 추모관] ' + names + ' 추모관 구독료 ' + amount + '원이 결제되었습니다. 다음 결제일 ' + _ymd(newEnd));
     return { charged: true, plan: plan, amount: amount, endDate: _ymd(newEnd) };
   }
   const retry = (sub.retryCount || 0) + 1;
@@ -175,6 +203,7 @@ async function _chargeSubscriptionDoc(doc, secret) {
       subscription: Object.assign({}, sub, { retryCount: retry, nextAttemptDate: _ymd(next) }),
     }, { merge: true });
   }
+  await _solapiSend((g.contact || {}).phone, '[사이버 추모관] ' + names + ' 추모관 구독료 결제가 실패했습니다 (' + retry + '회). 등록된 카드를 확인해 주세요.');
   return { charged: false, retryCount: retry, message: (charge.body && charge.body.message) || ('결제 실패 HTTP ' + charge.status) };
 }
 
@@ -196,6 +225,7 @@ async function _processDueSubscriptions() {
     const sub = g.subscription || {};
     if (g.deleted || !g.billingKey) { out.skipped++; continue; }
     if (sub.status !== 'active' && sub.status !== 'past_due') { out.skipped++; continue; }
+    if (sub.status === 'past_due' && (sub.retryCount || 0) >= 3) { out.skipped++; continue; } // 재시도 3회 소진
     const dueDate = sub.nextAttemptDate || sub.endDate;
     if (!dueDate || dueDate > todayStr) { out.skipped++; continue; } // 아직 결제일 전
     out.checked++;
@@ -237,6 +267,50 @@ exports.chargeDueSubscriptions = functions
   .onRun(async () => {
     const r = await _processDueSubscriptions();
     console.log('[chargeDueSubscriptions]', JSON.stringify(r));
+    return null;
+  });
+
+/* ── 유지관리 (4단계): 갱신 사전고지 + 만료 처리 ── */
+async function _runMaintenance() {
+  const db = admin.firestore();
+  const todayStr = _ymd(new Date());
+  const in3 = new Date(); in3.setDate(in3.getDate() + 3); const in3Str = _ymd(in3);
+  let snap;
+  try { snap = await db.collection('groups').get(); } catch (e) { return { error: e.message }; }
+  const out = { reminded: 0, expired: 0 };
+  for (let i = 0; i < snap.docs.length; i++) {
+    const doc = snap.docs[i];
+    const g = doc.data();
+    const sub = g.subscription || {};
+    if (g.deleted || !sub.status) continue;
+    const names = (g.members || []).map((m) => m.name).filter(Boolean).join(' · ') || '추모관';
+
+    /* 갱신 사전고지: 활성 자동결제 & 결제일 3일 이내 & 이번 주기 미고지 */
+    if (sub.status === 'active' && sub.autoRenew === true && !sub.canceledAt &&
+        sub.endDate && sub.endDate >= todayStr && sub.endDate <= in3Str && sub.reminderSentFor !== sub.endDate) {
+      await _solapiSend((g.contact || {}).phone, '[사이버 추모관] ' + names + ' 추모관 구독료 ' + (sub.amount || '') + '원이 ' + sub.endDate + '에 자동 결제될 예정입니다.');
+      await doc.ref.set({ subscription: Object.assign({}, sub, { reminderSentFor: sub.endDate }) }, { merge: true });
+      out.reminded++;
+    }
+
+    /* 만료 처리: 결제일 지남 & 갱신 안 함(해지) 또는 재시도 소진(past_due) */
+    const exhausted = sub.status === 'past_due' && (sub.retryCount || 0) >= 3;
+    if (sub.status !== 'expired' && sub.endDate && sub.endDate < todayStr && (sub.autoRenew !== true || exhausted)) {
+      await doc.ref.set({ subscription: Object.assign({}, sub, { status: 'expired', expiredAt: Date.now() }) }, { merge: true });
+      out.expired++;
+    }
+  }
+  return out;
+}
+
+/* 매일 03:10(KST) — 청구 스케줄러(03:05) 이후 실행 */
+exports.subscriptionMaintenance = functions
+  .region('asia-northeast3')
+  .pubsub.schedule('10 3 * * *')
+  .timeZone('Asia/Seoul')
+  .onRun(async () => {
+    const r = await _runMaintenance();
+    console.log('[subscriptionMaintenance]', JSON.stringify(r));
     return null;
   });
 

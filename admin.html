@@ -1573,6 +1573,8 @@ function saveSolapiSettings(){
   if(!key||!secret||!sender)return toast('API Key · API Secret · 발신번호를 모두 입력해 주세요.');
   svcAdm.solapiKey=key; svcAdm.solapiSecret=secret; svcAdm.solapiSender=sender;
   saveSvcAdm();
+  /* 서버 정기결제 알림용 — Firestore에도 저장 (서버 함수가 읽어 문자 발송) */
+  if(_fbReady){try{firebase.firestore().collection('settings').doc('solapi').set({key:key,secret:secret,sender:sender});}catch(e){}}
   var st=$('solapi-status');
   st.style.display='block'; st.style.color='#27ae60';
   st.textContent='✅ SOLAPI 설정 완료 — SMS 직접 발송 가능';
