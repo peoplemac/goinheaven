@@ -664,6 +664,7 @@ label{font-size:13px;color:var(--mid);display:block;margin-bottom:5px}
               <li class="no">동영상 등록</li>
               <li class="no">약력 1,000자</li>
               <li class="no">방문 통계</li>
+              <li class="no">AI로 대화</li>
             </ul>
           </div>
           <div class="plan-box feat" id="plan-box-paid">
@@ -676,6 +677,7 @@ label{font-size:13px;color:var(--mid);display:block;margin-bottom:5px}
               <li class="ok">동영상 (총 200MB까지)</li>
               <li class="ok">약력 1,000자</li>
               <li class="ok">방문 통계</li>
+              <li class="ok">AI로 대화</li>
             </ul>
           </div>
         </div>
@@ -766,7 +768,8 @@ label{font-size:13px;color:var(--mid);display:block;margin-bottom:5px}
       ✅ 사진 무제한<br>
       ✅ 동영상 등록 (추모관당 총 200MB)<br>
       ✅ 약력·소개 1,000자<br>
-      ✅ 방문 통계
+      ✅ 방문 통계<br>
+      ✅ AI로 고인과 대화
     </div>
     <div style="display:flex;gap:8px">
       <button class="btn btn-sm" style="flex:1" onclick="closeUpgradePopup()">닫기</button>
@@ -1349,6 +1352,17 @@ function _videoBytes(g){
   return n;
 }
 function goSubscribe(){location.href='subscribe.html?gid='+encodeURIComponent(curGid||'');}
+/* 동영상 표시 — 유료면 재생, 미구독(만료 등)이면 잠금 표시(클릭 시 재구독 안내) */
+function _mediaVideoEl(src){
+  if(_isPaidPlan(curg())){
+    var v=document.createElement('video');v.src=src;v.controls=true;v.setAttribute('playsinline','');return v;
+  }
+  var lock=document.createElement('div');
+  lock.style.cssText='width:100%;height:220px;background:linear-gradient(135deg,#3D3530,#221d19);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;color:#fff;cursor:pointer';
+  lock.innerHTML='<div style="font-size:32px">🔒</div><div style="font-size:13px;font-weight:600">동영상 · 구독 후 재생</div><div style="font-size:11px;color:rgba(255,255,255,.55)">탭하여 구독 안내 보기</div>';
+  lock.addEventListener('click',function(){openUpgradePopup('locked');});
+  return lock;
+}
 function updateBioCounter(){
   var g=curg();
   var limit=getBioLimit(g&&g.subscription&&g.subscription.plan);
@@ -1526,14 +1540,14 @@ function buildPost(p,g){
     var mw=document.createElement('div'); mw.className='post-media';
     if(p.media.length===1){
       var m0=p.media[0];
-      if(m0.type==='video'){var v=document.createElement('video');v.src=m0.src;v.controls=true;v.setAttribute('playsinline','');mw.appendChild(v);}
+      if(m0.type==='video'){mw.appendChild(_mediaVideoEl(m0.src));}
       else{var im=document.createElement('img');im.src=m0.src;im.alt='';im.style.cssText='width:100%;max-height:400px;object-fit:contain;display:block;background:#000;cursor:zoom-in';im.addEventListener('click',function(){lbShow(m0.src,'image');});mw.appendChild(im);}
     } else {
       var sw=document.createElement('div');sw.className='slider-wrap';
       var tr=document.createElement('div');tr.className='slider-track';
       p.media.forEach(function(mm){
         var sl=document.createElement('div');sl.className='slider-slide';
-        if(mm.type==='video'){var vv=document.createElement('video');vv.src=mm.src;vv.controls=true;vv.setAttribute('playsinline','');sl.appendChild(vv);}
+        if(mm.type==='video'){sl.appendChild(_mediaVideoEl(mm.src));}
         else{var ii=document.createElement('img');ii.src=mm.src;ii.alt='';ii.style.cssText='cursor:zoom-in';(function(s){ii.addEventListener('click',function(){lbShow(s,'image');});})(mm.src);sl.appendChild(ii);}
         tr.appendChild(sl);
       });
@@ -1644,6 +1658,8 @@ function openUpgradePopup(reason){
   if(reason==='video')msg='동영상 등록은 <b>월/연 구독</b>에서 이용할 수 있습니다.<br>(추모관당 동영상 총 200MB · 용량 내 무제한)';
   else if(reason==='photo')msg='무료 플랜은 사진 최대 <b>'+FREE_MAX_PHOTOS+'장</b>까지 등록할 수 있습니다.<br><b>구독</b>하면 사진을 무제한으로 등록할 수 있습니다.';
   else if(reason==='bio')msg='약력·소개 <b>1,000자</b>는 월/연 구독에서 이용할 수 있습니다.';
+  else if(reason==='ai')msg='<b>AI로 고인과 대화하기</b>는 월/연 구독에서 이용할 수 있습니다.';
+  else if(reason==='locked')msg='구독이 종료되어 <b>등록된 동영상 등 콘텐츠</b>가 잠겨 있습니다.<br>다시 <b>구독</b>하면 모든 콘텐츠를 볼 수 있습니다.';
   var el=$('upg-msg');if(el)el.innerHTML=msg;
   $('upgrade-popup-backdrop').style.display='flex';
 }
@@ -1822,6 +1838,7 @@ var _aiMember=null;
 
 function openAiChat(){
   var g=curg(); if(!g||!g.members.length)return;
+  if(!_isPaidPlan(g)){openUpgradePopup('ai');return;}
   _aiMember=g.members[0];
   _aiHistory=[];
   var name=_aiMember.name||'?';
