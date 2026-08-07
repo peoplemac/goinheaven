@@ -318,6 +318,21 @@ label{font-size:13px;color:var(--mid);display:block;margin-bottom:5px}
 /* ── 관리 ── */
 #fp-admin{padding:1rem}
 .adm-section{display:flex;flex-direction:column;gap:1rem}
+/* 구독 플랜 비교 카드 */
+.plan-compare{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:.5rem}
+.plan-box{position:relative;border:1.5px solid var(--stone);border-radius:12px;padding:.9rem .7rem;background:#fff}
+.plan-box.feat{border-color:var(--gold);background:#fffdf8}
+.plan-box.current{box-shadow:0 0 0 2px var(--gold) inset}
+.plan-cur{display:none;position:absolute;top:-9px;left:50%;transform:translateX(-50%);background:var(--gold);color:#fff;font-size:10px;font-weight:700;padding:1px 8px;border-radius:10px;white-space:nowrap}
+.plan-nm{font-size:13px;font-weight:700;color:var(--deep);text-align:center;margin-bottom:.2rem}
+.plan-pr{font-size:16px;font-weight:600;color:var(--gold);text-align:center;line-height:1.35;margin-bottom:.5rem}
+.plan-pr small{font-size:11px;color:var(--ash);font-weight:400}
+.plan-pr-sub{font-size:11px;color:var(--ash);font-weight:400}
+.plan-ul{list-style:none;padding:0;margin:0;font-size:11.5px;line-height:1.95}
+.plan-ul li{padding-left:15px;position:relative;color:var(--mid)}
+.plan-ul li.ok::before{content:'✓';position:absolute;left:0;color:#27ae60;font-weight:700}
+.plan-ul li.no{color:var(--ash);text-decoration:line-through}
+.plan-ul li.no::before{content:'✕';position:absolute;left:0;color:var(--ash)}
 .adm-card{background:var(--white);border:1px solid var(--stone);border-radius:12px;padding:1.25rem}
 .adm-card h4{font-size:14px;font-weight:600;color:var(--deep);margin-bottom:.9rem}
 .stat-row{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;text-align:center}
@@ -638,30 +653,33 @@ label{font-size:13px;color:var(--mid);display:block;margin-bottom:5px}
       <div class="adm-card">
         <h4>구독 정보</h4>
         <div id="adm-sub-info" style="margin-bottom:.75rem"></div>
-        <div class="row2" style="margin-bottom:0">
-          <div class="fg">
-            <label>플랜</label>
-            <select id="ad-plan">
-              <option value="trial">무료체험</option>
-              <option value="monthly">월 구독</option>
-              <option value="yearly">연 구독</option>
-              <option value="unlimited">무제한</option>
-            </select>
+        <div class="plan-compare">
+          <div class="plan-box" id="plan-box-free">
+            <div class="plan-cur" id="cur-free">현재 플랜</div>
+            <div class="plan-nm">무료</div>
+            <div class="plan-pr">₩0</div>
+            <ul class="plan-ul">
+              <li class="ok">추모의 글</li>
+              <li class="ok">사진 최대 5장</li>
+              <li class="no">동영상 등록</li>
+              <li class="no">약력 1,000자</li>
+              <li class="no">방문 통계</li>
+            </ul>
           </div>
-          <div class="fg">
-            <label>상태</label>
-            <select id="ad-status">
-              <option value="trial">체험중</option>
-              <option value="active">활성</option>
-              <option value="expired">만료</option>
-            </select>
+          <div class="plan-box feat" id="plan-box-paid">
+            <div class="plan-cur" id="cur-paid">현재 플랜</div>
+            <div class="plan-nm">월 / 연 구독</div>
+            <div class="plan-pr">₩4,900<small>/월</small><br><span class="plan-pr-sub">또는 ₩49,000/년</span></div>
+            <ul class="plan-ul">
+              <li class="ok">추모의 글</li>
+              <li class="ok">사진 무제한</li>
+              <li class="ok">동영상 (총 200MB까지)</li>
+              <li class="ok">약력 1,000자</li>
+              <li class="ok">방문 통계</li>
+            </ul>
           </div>
         </div>
-        <div class="row2" style="margin-bottom:0">
-          <div class="fg"><label>시작일</label><input type="date" id="ad-sdate"></div>
-          <div class="fg"><label>만료일</label><input type="date" id="ad-edate"></div>
-        </div>
-        <button class="btn btn-sm btn-gold" style="margin-top:.25rem" onclick="saveSubscription()">구독 저장</button>
+        <button class="btn btn-block btn-gold" id="sub-cta" style="margin-top:.6rem" onclick="goSubscribe()">구독하고 모든 기능 이용하기</button>
       </div>
     </div>
   </div>
@@ -742,20 +760,17 @@ label{font-size:13px;color:var(--mid);display:block;margin-bottom:5px}
 <div id="upgrade-popup-backdrop" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:350;align-items:center;justify-content:center">
   <div style="background:#fff;border-radius:20px;padding:2rem 1.5rem 1.5rem;width:88%;max-width:340px;text-align:center">
     <div style="font-size:32px;margin-bottom:.6rem">⭐</div>
-    <div style="font-size:16px;font-weight:700;margin-bottom:.8rem;color:var(--deep)">구독 플랜으로 업그레이드</div>
-    <div style="font-size:13px;color:var(--mid);line-height:1.8;margin-bottom:1.5rem">
-      현재 <strong style="color:var(--deep)">무료체험</strong> 플랜입니다.<br>
-      <strong style="color:var(--gold)">월 구독</strong> 업그레이드 시<br>
-      약력·소개를 최대 <strong style="color:var(--deep)">1,000자</strong>까지 작성하고<br>
-      <strong style="color:var(--deep)">전체 내용</strong>을 방문자에게 공개할 수 있습니다.
-    </div>
-    <div style="background:var(--ivory);border-radius:10px;padding:.75rem;margin-bottom:1.25rem;font-size:12px;color:var(--mid);line-height:1.7">
-      ✅ 약력·소개 1,000자 &nbsp;|&nbsp; ✅ 전체 내용 표시<br>
-      ✅ 사진·영상 무제한 &nbsp;|&nbsp; ✅ 방문 통계
+    <div style="font-size:16px;font-weight:700;margin-bottom:.7rem;color:var(--deep)">구독하고 모든 기능 이용하기</div>
+    <div id="upg-msg" style="font-size:13px;color:var(--mid);line-height:1.8;margin-bottom:1.2rem"></div>
+    <div style="background:var(--ivory);border-radius:10px;padding:.8rem;margin-bottom:1.25rem;font-size:12px;color:var(--mid);line-height:1.95;text-align:left">
+      ✅ 사진 무제한<br>
+      ✅ 동영상 등록 (추모관당 총 200MB)<br>
+      ✅ 약력·소개 1,000자<br>
+      ✅ 방문 통계
     </div>
     <div style="display:flex;gap:8px">
       <button class="btn btn-sm" style="flex:1" onclick="closeUpgradePopup()">닫기</button>
-      <button class="btn btn-sm btn-gold" style="flex:1" onclick="closeUpgradePopup();switchPanel(document.querySelector('[data-panel=admin]'))">구독 문의</button>
+      <button class="btn btn-sm btn-gold" style="flex:1" onclick="closeUpgradePopup();goSubscribe()">구독하러 가기</button>
     </div>
   </div>
 </div>
@@ -851,7 +866,7 @@ async function _fbLoad(){
     g.posts=ps.docs.map(function(d){
       var p=d.data();
       if(p.deleted)return null; /* 소프트 삭제 게시물 건너뜀 */
-      p.media=(p.media||[]).map(function(m){return{src:m.url||'',type:m.type,name:m.name||''};});
+      p.media=(p.media||[]).map(function(m){return{src:m.url||'',type:m.type,name:m.name||'',size:m.size||0};});
       /* liked 는 기기별 localStorage 유지 */
       var lp=(localG&&localG.posts||[]).find(function(lpp){return lpp.id===p.id;});
       p.liked=(lp&&lp.liked)||false;
@@ -934,7 +949,7 @@ async function _fbSave(){
       } else if(u&&u.startsWith('data:')){
         u=''; /* Spark 플랜: 이미지는 Firestore에 저장 안 함 */
       }
-      if(u)med.push({type:mm.type,name:mm.name||'',url:u});
+      if(u)med.push({type:mm.type,name:mm.name||'',url:u,size:mm.size||0});
     }
     await fs.collection('groups').doc(g.id).collection('posts').doc(p.id).set({
       id:p.id,author:p.author,rel:p.rel||'',text:p.text||'',pw:p.pw||'',date:p.date,
@@ -950,7 +965,7 @@ function _localSave(){
       return{id:g.id,pw:g.pw,adminPw:g.adminPw||'',visits:g.visits,
         managementKey:g.managementKey||'',parkId:g.parkId||null,
         members:g.members.map(function(m){return{id:m.id,name:m.name,birth:m.birth,death:m.death,bio:m.bio,portrait:m.portrait||null};}),
-        posts:g.posts.map(function(p){return{id:p.id,author:p.author,rel:p.rel,text:p.text,date:p.date,likes:p.likes,liked:p.liked,comments:p.comments,media:p.media.map(function(m){return{type:m.type,name:m.name};})};}),
+        posts:g.posts.map(function(p){return{id:p.id,author:p.author,rel:p.rel,text:p.text,date:p.date,likes:p.likes,liked:p.liked,comments:p.comments,media:p.media.map(function(m){return{type:m.type,name:m.name,size:m.size||0};})};}),
         contact:g.contact||{},subscription:g.subscription||{},note:g.note||''};
     })};
     try{localStorage.setItem(DB_KEY,JSON.stringify(data));}catch(e){
@@ -994,7 +1009,7 @@ function loadDB(){
       g.members=(g.members||[]).map(function(m){return m;});
       g.posts=(g.posts||[]).map(function(p){
         p.media=(p.media||[]).map(function(m,i){
-          return {src:localStorage.getItem(DB_KEY+'_pm_'+p.id+'_'+i)||'',type:m.type,name:m.name};
+          return {src:localStorage.getItem(DB_KEY+'_pm_'+p.id+'_'+i)||'',type:m.type,name:m.name,size:m.size||0};
         }).filter(function(m){return m.src;});
         return p;
       });
@@ -1317,6 +1332,23 @@ function getBioLimit(plan){
   if(!plan||plan==='trial')return 100;
   return 1000;
 }
+
+/* ── 구독 플랜 기능 제한 ── */
+var FREE_MAX_PHOTOS=5;
+var VIDEO_MAX_BYTES=200000000; /* 동영상 전체 합산 200MB 한도 (10진 기준) */
+function _isPaidPlan(g){
+  var s=(g&&g.subscription)||{};
+  return (s.status==='active'||s.status==='past_due')&&(s.plan==='monthly'||s.plan==='yearly'||s.plan==='unlimited');
+}
+function _photoCount(g){
+  var n=0;((g&&g.posts)||[]).forEach(function(p){(p.media||[]).forEach(function(m){if(m.type!=='video')n++;});});
+  return n;
+}
+function _videoBytes(g){
+  var n=0;((g&&g.posts)||[]).forEach(function(p){(p.media||[]).forEach(function(m){if(m.type==='video')n+=(m.size||0);});});
+  return n;
+}
+function goSubscribe(){location.href='subscribe.html?gid='+encodeURIComponent(curGid||'');}
 function updateBioCounter(){
   var g=curg();
   var limit=getBioLimit(g&&g.subscription&&g.subscription.plan);
@@ -1331,11 +1363,13 @@ function calcDday(d){if(!d)return null;return Math.ceil((new Date(d).getTime()-D
 function renderAdminSub(){
   var g=curg();if(!g)return;
   var sub=g.subscription||{},plan=sub.plan||'trial',status=sub.status||'trial';
-  /* 입력 필드 채우기 */
-  if($('ad-plan'))$('ad-plan').value=plan;
-  if($('ad-status'))$('ad-status').value=status;
-  if($('ad-sdate'))$('ad-sdate').value=sub.startDate||'';
-  if($('ad-edate'))$('ad-edate').value=sub.endDate||'';
+  /* 현재 플랜 강조 (무료/유료) */
+  var paid=_isPaidPlan(g);
+  if($('cur-free'))$('cur-free').style.display=paid?'none':'block';
+  if($('cur-paid'))$('cur-paid').style.display=paid?'block':'none';
+  if($('plan-box-free'))$('plan-box-free').classList.toggle('current',!paid);
+  if($('plan-box-paid'))$('plan-box-paid').classList.toggle('current',paid);
+  if($('sub-cta'))$('sub-cta').textContent=paid?'구독 관리 (해지·변경)':'구독하고 모든 기능 이용하기';
   /* 상태 배지 */
   var el=$('adm-sub-info');if(!el)return;
   var diff=calcDday(sub.endDate);
@@ -1368,10 +1402,21 @@ function openSheet(){$('sheet-backdrop').classList.add('open');$('sheet').classL
 function closeSheet(){$('sheet-backdrop').classList.remove('open');$('sheet').classList.remove('open');}
 function addComposeMedia(input){
   if(!input.files.length)return;
+  var g=curg(), paid=_isPaidPlan(g);
+  var photos=_photoCount(g)+_csrcs.filter(function(m){return m.type!=='video';}).length;
+  var vbytes=_videoBytes(g)+_csrcs.filter(function(m){return m.type==='video';}).reduce(function(s,m){return s+(m.size||0);},0);
   Array.from(input.files).forEach(function(f){
-    if(f.size>524288000){toast(f.name+' 500MB 초과');return;}
+    var isVideo=f.type.indexOf('video')===0;
+    if(isVideo){
+      if(!paid){openUpgradePopup('video');return;}
+      if(vbytes+f.size>VIDEO_MAX_BYTES){toast('동영상은 추모관당 총 200MB까지 등록할 수 있습니다. (현재 '+Math.round(vbytes/1000000)+'MB)');return;}
+      vbytes+=f.size;
+    } else {
+      if(!paid&&photos>=FREE_MAX_PHOTOS){openUpgradePopup('photo');return;}
+      photos++;
+    }
     var objUrl=URL.createObjectURL(f);
-    _csrcs.push({file:f,src:objUrl,type:f.type.startsWith('video')?'video':'image',name:f.name});
+    _csrcs.push({file:f,src:objUrl,type:isVideo?'video':'image',name:f.name,size:f.size});
     renderCPrev();
   }); input.value='';
 }
@@ -1594,7 +1639,15 @@ function renderStats(){
 /* ══════════════════════
    라이트박스
 ══════════════════════ */
-function showUpgradePopup(){$('upgrade-popup-backdrop').style.display='flex';}
+function openUpgradePopup(reason){
+  var msg='무료 플랜에서는 제한된 기능입니다.';
+  if(reason==='video')msg='동영상 등록은 <b>월/연 구독</b>에서 이용할 수 있습니다.<br>(추모관당 동영상 총 200MB · 용량 내 무제한)';
+  else if(reason==='photo')msg='무료 플랜은 사진 최대 <b>'+FREE_MAX_PHOTOS+'장</b>까지 등록할 수 있습니다.<br><b>구독</b>하면 사진을 무제한으로 등록할 수 있습니다.';
+  else if(reason==='bio')msg='약력·소개 <b>1,000자</b>는 월/연 구독에서 이용할 수 있습니다.';
+  var el=$('upg-msg');if(el)el.innerHTML=msg;
+  $('upgrade-popup-backdrop').style.display='flex';
+}
+function showUpgradePopup(){openUpgradePopup();}
 function closeUpgradePopup(){$('upgrade-popup-backdrop').style.display='none';}
 
 function lbShow(src,type){$('lb-content').innerHTML=type==='video'?'<video src="'+src+'" controls autoplay playsinline></video>':'<img src="'+src+'" alt="">';$('lightbox').classList.add('open');}
@@ -1664,10 +1717,17 @@ function closeEditSheet(){
 }
 function addEditMedia(input){
   if(!input.files.length)return;
+  var g=curg(), paid=_isPaidPlan(g);
+  var vbytes=_videoBytes(g)+_editMediaSrcs.filter(function(m){return m.type==='video'&&m.file;}).reduce(function(s,m){return s+(m.size||0);},0);
   Array.from(input.files).forEach(function(f){
-    if(f.size>524288000){toast(f.name+' 500MB 초과');return;}
+    var isVideo=f.type.indexOf('video')===0;
+    if(isVideo){
+      if(!paid){openUpgradePopup('video');return;}
+      if(vbytes+f.size>VIDEO_MAX_BYTES){toast('동영상은 추모관당 총 200MB까지 등록할 수 있습니다. (현재 '+Math.round(vbytes/1000000)+'MB)');return;}
+      vbytes+=f.size;
+    }
     var objUrl=URL.createObjectURL(f);
-    _editMediaSrcs.push({file:f,src:objUrl,type:f.type.startsWith('video')?'video':'image',name:f.name});
+    _editMediaSrcs.push({file:f,src:objUrl,type:isVideo?'video':'image',name:f.name,size:f.size});
     renderEditPrev();
   });
   input.value='';
