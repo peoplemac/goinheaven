@@ -706,16 +706,36 @@ function _refreshPanel(){
   if(ap.id==='dp-overview')renderOverview(true);
   else if(ap.id==='dp-memorials')renderMemorials(true);
 }
+/* ── 실시간 연동 (onSnapshot) — 공원/본사 개설·삭제·수정 즉시 반영 ── */
+var _realtimeActive=false, _groupsUnsub=null, _rtParksMap={};
+function _rtApplyParkNames(){db.groups.forEach(function(g){if(g.parkId)g.parkName=_rtParksMap[g.parkId]||g.parkName||g.parkId;});}
+function _refreshPanelRT(){ if(document.querySelector('.mg-body.open'))return; /* 편집 중이면 보류 */ _refreshPanel(); }
+function _startRealtimeSync(){
+  if(!_fbReady||_groupsUnsub)return;
+  _realtimeActive=true;
+  var fs=firebase.firestore();
+  fs.collection('parks').onSnapshot(function(ps){
+    _rtParksMap={}; ps.forEach(function(d){_rtParksMap[d.id]=(d.data().name)||d.id;});
+    _rtApplyParkNames(); _refreshPanelRT();
+  },function(){});
+  _groupsUnsub=fs.collection('groups').onSnapshot(function(snap){
+    var gs=[];
+    snap.forEach(function(d){
+      var g=d.data(); if(g.deleted)return;
+      if(g.parkId)g.parkName=_rtParksMap[g.parkId]||g.parkName||g.parkId;
+      var prev=db.groups.find(function(x){return x.id===g.id;});
+      g.posts=(prev&&prev.posts)||g.posts||[];
+      gs.push(g);
+    });
+    db.groups=gs; _refreshPanelRT();
+  },function(){});
+}
 function loadDB(){
-  try{var r=localStorage.getItem(DB_KEY);if(r){var d=JSON.parse(r);db.groups=d.groups||[];}}
-  catch(e){db={groups:[]};}
-  if(_fbReady&&!_fbLoading){
-    _fbLoading=true;
-    _fbLoad().then(function(ok){
-      _fbLoading=false;
-      if(ok)_refreshPanel();
-    }).catch(function(){_fbLoading=false;});
+  if(!_realtimeActive){
+    try{var r=localStorage.getItem(DB_KEY);if(r){var d=JSON.parse(r);db.groups=d.groups||[];}}
+    catch(e){db={groups:[]};}
   }
+  if(_fbReady)_startRealtimeSync();
 }
 function saveDB(){
   try{
