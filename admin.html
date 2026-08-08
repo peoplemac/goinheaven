@@ -249,6 +249,7 @@ label{font-size:13px;color:var(--mid);display:block;margin-bottom:5px}
 .park-body.open{display:block}
 .park-badge{display:inline-block;font-size:10px;font-weight:700;padding:1px 6px;
   border-radius:8px;background:#eef4ff;color:#2a5bd7;margin-left:5px;vertical-align:middle}
+.park-badge.hq{background:#f0efec;color:#8a8178}
 
 /* 이메일 도메인 드롭다운 */
 .email-dd{display:none;position:fixed;z-index:10000;background:var(--white);
@@ -819,7 +820,7 @@ function buildOvRow(g){
   var smsBtnHtml=ct.phone
     ?'<button class="sms-quick-btn" onclick="event.stopPropagation();_quickSms(\''+g.id+'\')">💬 문자</button>'
     :'';
-  var ovParkBadge=g.parkId?'&nbsp;<span class="park-badge">🏛 '+esc(g.parkName||g.parkId)+'</span>':'';
+  var ovParkBadge=g.parkId?'&nbsp;<span class="park-badge">🏛 '+esc(g.parkName||g.parkId)+'</span>':'&nbsp;<span class="park-badge hq">🏢 본사 직접</span>';
   row.innerHTML='<div>'
     +'<div class="ov-row-name ov-row-link" onclick="goToMemorial(\''+g.id+'\')">'+namesHtml+ovParkBadge+'</div>'
     +(ct.phone?'<div class="ov-row-sub">'+(ct.name?esc(ct.name)+' · ':'')+esc(ct.phone)+smsBtnHtml+'</div>':'')
@@ -1089,7 +1090,7 @@ function buildMgCard(g){
   av.style.cursor='pointer';
   (function(gid,pw){av.addEventListener('click',function(e){e.stopPropagation();openMemorialDirect(gid,pw);});})(g.id,g.pw);
   var info=document.createElement('div'); info.className='mg-info';
-  var parkBadge=g.parkId?'<span class="park-badge">🏛 '+esc(g.parkName||g.parkId)+'</span>':'';
+  var parkBadge=g.parkId?'<span class="park-badge">🏛 '+esc(g.parkName||g.parkId)+'</span>':'<span class="park-badge hq">🏢 본사 직접</span>';
   info.innerHTML='<div class="mg-name">'+esc(names)+parkBadge+badgeHtml(sub.status,sub.endDate)+'</div>'
     +'<div class="mg-contact">'+(ct.name?esc(ct.name)+' · ':'')+(ct.phone?'📞 '+esc(ct.phone):'<span style="color:var(--ash)">연락처 미등록</span>')+'</div>';
   var arr=document.createElement('span'); arr.className='mg-arr'; arr.textContent='›';

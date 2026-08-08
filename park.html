@@ -433,7 +433,7 @@ async function loadDashboard(){
       _memorials=snap.docs.map(function(d){return d.data();}).filter(function(g){return !g.deleted;});
     } else {
       snap=await _fs.collection('groups').where('parkId','==',pid).get();
-      _memorials=snap.docs.map(function(d){return d.data();});
+      _memorials=snap.docs.map(function(d){return d.data();}).filter(function(g){return !g.deleted;});
     }
     _memorials.sort(function(a,b){return (b.createdAt||0)-(a.createdAt||0);});
   }catch(e){_memorials=[];}

@@ -22,6 +22,13 @@ body{min-height:100vh;background:var(--ivory);color:var(--deep);
 .hero-icon{font-size:38px;margin-bottom:.5rem}
 .hero-name{font-size:20px;font-weight:600}
 .hero-sub{font-size:13px;color:var(--ash);margin-top:.35rem}
+.sub-benefits{background:linear-gradient(145deg,#fffdf9,#fbf7ef);border:1px solid var(--stone);border-radius:16px;padding:1.1rem 1rem;margin-bottom:1.4rem}
+.sb-title{font-size:13px;font-weight:700;color:var(--warm);text-align:center;letter-spacing:.04em;margin-bottom:.9rem}
+.sb-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px 6px}
+.sb-item{display:flex;flex-direction:column;align-items:center;gap:5px;text-align:center;font-size:11.5px;color:var(--mid);line-height:1.35}
+.sb-item .sb-ic{font-size:22px}
+.sb-item b{color:var(--deep);font-weight:700}
+@media(max-width:360px){.sb-grid{gap:8px 4px}.sb-item{font-size:11px}}
 .label{font-size:12px;color:var(--warm);font-weight:600;letter-spacing:.03em;margin:1.4rem 0 .6rem}
 .plans{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .plan{border:2px solid var(--stone);background:var(--white);border-radius:14px;padding:1.1rem .75rem;text-align:center;cursor:pointer;transition:border-color .15s,background .15s}
@@ -60,6 +67,18 @@ body{min-height:100vh;background:var(--ivory);color:var(--deep);
     <div class="hero-icon">🕯</div>
     <div class="hero-name" id="mem-name">추모관</div>
     <div class="hero-sub">구독하고 추모관을 계속 유지하세요</div>
+  </div>
+
+  <div class="sub-benefits">
+    <div class="sb-title">✦ 구독하면 누리는 혜택</div>
+    <div class="sb-grid">
+      <div class="sb-item"><span class="sb-ic">🖼️</span><span>사진 <b>무제한</b></span></div>
+      <div class="sb-item"><span class="sb-ic">🎬</span><span>동영상 <b>총 200MB</b></span></div>
+      <div class="sb-item"><span class="sb-ic">📝</span><span>약력 <b>1,000자</b></span></div>
+      <div class="sb-item"><span class="sb-ic">✦</span><span><b>AI로 대화</b></span></div>
+      <div class="sb-item"><span class="sb-ic">📊</span><span>방문 <b>통계</b></span></div>
+      <div class="sb-item"><span class="sb-ic">♾️</span><span>추모관 <b>계속 유지</b></span></div>
+    </div>
   </div>
 
   <div class="label">구독 플랜 선택</div>
