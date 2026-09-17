@@ -337,8 +337,8 @@ exports.cancelSubscription = functions
       let authed = false;
       if (adminPw && g.adminPw && adminPw === g.adminPw) authed = true;
       if (!authed && superPw) {
-        const s = await db.collection('settings').doc('superAdmin').get();
-        if (s.exists && s.data().pw === superPw) authed = true;
+        const r = await _verifySuperAdmin(db, null, superPw);
+        if (r.ok) authed = true;
       }
       if (!authed) { res.status(403).json({ success: false, message: '비밀번호가 일치하지 않습니다.' }); return; }
 
@@ -357,6 +357,89 @@ exports.cancelSubscription = functions
       res.status(200).json({ success: true, endDate: sub.endDate || null });
     } catch (e) {
       res.status(500).json({ success: false, message: '오류: ' + e.message });
+    }
+  });
+
+/* ── 슈퍼관리자 인증 (서버 전용, 비밀번호 해시 저장) ── */
+function _hashSuperPw(pw, salt) {
+  return crypto.pbkdf2Sync(String(pw), String(salt), 100000, 32, 'sha256').toString('hex');
+}
+/* settings/superAdmin 자격 검증. id를 주면 일치해야 함(null이면 pw만 검사).
+   레거시 평문(pw 필드)은 검증 성공 시 해시(pwHash/pwSalt)로 마이그레이션하고 pw 제거. */
+async function _verifySuperAdmin(db, id, pw) {
+  const ref = db.collection('settings').doc('superAdmin');
+  const snap = await ref.get();
+  if (!snap.exists) return { ok: false };
+  const d = snap.data() || {};
+  if (id != null && d.id !== id) return { ok: false };
+  if (d.pwHash && d.pwSalt) {
+    return { ok: _hashSuperPw(pw, d.pwSalt) === d.pwHash };
+  }
+  if (typeof d.pw === 'string') {
+    const ok = d.pw === String(pw);
+    if (ok) {
+      const salt = crypto.randomBytes(16).toString('hex');
+      await ref.set({
+        pwHash: _hashSuperPw(pw, salt), pwSalt: salt,
+        pw: admin.firestore.FieldValue.delete(),
+      }, { merge: true });
+    }
+    return { ok };
+  }
+  return { ok: false };
+}
+
+/* 슈퍼관리자 로그인 검증 — 비밀번호는 클라이언트에 노출되지 않음 */
+exports.verifySuperAdmin = functions
+  .region('asia-northeast3')
+  .https.onRequest(async (req, res) => {
+    res.set('Access-Control-Allow-Origin', '*');
+    res.set('Access-Control-Allow-Methods', 'POST, OPTIONS');
+    res.set('Access-Control-Allow-Headers', 'Content-Type');
+    if (req.method === 'OPTIONS') { res.status(204).send(''); return; }
+    if (req.method !== 'POST') { res.status(405).json({ ok: false }); return; }
+    try {
+      const { id, pw } = req.body || {};
+      if (!id || !pw) { res.status(400).json({ ok: false }); return; }
+      const r = await _verifySuperAdmin(admin.firestore(), id, pw);
+      res.status(200).json({ ok: !!r.ok });
+    } catch (e) {
+      res.status(500).json({ ok: false, message: e.message });
+    }
+  });
+
+/* 슈퍼관리자 ID/비밀번호 변경 — 현재 비밀번호 검증 후 해시로 저장 */
+exports.setSuperAdmin = functions
+  .region('asia-northeast3')
+  .https.onRequest(async (req, res) => {
+    res.set('Access-Control-Allow-Origin', '*');
+    res.set('Access-Control-Allow-Methods', 'POST, OPTIONS');
+    res.set('Access-Control-Allow-Headers', 'Content-Type');
+    if (req.method === 'OPTIONS') { res.status(204).send(''); return; }
+    if (req.method !== 'POST') { res.status(405).json({ ok: false }); return; }
+    try {
+      const { currentId, currentPw, newId, newPw } = req.body || {};
+      if (!currentPw) { res.status(400).json({ ok: false, message: '현재 비밀번호가 필요합니다.' }); return; }
+      const db = admin.firestore();
+      const ref = db.collection('settings').doc('superAdmin');
+      const snap = await ref.get();
+      if (!snap.exists) { res.status(404).json({ ok: false, message: '초기화되지 않았습니다.' }); return; }
+      const d = snap.data() || {};
+      const chk = await _verifySuperAdmin(db, (currentId != null ? currentId : d.id), currentPw);
+      if (!chk.ok) { res.status(403).json({ ok: false, message: '현재 비밀번호가 올바르지 않습니다.' }); return; }
+      const finalId = (newId && String(newId).trim()) || d.id;
+      const update = { id: finalId };
+      if (newPw) {
+        if (String(newPw).length < 4) { res.status(400).json({ ok: false, message: '새 비밀번호는 4자 이상이어야 합니다.' }); return; }
+        const salt = crypto.randomBytes(16).toString('hex');
+        update.pwHash = _hashSuperPw(newPw, salt);
+        update.pwSalt = salt;
+        update.pw = admin.firestore.FieldValue.delete();
+      }
+      await ref.set(update, { merge: true });
+      res.status(200).json({ ok: true, id: finalId });
+    } catch (e) {
+      res.status(500).json({ ok: false, message: e.message });
     }
   });
 

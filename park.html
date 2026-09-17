@@ -374,6 +374,7 @@ var _curPw=null;
 var _curContact={};
 var _isAdmin=false;
 var SOLAPI_FN_URL='https://asia-northeast3-goinheaven-90c3e.cloudfunctions.net/sendSolapiSms';
+var VERIFY_FN_URL='https://asia-northeast3-goinheaven-90c3e.cloudfunctions.net/verifySuperAdmin';
 
 /* ── Firebase 초기화 ── */
 (function(){
@@ -437,6 +438,18 @@ async function initLogin(){
   btn.disabled=false; btn.textContent='로그인';
 }
 
+/* ── 슈퍼관리자 인증 (서버 함수 우선, 전환기에만 Firestore 평문 폴백) ── */
+async function verifySuperAdmin(id, pw){
+  try{
+    var r=await fetch(VERIFY_FN_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:id,pw:pw})});
+    if(r.ok){ var j=await r.json(); return !!j.ok; }
+  }catch(e){}
+  try{
+    if(_fs){ var s=await _fs.collection('settings').doc('superAdmin').get(); if(s.exists){var d=s.data()||{};if(typeof d.pw==='string')return (d.id===id && d.pw===pw);} }
+  }catch(e){}
+  return false;
+}
+
 /* ── 로그인 ── */
 async function submitLogin(){
   var pid=$('l-pid').value.trim();
@@ -454,9 +467,9 @@ async function submitLogin(){
       sessionStorage.setItem('park_sess',JSON.stringify(_parkData));
       loadDashboard();
     } else {
-      /* ② 슈퍼 관리자 로그인 (Firestore settings/superAdmin) */
-      var admSnap=await _fs.collection('settings').doc('superAdmin').get();
-      if(admSnap.exists&&admSnap.data().id===pid&&admSnap.data().pw===pw){
+      /* ② 슈퍼 관리자 로그인 (서버 검증 — 비밀번호 미노출) */
+      var isSuper=await verifySuperAdmin(pid,pw);
+      if(isSuper){
         _isAdmin=true;
         _parkData={parkId:'__admin__',name:'슈퍼 관리자',_isAdmin:true};
         sessionStorage.setItem('park_sess',JSON.stringify(_parkData));

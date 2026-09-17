@@ -820,34 +820,31 @@ function showScreen(id){
   $(id).classList.add('active');
 }
 
+/* ── 슈퍼관리자 인증 (서버 함수 우선, 전환기에만 Firestore 평문 폴백) ── */
+async function verifySuperAdmin(id, pw){
+  try{
+    var r=await fetch(VERIFY_FN_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:id,pw:pw})});
+    if(r.ok){ var j=await r.json(); return !!j.ok; }
+  }catch(e){}
+  /* 함수 미배포 시 전환기 폴백: Firestore 평문 대조(코드 기본값은 신뢰하지 않음). 규칙 적용 후엔 자동 비활성. */
+  try{
+    if(_fbReady){
+      var s=await firebase.firestore().collection('settings').doc('superAdmin').get();
+      if(s.exists){ var d=s.data()||{}; if(typeof d.pw==='string') return (d.id===id && d.pw===pw); }
+    }
+  }catch(e){}
+  return false;
+}
+
 /* ── 로그인 ── */
 async function submitLogin(){
   loadSvcAdm();
   var id=$('l-id').value.trim(), pw=$('l-pw').value;
-  var ok=false;
-  /* Firestore settings/superAdmin(기기와 무관한 실제 자격증명)을 우선 검증한다.
-     기록이 있으면 코드 기본값(admin1234)은 무시 → 비밀번호 변경이 모든 기기에 즉시 적용.
-     기록이 없거나 오프라인이면 로컬 값으로 폴백(최초 설정용). */
-  if(_fbReady){
-    try{
-      var snap=await firebase.firestore().collection('settings').doc('superAdmin').get();
-      if(snap.exists){
-        var d=snap.data()||{};
-        ok=(id===d.id && pw===d.pw);
-        if(ok){ svcAdm.id=d.id; svcAdm.pw=d.pw; saveSvcAdm(); }
-      } else {
-        ok=(id===svcAdm.id && pw===svcAdm.pw);
-      }
-    }catch(e){
-      ok=(id===svcAdm.id && pw===svcAdm.pw);
-    }
-  } else {
-    ok=(id===svcAdm.id && pw===svcAdm.pw);
-  }
+  var ok=await verifySuperAdmin(id, pw);
   if(ok){
+    svcAdm.id=id; svcAdm.pw=pw; saveSvcAdm();  /* 로컬 저장(해지 요청 superPw용, 본인 기기 한정) */
     $('l-err').style.display='none';
     sessionStorage.setItem('adm_sess','1');
-    _syncSuperAdmin();
     loadDB();
     showScreen('s-dash');
     switchTab('overview');
@@ -1629,6 +1626,8 @@ function copySmsInfo(){
 /* ── 설정 ── */
 var SOLAPI_FN_URL='https://asia-northeast3-goinheaven-90c3e.cloudfunctions.net/sendSolapiSms';
 var CANCEL_FN_URL='https://asia-northeast3-goinheaven-90c3e.cloudfunctions.net/cancelSubscription';
+var VERIFY_FN_URL='https://asia-northeast3-goinheaven-90c3e.cloudfunctions.net/verifySuperAdmin';
+var SETADMIN_FN_URL='https://asia-northeast3-goinheaven-90c3e.cloudfunctions.net/setSuperAdmin';
 
 function renderSettings(){
   loadSvcAdm();
@@ -1690,26 +1689,34 @@ async function backupDownload(){
     st.style.color='#c0392b'; st.textContent='⚠ 오류: '+e.message;
   }
 }
-function _syncSuperAdmin(){
-  if(!_fbReady)return;
-  firebase.firestore().collection('settings').doc('superAdmin').set({
-    id:svcAdm.id, pw:svcAdm.pw
-  }).catch(function(){});
-}
-function saveAccount(){
+function _syncSuperAdmin(){ /* 서버가 settings/superAdmin을 소유 — 클라이언트 직접 쓰기 제거됨 */ }
+async function saveAccount(){
   var n=$('set-name').value.trim(), id=$('set-id').value.trim();
   if(!n||!id)return toast('이름과 ID를 입력해 주세요.');
-  svcAdm.name=n; svcAdm.id=id; saveSvcAdm(); _syncSuperAdmin(); toast('저장되었습니다.');
+  svcAdm.name=n;
+  if(id===svcAdm.id){ saveSvcAdm(); return toast('저장되었습니다.'); }
+  /* 로그인 ID 변경은 서버에서 현재 비밀번호로 검증 */
+  try{
+    var r=await fetch(SETADMIN_FN_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({currentId:svcAdm.id,currentPw:svcAdm.pw,newId:id})});
+    var j=await r.json();
+    if(!j.ok){ saveSvcAdm(); return toast(j.message||'ID 변경 실패'); }
+    svcAdm.id=id; saveSvcAdm(); toast('저장되었습니다.');
+  }catch(e){ saveSvcAdm(); toast('서버 오류: 함수 배포를 확인하세요.'); }
 }
-function changePw(){
+async function changePw(){
   loadSvcAdm();
   var cur=$('set-cur-pw').value, nw=$('set-new-pw').value, nw2=$('set-new-pw2').value;
-  if(cur!==svcAdm.pw)return toast('현재 비밀번호가 틀렸습니다.');
+  if(!cur)return toast('현재 비밀번호를 입력해 주세요.');
   if(!nw||nw.length<4)return toast('새 비밀번호 4자 이상 입력해 주세요.');
   if(nw!==nw2)return toast('비밀번호가 일치하지 않습니다.');
-  svcAdm.pw=nw; saveSvcAdm(); _syncSuperAdmin();
-  $('set-cur-pw').value=''; $('set-new-pw').value=''; $('set-new-pw2').value='';
-  toast('비밀번호가 변경되었습니다.');
+  try{
+    var r=await fetch(SETADMIN_FN_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({currentId:svcAdm.id,currentPw:cur,newPw:nw})});
+    var j=await r.json();
+    if(!j.ok)return toast(j.message||'변경 실패: 현재 비밀번호를 확인하세요.');
+    svcAdm.pw=nw; saveSvcAdm();
+    $('set-cur-pw').value=''; $('set-new-pw').value=''; $('set-new-pw2').value='';
+    toast('비밀번호가 변경되었습니다.');
+  }catch(e){ toast('서버 오류: 함수 배포를 확인하세요.'); }
 }
 
 /* ── 추모공원 관리 ── */
