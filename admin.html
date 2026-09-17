@@ -841,7 +841,7 @@ function buildOvRow(g){
   var smsBtnHtml=ct.phone
     ?'<button class="sms-quick-btn" onclick="event.stopPropagation();_quickSms(\''+g.id+'\')">💬 문자</button>'
     :'';
-  var ovParkBadge=g.parkId?'&nbsp;<span class="park-badge">🏛 '+esc(g.parkName||g.parkId)+'</span>':'&nbsp;<span class="park-badge hq">🏢 본사 직접</span>';
+  var ovParkBadge=(g.parkId||g.parkName)?'&nbsp;<span class="park-badge">🏛 '+esc(g.parkName||g.parkId)+'</span>':'&nbsp;<span class="park-badge hq">🏢 본사 직접</span>';
   row.innerHTML='<div>'
     +'<div class="ov-row-name ov-row-link" onclick="goToMemorial(\''+g.id+'\')">'+namesHtml+ovParkBadge+'</div>'
     +(ct.phone?'<div class="ov-row-sub">'+(ct.name?esc(ct.name)+' · ':'')+esc(ct.phone)+smsBtnHtml+'</div>':'')
@@ -1111,7 +1111,7 @@ function buildMgCard(g){
   av.style.cursor='pointer';
   (function(gid,pw){av.addEventListener('click',function(e){e.stopPropagation();openMemorialDirect(gid,pw);});})(g.id,g.pw);
   var info=document.createElement('div'); info.className='mg-info';
-  var parkBadge=g.parkId?'<span class="park-badge">🏛 '+esc(g.parkName||g.parkId)+'</span>':'<span class="park-badge hq">🏢 본사 직접</span>';
+  var parkBadge=(g.parkId||g.parkName)?'<span class="park-badge">🏛 '+esc(g.parkName||g.parkId)+'</span>':'<span class="park-badge hq">🏢 본사 직접</span>';
   info.innerHTML='<div class="mg-name">'+esc(names)+parkBadge+badgeHtml(sub.status,sub.endDate)+'</div>'
     +'<div class="mg-contact">'+(ct.name?esc(ct.name)+' · ':'')+(ct.phone?'📞 '+esc(ct.phone):'<span style="color:var(--ash)">연락처 미등록</span>')+'</div>';
   var arr=document.createElement('span'); arr.className='mg-arr'; arr.textContent='›';

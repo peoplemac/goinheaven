@@ -359,7 +359,12 @@ window.addEventListener('load',function(){
     try{
       _parkData=JSON.parse(sess);
       _isAdmin=!!(_parkData._isAdmin);
-      loadDashboard();
+      if(!_isAdmin && !(_parkData.parkId&&String(_parkData.parkId).trim())){
+        /* 구버전에서 parkId 없이 저장된 세션 → 재로그인 유도(신규 등록 시 parkId 누락 방지) */
+        sessionStorage.removeItem('park_sess');initLogin();
+      } else {
+        loadDashboard();
+      }
     }catch(e){sessionStorage.removeItem('park_sess');initLogin();}
   } else {
     initLogin();
@@ -429,12 +434,29 @@ function loadDashboard(){
   if(!_fs){$('mem-list').innerHTML='<div class="empty-msg">서버 연결 오류</div>';return;}
   /* 실시간 연동: 개설·삭제가 즉시 반영됨 */
   if(_dashUnsub){_dashUnsub();_dashUnsub=null;}
+  if(!_isAdmin&&pid)_healOrphanParkId(pid);
   var q=_isAdmin?_fs.collection('groups'):_fs.collection('groups').where('parkId','==',pid);
   _dashUnsub=q.onSnapshot(function(snap){
     _memorials=snap.docs.map(function(d){return d.data();}).filter(function(g){return !g.deleted;});
     _memorials.sort(function(a,b){return (b.createdAt||0)-(a.createdAt||0);});
     if(_parkData)renderDashboard();
   },function(e){_memorials=[];if(_parkData)renderDashboard();});
+}
+
+/* 과거 구버전에서 parkId 없이 저장돼 admin '본사 직접'으로 뜨고 대시보드에 안 잡히던
+   우리 공원 추모관을 공원명(parkName)으로 찾아 parkId를 복구한다(빈 값만 채움). */
+function _healOrphanParkId(pid){
+  var pname=(_parkData.name||'').trim();
+  if(!pname||!_fs)return;
+  _fs.collection('groups').where('parkName','==',pname).get().then(function(snap){
+    snap.forEach(function(d){
+      var g=d.data();
+      if(g.deleted)return;
+      if(!g.parkId||String(g.parkId).trim()===''){
+        d.ref.update({parkId:pid}).catch(function(){});
+      }
+    });
+  }).catch(function(){});
 }
 
 function renderDashboard(){
@@ -503,17 +525,21 @@ async function saveCreate(){
   if(!pw||pw.length<4){errEl.textContent='입장 비밀번호를 4자 이상 입력해 주세요.';return;}
   if(pw!==pw2){errEl.textContent='비밀번호가 일치하지 않습니다.';return;}
   if(!_fs){errEl.textContent='서버 연결 오류입니다.';return;}
+  if(!_isAdmin && !(_parkData&&_parkData.parkId&&String(_parkData.parkId).trim())){
+    errEl.textContent='세션이 만료되었습니다. 다시 로그인한 뒤 개설해 주세요.';return;
+  }
   var btn=$('c-save-btn');btn.disabled=true;btn.textContent='개설 중…';
   try{
     var gid=uid();
     var mkey=genKey();
     var portraitUrl=null;
+    var photoFailed=false;
     if(_p1File){
       try{
         var ref=firebase.storage().ref('portraits/'+gid+'_1_'+Date.now());
         await ref.put(_p1File);
         portraitUrl=await ref.getDownloadURL();
-      }catch(e){/* 사진 업로드 실패 시 계속 진행 */}
+      }catch(e){photoFailed=true;}
     }
     var apw=$('c-apw').value;
     var contact={name:$('c-cname').value.trim(),phone:$('c-cphone').value.trim()};
@@ -533,6 +559,7 @@ async function saveCreate(){
     _memorials.unshift({id:gid,pw:pw,adminPw:apw,managementKey:mkey,
       parkId:_parkData.parkId,members:[member],visits:0,contact:contact,createdAt:Date.now()});
     showResult(gid,mkey,pw,name,contact,true);
+    if(photoFailed)toast('사진 업로드에 실패하여 사진 없이 개설되었습니다. 잠시 후 다시 등록해 주세요.');
   }catch(e){
     errEl.textContent='개설 중 오류가 발생했습니다: '+e.message;
   }
