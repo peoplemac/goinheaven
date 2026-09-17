@@ -1020,6 +1020,17 @@ async function _fbSave(){
   }
 }
 
+/* 방문수 기록: 문서 전체를 다시 쓰지 않고 원자적 증가(FieldValue.increment).
+   동시 방문 시 경쟁/누락 없이 정확하고, 인기 추모관의 문서 쓰기 병목·사진/parkId 덮어쓰기도 방지. */
+function _recordVisit(gid){
+  if(!_fbReady||!gid)return;
+  try{
+    firebase.firestore().collection('groups').doc(gid)
+      .update({visits: firebase.firestore.FieldValue.increment(1)})
+      .catch(function(){});
+  }catch(e){}
+}
+
 /* localStorage 에만 저장 (캐시용) */
 function _localSave(){
   try{
@@ -1099,7 +1110,7 @@ window.addEventListener('load',function(){
 
   function _tryMKey(g){
     if(!mkey||!g.managementKey||mkey!==g.managementKey)return false;
-    curGid=g.id; g.visits++; saveDB();
+    curGid=g.id; g.visits++; _recordVisit(g.id);
     openMemorial(); _adminAuthed=true;
     if(_fbReady)_fbLoad().catch(function(){});
     return true;
@@ -1114,7 +1125,7 @@ window.addEventListener('load',function(){
       localStorage.removeItem('adm_bypass');
       var _bp=_bypass.split('|');
       if(_bp.length>=3&&_bp[0]===gid&&(Date.now()-parseInt(_bp[2]))<15000&&hasLocal.pw===_bp[1]){
-        curGid=gid; hasLocal.visits++; saveDB();
+        curGid=gid; hasLocal.visits++; _recordVisit(gid);
         openMemorial(); _adminAuthed=true;
         if(_fbReady)_fbLoad().catch(function(){});
         return;
@@ -1281,7 +1292,7 @@ function enterMemorial(){
   var g=curg(); if(!g)return;
   if($('lv-pw').value===g.pw){
     $('lv-err').style.display='none'; $('lv-pw').value='';
-    g.visits++; saveDB(); openMemorial();
+    g.visits++; _recordVisit(g.id); openMemorial();
   } else { $('lv-err').style.display='block'; $('lv-pw').select(); }
 }
 
