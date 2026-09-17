@@ -1,0 +1,23 @@
+name: Deploy to Firebase Hosting
+
+# main 브랜치에 푸시되면 goinheaven.kr(Firebase Hosting)에 자동 배포.
+# 호스팅만 배포하며 Cloud Functions는 건드리지 않는다(함수는 Cloud Shell에서 수동 배포).
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Deploy to Firebase Hosting (live)
+        uses: FirebaseExtended/action-hosting-deploy@v0
+        with:
+          repoToken: ${{ secrets.GITHUB_TOKEN }}
+          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          projectId: goinheaven-90c3e
+          channelId: live
