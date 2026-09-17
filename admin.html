@@ -723,6 +723,7 @@ function _startRealtimeSync(){
     snap.forEach(function(d){
       var g=d.data(); if(g.deleted)return;
       if(g.parkId)g.parkName=_rtParksMap[g.parkId]||g.parkName||g.parkId;
+      g.members=(g.members||[]).map(function(m){m.portrait=m.portraitUrl||m.portrait||null;return m;});
       var prev=db.groups.find(function(x){return x.id===g.id;});
       g.posts=(prev&&prev.posts)||g.posts||[];
       gs.push(g);
