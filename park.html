@@ -13,7 +13,7 @@
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 :root{
   --ivory:#F8F5F0;--stone:#E8E3DB;--ash:#C4BDB4;
-  --deep:#3D3530;--mid:#6B5F58;--warm:#8B7355;
+  --deep:#3D3530;--mid:#5E534C;--warm:#8B7355;--soft:#6E6157;
   --gold:#B8965A;--gold2:#9a7a45;--white:#FFFFFF;
 }
 html{min-height:100%;background:#ddd8d0}
@@ -63,7 +63,7 @@ label{font-size:13px;color:var(--mid);display:block;margin-bottom:5px}
 /* 헤더 */
 .top-bar{background:var(--deep);color:#fff;padding:13px 16px;
   display:flex;align-items:center;gap:10px;position:sticky;top:0;z-index:100}
-.top-bar-logo{font-size:11px;letter-spacing:.08em;color:var(--gold);opacity:.85}
+.top-bar-logo{font-size:12.5px;letter-spacing:.08em;color:var(--gold);opacity:.85}
 .top-bar-name{font-size:15px;font-weight:500;flex:1;color:#fff}
 .top-bar-btn{font-size:12px;color:rgba(255,255,255,.5);background:none;
   border:1px solid rgba(255,255,255,.2);border-radius:5px;cursor:pointer;
@@ -75,7 +75,7 @@ label{font-size:13px;color:var(--mid);display:block;margin-bottom:5px}
 .stat-card{background:var(--white);border:1px solid var(--stone);border-radius:12px;
   padding:16px;text-align:center}
 .stat-n{font-size:28px;font-weight:300;color:var(--gold);line-height:1}
-.stat-l{font-size:11px;color:var(--ash);margin-top:5px}
+.stat-l{font-size:12.5px;color:var(--soft);margin-top:5px}
 
 /* 추모관 목록 */
 .mem-card{background:var(--white);border:1px solid var(--stone);border-radius:12px;
@@ -89,9 +89,9 @@ label{font-size:13px;color:var(--mid);display:block;margin-bottom:5px}
 .mem-avatar img{width:100%;height:100%;object-fit:cover}
 .mem-info{flex:1;min-width:0}
 .mem-name{font-size:14px;font-weight:600;color:var(--deep)}
-.mem-dates{font-size:11px;color:var(--ash);margin-top:2px}
-.mem-arr{font-size:18px;color:var(--ash);flex-shrink:0}
-.empty-msg{text-align:center;padding:3rem 1rem;color:var(--ash);font-size:14px;line-height:2}
+.mem-dates{font-size:12.5px;color:var(--soft);margin-top:2px}
+.mem-arr{font-size:18px;color:var(--soft);flex-shrink:0}
+.empty-msg{text-align:center;padding:3rem 1rem;color:var(--soft);font-size:14px;line-height:2}
 
 /* 섹션 타이틀 */
 .sec-title{font-size:13px;font-weight:600;color:var(--gold);letter-spacing:.06em;
@@ -101,7 +101,7 @@ label{font-size:13px;color:var(--mid);display:block;margin-bottom:5px}
 .create-content{padding:1rem}
 .portrait-upload{width:90px;height:90px;border-radius:50%;border:2px dashed var(--ash);
   cursor:pointer;display:flex;align-items:center;justify-content:center;
-  overflow:hidden;background:var(--stone);font-size:28px;color:var(--ash);
+  overflow:hidden;background:var(--stone);font-size:28px;color:var(--soft);
   margin:0 auto 1rem;transition:border-color .15s}
 .portrait-upload:active{border-color:var(--gold)}
 .portrait-upload img{width:100%;height:100%;object-fit:cover}
@@ -111,10 +111,10 @@ label{font-size:13px;color:var(--mid);display:block;margin-bottom:5px}
 .result-hero{text-align:center;padding:1.5rem 0 1rem}
 .result-icon{font-size:48px;margin-bottom:.5rem}
 .result-name{font-size:20px;font-weight:500;color:var(--deep);margin-bottom:.25rem}
-.result-sub{font-size:13px;color:var(--ash)}
+.result-sub{font-size:13px;color:var(--soft)}
 .result-card{background:var(--white);border:1px solid var(--stone);
   border-radius:14px;padding:1.25rem;margin-bottom:10px}
-.result-label{font-size:11px;font-weight:700;color:var(--gold);letter-spacing:.05em;margin-bottom:.5rem}
+.result-label{font-size:12.5px;font-weight:700;color:var(--gold);letter-spacing:.05em;margin-bottom:.5rem}
 .link-row{display:flex;align-items:center;gap:8px}
 .link-text{font-size:12px;color:var(--mid);flex:1;word-break:break-all;line-height:1.6}
 .copy-btn{flex-shrink:0;font-size:12px;background:var(--gold);color:#fff;border:none;
@@ -124,7 +124,7 @@ label{font-size:13px;color:var(--mid);display:block;margin-bottom:5px}
 .qr-box{background:#fff;border:1px solid var(--stone);border-radius:8px;
   padding:8px;display:inline-flex;align-items:center;justify-content:center}
 .qr-box canvas,.qr-box img{display:block}
-.print-note{font-size:11px;color:var(--ash);text-align:center;line-height:1.8}
+.print-note{font-size:12.5px;color:var(--soft);text-align:center;line-height:1.8}
 
 /* 인쇄 */
 @media print{
@@ -143,6 +143,37 @@ label{font-size:13px;color:var(--mid);display:block;margin-bottom:5px}
   border-radius:50px;font-size:13px;pointer-events:none;opacity:0;
   transition:opacity .25s;white-space:nowrap;z-index:9999}
 .toast.show{opacity:1}
+
+/* ── 가독성 리뉴얼: 글자 크기·대비 상향 ── */
+body{font-size:16px;line-height:1.6}
+.btn{font-size:15.5px}
+.btn-sm{font-size:14px}
+input,textarea{font-size:16px}
+label{font-size:14.5px;color:var(--mid);font-weight:500}
+.err-msg{font-size:13px}
+.login-logo{font-size:24px}
+.login-title{font-size:23px;font-weight:400}
+.login-sub{font-size:14px;color:rgba(255,255,255,.75);line-height:1.85}
+.login-box label{color:rgba(255,255,255,.82)}
+.login-err{font-size:13px}
+.top-bar{padding:15px 16px}
+.top-bar-logo{font-size:12px;opacity:1}
+.top-bar-name{font-size:18.5px;font-weight:600}
+.top-bar-btn{font-size:13.5px;color:rgba(255,255,255,.85);border-color:rgba(255,255,255,.4)}
+.stat-n{font-size:34px}
+.stat-l{font-size:13.5px;color:var(--soft);font-weight:600}
+.mem-avatar{font-size:19px}
+.mem-name{font-size:18.5px;font-weight:700}
+.mem-dates{font-size:14px;color:var(--soft);margin-top:3px}
+.mem-arr{font-size:24px;color:var(--warm)}
+.empty-msg{font-size:16px;color:var(--mid);line-height:2}
+.sec-title{font-size:15px}
+.result-name{font-size:24px}
+.result-sub{font-size:14.5px;color:var(--soft)}
+.result-label{font-size:12.5px}
+.link-text{font-size:14.5px;color:var(--deep)}
+.copy-btn{font-size:13.5px}
+.print-note{font-size:12.5px;color:var(--soft)}
 </style>
 </head>
 <body>
@@ -217,7 +248,7 @@ label{font-size:13px;color:var(--mid);display:block;margin-bottom:5px}
 
     <div class="sec-title">입장 비밀번호</div>
     <div class="fg">
-      <label>비밀번호 <span style="color:#c0392b">*</span> <span style="font-size:11px;color:var(--ash)">(유가족 공유용, 4자 이상)</span></label>
+      <label>비밀번호 <span style="color:#c0392b">*</span> <span style="font-size:12.5px;color:var(--soft)">(유가족 공유용, 4자 이상)</span></label>
       <input type="password" id="c-pw" placeholder="예: 0101" maxlength="20">
     </div>
     <div class="fg">
@@ -225,19 +256,19 @@ label{font-size:13px;color:var(--mid);display:block;margin-bottom:5px}
       <input type="password" id="c-pw2" placeholder="재입력" maxlength="20">
     </div>
 
-    <div class="sec-title">관리자 비밀번호 <span style="font-size:11px;font-weight:400;color:var(--ash)">(선택)</span></div>
+    <div class="sec-title">관리자 비밀번호 <span style="font-size:12.5px;font-weight:400;color:var(--soft)">(선택)</span></div>
     <div class="fg">
-      <label>관리자 비밀번호 <span style="font-size:11px;color:var(--ash)">(추모관 내부 설정 변경용, 비워두면 미설정)</span></label>
+      <label>관리자 비밀번호 <span style="font-size:12.5px;color:var(--soft)">(추모관 내부 설정 변경용, 비워두면 미설정)</span></label>
       <input type="password" id="c-apw" placeholder="예: admin1234" maxlength="20">
     </div>
 
-    <div class="sec-title">담당자 <span style="font-size:11px;font-weight:400;color:var(--ash)">(선택)</span></div>
+    <div class="sec-title">담당자 <span style="font-size:12.5px;font-weight:400;color:var(--soft)">(선택)</span></div>
     <div class="fg">
       <label>담당 유가족 이름</label>
       <input type="text" id="c-cname" placeholder="홍길순" maxlength="20">
     </div>
     <div class="fg">
-      <label>전화번호 <span style="font-size:11px;color:var(--ash)">(분실 복구 안내용)</span></label>
+      <label>전화번호 <span style="font-size:12.5px;color:var(--soft)">(분실 복구 안내용)</span></label>
       <input type="tel" id="c-cphone" placeholder="010-0000-0000">
     </div>
 
@@ -303,7 +334,7 @@ label{font-size:13px;color:var(--mid);display:block;margin-bottom:5px}
   <div class="print-title" id="print-name"></div>
   <div class="print-sub">사이버 추모관</div>
   <div id="print-qr"></div>
-  <div style="font-size:11px;color:#888;margin-top:8px">QR 코드로 추모관에 방문하세요</div>
+  <div style="font-size:12.5px;color:#888;margin-top:8px">QR 코드로 추모관에 방문하세요</div>
 </div>
 
 <div class="toast" id="toast"></div>
@@ -470,7 +501,7 @@ function renderDashboard(){
   }
   el.innerHTML=_memorials.map(function(g){
     var m=(g.members||[])[0]||{};
-    var parkTag=_isAdmin&&g.parkName?'<span style="font-size:10px;color:var(--ash);font-weight:400"> · '+g.parkName+'</span>':'';
+    var parkTag=_isAdmin&&g.parkName?'<span style="font-size:10px;color:var(--soft);font-weight:400"> · '+g.parkName+'</span>':'';
     return '<div class="mem-card"><div class="mem-card-head" onclick="openDetail(\''+g.id+'\')">'+
       '<div class="mem-avatar">'+(m.portraitUrl?'<img src="'+m.portraitUrl+'">':( (m.name||'?')[0]))+'</div>'+
       '<div class="mem-info">'+
