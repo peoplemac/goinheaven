@@ -17,7 +17,7 @@
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 :root{
   --ivory:#F8F5F0;--stone:#E8E3DB;--ash:#C4BDB4;
-  --deep:#3D3530;--mid:#6B5F58;--warm:#8B7355;
+  --deep:#3D3530;--mid:#5E534C;--warm:#8B7355;--soft:#6E6157;
   --gold:#B8965A;--gold2:#9a7a45;--white:#FFFFFF;
 }
 html{scroll-behavior:smooth}
@@ -74,13 +74,13 @@ section{padding:4rem 0}
 .plan{background:var(--white);border:1px solid var(--stone);border-radius:16px;padding:2rem 1.25rem;text-align:center;position:relative}
 .plan.feature{border:2px solid var(--gold);box-shadow:0 8px 28px rgba(184,150,90,.15)}
 .plan-badge{position:absolute;top:-12px;left:50%;transform:translateX(-50%);
-  background:var(--gold);color:#fff;font-size:11px;font-weight:700;padding:3px 12px;border-radius:20px}
+  background:var(--gold);color:#fff;font-size:12.5px;font-weight:700;padding:3px 12px;border-radius:20px}
 .plan-name{font-size:15px;font-weight:600;color:var(--warm);margin-bottom:.75rem}
 .plan-price{font-size:34px;font-weight:300;color:var(--deep);line-height:1}
-.plan-price small{font-size:15px;color:var(--ash)}
+.plan-price small{font-size:15px;color:var(--soft)}
 .plan-note{font-size:13px;color:var(--mid);margin-top:.85rem;line-height:1.8}
 @media(max-width:640px){.plans{grid-template-columns:1fr}}
-.pay-note{text-align:center;font-size:12px;color:var(--ash);margin-top:1.5rem;line-height:1.9}
+.pay-note{text-align:center;font-size:12px;color:var(--soft);margin-top:1.5rem;line-height:1.9}
 
 /* 고객센터 */
 .cs{background:var(--white);border:1px solid var(--stone);border-radius:16px;
@@ -110,6 +110,18 @@ footer{background:var(--deep);color:rgba(255,255,255,.7);font-size:12px;line-hei
 .foot-links a{color:rgba(255,255,255,.85);border-bottom:1px solid rgba(255,255,255,.25);padding-bottom:1px}
 .foot-copy{margin-top:1.5rem;color:rgba(255,255,255,.4)}
 @media(max-width:640px){.foot-info{grid-template-columns:1fr}}
+
+/* ── 가독성 리뉴얼: 글자 크기·대비 상향 ── */
+body{font-size:16px}
+.hero-tag{font-size:14px}
+.hero-sub{font-size:15.5px;color:rgba(255,255,255,.78);line-height:2}
+.sec-tag{font-size:13px}
+.step-d{font-size:14.5px;color:var(--mid);line-height:1.85}
+.plan-note{font-size:14px;color:var(--mid)}
+.pay-note{font-size:13px;color:var(--soft)}
+.policy-body{font-size:14px;color:var(--mid)}
+.policy-body h4{font-size:14.5px}
+footer{font-size:13.5px;color:rgba(255,255,255,.82)}
 </style>
 </head>
 <body>
@@ -203,7 +215,7 @@ footer{background:var(--deep);color:rgba(255,255,255,.7);font-size:12px;line-hei
       <p>이용자는 언제든 해지할 수 있으며, 해지 시 다음 결제일까지 이용 후 자동결제가 중단됩니다.</p>
       <h4>제5조 (데이터 보관)</h4>
       <p>구독 종료 시 추모관은 즉시 삭제되지 않고 비공개 보관되며, 유예기간(30일) 내 재결제 시 즉시 복구됩니다. 이후 12개월간 보관하며, 삭제 전 담당자에게 사전 통지합니다.</p>
-      <p style="color:var(--ash);margin-top:.8rem">※ 본 약관은 초안이며 시행 전 최종 검토 후 확정됩니다.</p>
+      <p style="color:var(--soft);margin-top:.8rem">※ 본 약관은 초안이며 시행 전 최종 검토 후 확정됩니다.</p>
     </div></details>
 
     <details><summary>개인정보처리방침</summary><div class="policy-body">
@@ -223,7 +235,7 @@ footer{background:var(--deep);color:rgba(255,255,255,.7);font-size:12px;line-hei
       <p>이용자는 자신의 개인정보 열람·정정·삭제·처리정지를 요청할 수 있습니다.</p>
       <h4>6. 개인정보 보호책임자</h4>
       <p><span class="ph">이윤범</span> / <span class="ph">peoplemac.inc@gmail.com</span> / <span class="ph">070-4407-2004</span></p>
-      <p style="color:var(--ash);margin-top:.8rem">※ 본 방침은 초안이며 시행 전 법률 검토 후 확정됩니다.</p>
+      <p style="color:var(--soft);margin-top:.8rem">※ 본 방침은 초안이며 시행 전 법률 검토 후 확정됩니다.</p>
     </div></details>
 
     <details><summary>취소 및 환불 정책</summary><div class="policy-body">

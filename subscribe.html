@@ -11,32 +11,32 @@
 <script src="portone-config.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
-:root{--ivory:#F8F5F0;--stone:#E8E3DB;--ash:#C4BDB4;--deep:#3D3530;--mid:#6B5F58;--warm:#8B7355;--gold:#B8965A;--gold2:#9a7a45;--white:#fff}
+:root{--ivory:#F8F5F0;--stone:#E8E3DB;--ash:#C4BDB4;--deep:#3D3530;--mid:#5E534C;--warm:#8B7355;--soft:#6E6157;--gold:#B8965A;--gold2:#9a7a45;--white:#fff}
 body{min-height:100vh;background:var(--ivory);color:var(--deep);
   font-family:-apple-system,'Apple SD Gothic Neo','Noto Sans KR',sans-serif;
   max-width:520px;margin:0 auto;box-shadow:0 0 40px rgba(0,0,0,.08);padding-bottom:3rem}
 .top{background:var(--deep);color:#fff;padding:15px 18px;font-size:15px;font-weight:500;letter-spacing:.04em}
-.top span{color:var(--gold);font-size:11px;letter-spacing:.1em}
+.top span{color:var(--gold);font-size:12.5px;letter-spacing:.1em}
 .wrap{padding:1.5rem 1.25rem}
 .hero{text-align:center;padding:1rem 0 1.5rem}
 .hero-icon{font-size:38px;margin-bottom:.5rem}
 .hero-name{font-size:20px;font-weight:600}
-.hero-sub{font-size:13px;color:var(--ash);margin-top:.35rem}
+.hero-sub{font-size:13px;color:var(--soft);margin-top:.35rem}
 .sub-benefits{background:linear-gradient(145deg,#fffdf9,#fbf7ef);border:1px solid var(--stone);border-radius:16px;padding:1.1rem 1rem;margin-bottom:1.4rem}
 .sb-title{font-size:13px;font-weight:700;color:var(--warm);text-align:center;letter-spacing:.04em;margin-bottom:.9rem}
 .sb-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px 6px}
 .sb-item{display:flex;flex-direction:column;align-items:center;gap:5px;text-align:center;font-size:11.5px;color:var(--mid);line-height:1.35}
 .sb-item .sb-ic{font-size:22px}
 .sb-item b{color:var(--deep);font-weight:700}
-@media(max-width:360px){.sb-grid{gap:8px 4px}.sb-item{font-size:11px}}
+@media(max-width:360px){.sb-grid{gap:8px 4px}.sb-item{font-size:12.5px}}
 .label{font-size:12px;color:var(--warm);font-weight:600;letter-spacing:.03em;margin:1.4rem 0 .6rem}
 .plans{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .plan{border:2px solid var(--stone);background:var(--white);border-radius:14px;padding:1.1rem .75rem;text-align:center;cursor:pointer;transition:border-color .15s,background .15s}
 .plan.on{border-color:var(--gold);background:#fffdf8}
 .plan-n{font-size:13px;color:var(--mid);margin-bottom:.4rem}
 .plan-p{font-size:22px;font-weight:300;color:var(--deep)}
-.plan-p small{font-size:12px;color:var(--ash)}
-.plan-tag{font-size:10px;color:var(--gold);font-weight:700;margin-top:.35rem;min-height:13px}
+.plan-p small{font-size:12px;color:var(--soft)}
+.plan-tag{font-size:11.5px;color:var(--gold);font-weight:700;margin-top:.35rem;min-height:13px}
 .fg{margin-bottom:.85rem}
 .fg label{font-size:12px;color:var(--mid);display:block;margin-bottom:5px}
 .fg input{width:100%;font-size:15px;border:1px solid var(--ash);border-radius:9px;padding:11px 13px;background:var(--white);font-family:inherit;-webkit-appearance:none}
@@ -44,7 +44,7 @@ body{min-height:100vh;background:var(--ivory);color:var(--deep);
 .pay-btn{width:100%;margin-top:1.2rem;background:var(--gold);color:#fff;border:none;border-radius:11px;padding:15px;font-size:16px;font-weight:600;font-family:inherit;cursor:pointer;transition:background .15s}
 .pay-btn:active{background:var(--gold2)}
 .pay-btn:disabled{opacity:.55}
-.terms{font-size:11px;color:var(--ash);text-align:center;line-height:1.8;margin-top:1rem}
+.terms{font-size:12.5px;color:var(--soft);text-align:center;line-height:1.8;margin-top:1rem}
 .terms a{color:var(--warm);text-decoration:underline}
 .err{font-size:13px;color:#c0392b;text-align:center;margin-top:.85rem;min-height:1.2em}
 .result{text-align:center;padding:3rem 1.5rem;display:none}
@@ -55,6 +55,23 @@ body{min-height:100vh;background:var(--ivory);color:var(--deep);
 .loading{position:fixed;inset:0;background:rgba(248,245,240,.85);display:none;align-items:center;justify-content:center;flex-direction:column;gap:1rem;z-index:99}
 .spin{width:38px;height:38px;border:3px solid var(--stone);border-top-color:var(--gold);border-radius:50%;animation:sp 1s linear infinite}
 @keyframes sp{to{transform:rotate(360deg)}}
+
+/* ── 가독성 리뉴얼: 글자 크기·대비 상향 ── */
+body{font-size:16px;line-height:1.6}
+.top{font-size:16px}
+.top span{font-size:12px}
+.hero-sub{font-size:14px;color:var(--soft)}
+.sb-title{font-size:14px}
+.sb-item{font-size:12.5px;color:var(--mid)}
+.label{font-size:13px;color:var(--warm)}
+.plan-n{font-size:14px;color:var(--mid)}
+.plan-p small{font-size:13px;color:var(--soft)}
+.fg label{font-size:13px;color:var(--mid)}
+.fg input{font-size:16px}
+.terms{font-size:12px;color:var(--soft)}
+.err{font-size:14px}
+.result-desc{font-size:15px;color:var(--mid)}
+.result-card{font-size:15px}
 </style>
 </head>
 <body>
@@ -98,7 +115,7 @@ body{min-height:100vh;background:var(--ivory);color:var(--deep);
   <div class="label">결제자 정보</div>
   <div class="fg"><label>이름</label><input type="text" id="c-name" placeholder="홍길동" maxlength="30"></div>
   <div class="fg"><label>휴대전화</label><input type="tel" id="c-phone" placeholder="010-0000-0000"></div>
-  <div class="fg"><label>이메일 <span style="color:var(--ash)">(영수증 수신)</span></label><input type="email" id="c-email" placeholder="email@example.com"></div>
+  <div class="fg"><label>이메일 <span style="color:var(--soft)">(영수증 수신)</span></label><input type="email" id="c-email" placeholder="email@example.com"></div>
 
   <button class="pay-btn" id="pay-btn" onclick="startSubscribe()">카드 등록하고 구독 시작</button>
   <div class="err" id="err"></div>
@@ -178,7 +195,7 @@ function showManage(sub,canceled){
   var planLabel=sub.plan==='yearly'?'연 구독':'월 구독';
   if(canceled){
     $('mng-sub').textContent='구독이 해지되었습니다';
-    $('mng-card').innerHTML='상태 : <b style="color:#c0392b">해지됨</b><br>플랜 : <b>'+planLabel+'</b><br>이용 가능 : <b>'+(sub.endDate||'-')+'</b> 까지<br><span style="font-size:12px;color:var(--ash)">이후 자동 결제되지 않습니다.</span>';
+    $('mng-card').innerHTML='상태 : <b style="color:#c0392b">해지됨</b><br>플랜 : <b>'+planLabel+'</b><br>이용 가능 : <b>'+(sub.endDate||'-')+'</b> 까지<br><span style="font-size:12px;color:var(--soft)">이후 자동 결제되지 않습니다.</span>';
     $('mng-cancel-btn').style.display='none';
     $('mng-resub-btn').style.display='block';
   } else {
