@@ -821,10 +821,30 @@ function showScreen(id){
 }
 
 /* ── 로그인 ── */
-function submitLogin(){
+async function submitLogin(){
   loadSvcAdm();
   var id=$('l-id').value.trim(), pw=$('l-pw').value;
-  if(id===svcAdm.id && pw===svcAdm.pw){
+  var ok=false;
+  /* Firestore settings/superAdmin(기기와 무관한 실제 자격증명)을 우선 검증한다.
+     기록이 있으면 코드 기본값(admin1234)은 무시 → 비밀번호 변경이 모든 기기에 즉시 적용.
+     기록이 없거나 오프라인이면 로컬 값으로 폴백(최초 설정용). */
+  if(_fbReady){
+    try{
+      var snap=await firebase.firestore().collection('settings').doc('superAdmin').get();
+      if(snap.exists){
+        var d=snap.data()||{};
+        ok=(id===d.id && pw===d.pw);
+        if(ok){ svcAdm.id=d.id; svcAdm.pw=d.pw; saveSvcAdm(); }
+      } else {
+        ok=(id===svcAdm.id && pw===svcAdm.pw);
+      }
+    }catch(e){
+      ok=(id===svcAdm.id && pw===svcAdm.pw);
+    }
+  } else {
+    ok=(id===svcAdm.id && pw===svcAdm.pw);
+  }
+  if(ok){
     $('l-err').style.display='none';
     sessionStorage.setItem('adm_sess','1');
     _syncSuperAdmin();
