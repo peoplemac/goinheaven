@@ -4,6 +4,14 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>추모공원 관리 - 사이버 추모관</title>
+<!-- PWA: 홈 화면에 추가(바로가기) -->
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#3D3530">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="추모공원">
+<link rel="apple-touch-icon" href="icon-192.png">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
@@ -29,6 +37,9 @@ body{min-height:100vh;background:var(--ivory);color:var(--deep);
 .btn-gold:active{background:var(--gold2)}
 .btn-block{width:100%;display:block}
 .btn-sm{padding:7px 14px;font-size:13px;border-radius:6px}
+.a2hs-btn{display:none;width:100%;margin-bottom:1rem;background:#fff;border:1.5px solid var(--gold);color:var(--gold2);border-radius:11px;padding:13px;font-size:15px;font-weight:700;font-family:inherit;cursor:pointer;align-items:center;justify-content:center;gap:8px}
+.a2hs-btn:active{background:var(--ivory)}
+.a2hs-btn.show{display:flex}
 input,textarea{font-family:inherit;font-size:15px;border:1px solid var(--ash);
   border-radius:8px;padding:11px 14px;background:var(--white);color:var(--deep);
   width:100%;-webkit-appearance:none;box-sizing:border-box}
@@ -207,6 +218,7 @@ label{font-size:14.5px;color:var(--mid);font-weight:500}
     <button class="top-bar-btn" onclick="logout()">로그아웃</button>
   </div>
   <div class="dash-content">
+    <button id="a2hs-btn" class="a2hs-btn" onclick="a2hsInstall()">📲 홈 화면에 바로가기 추가</button>
     <div class="stat-row">
       <div class="stat-card">
         <div class="stat-n" id="stat-total">0</div>
@@ -222,6 +234,20 @@ label{font-size:14.5px;color:var(--mid);font-weight:500}
     </button>
     <div class="sec-title">개설한 추모관</div>
     <div id="mem-list"><div class="empty-msg">로딩 중...</div></div>
+  </div>
+</div>
+
+<!-- iOS 홈 화면 추가 안내 (아이폰은 공유 시트에서 수동 추가) -->
+<div id="ios-a2hs" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:400;align-items:center;justify-content:center;padding:1.5rem" onclick="if(event.target===this)this.style.display='none'">
+  <div style="background:#fff;border-radius:18px;padding:1.6rem 1.35rem;max-width:320px;width:100%">
+    <div style="font-size:34px;text-align:center;margin-bottom:.5rem">📲</div>
+    <div style="font-size:18px;font-weight:700;color:var(--deep);text-align:center;margin-bottom:1rem">홈 화면에 바로가기 추가</div>
+    <div style="font-size:14.5px;color:var(--mid);line-height:2;text-align:left">
+      1. 사파리 아래쪽(또는 위쪽)의 <b>공유 ⬆️</b> 버튼을 누르세요.<br>
+      2. 목록에서 <b>‘홈 화면에 추가’</b>를 선택하세요.<br>
+      3. 오른쪽 위 <b>‘추가’</b>를 누르면 바탕화면에 아이콘이 생깁니다.
+    </div>
+    <button class="btn btn-gold btn-block" style="margin-top:1.35rem" onclick="document.getElementById('ios-a2hs').style.display='none'">확인</button>
   </div>
 </div>
 
@@ -454,6 +480,29 @@ function logout(){
 
 /* ── 대시보드 ── */
 var _dashUnsub=null;
+/* ── PWA: 홈 화면에 바로가기 추가 ── */
+var _deferredPrompt=null;
+function _isIOS(){return /iP(hone|ad|od)/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);}
+function _isStandalone(){try{return window.matchMedia('(display-mode: standalone)').matches||window.navigator.standalone===true;}catch(e){return false;}}
+function _showA2hsBtn(){
+  var b=$('a2hs-btn'); if(!b)return;
+  if(_isStandalone()){b.classList.remove('show');return;}   /* 이미 설치됨 */
+  if(_deferredPrompt||_isIOS())b.classList.add('show');     /* Android=설치 프롬프트 확보 / iOS=수동 안내 */
+}
+function a2hsInstall(){
+  if(_deferredPrompt){
+    _deferredPrompt.prompt();
+    _deferredPrompt.userChoice.then(function(){_deferredPrompt=null;var b=$('a2hs-btn');if(b)b.classList.remove('show');});
+  } else if(_isIOS()){
+    document.getElementById('ios-a2hs').style.display='flex';
+  } else {
+    toast('브라우저 메뉴에서 ‘홈 화면에 추가’를 선택해 주세요.');
+  }
+}
+window.addEventListener('beforeinstallprompt',function(e){e.preventDefault();_deferredPrompt=e;_showA2hsBtn();});
+window.addEventListener('appinstalled',function(){_deferredPrompt=null;var b=$('a2hs-btn');if(b)b.classList.remove('show');try{toast('홈 화면에 바로가기가 추가되었습니다.');}catch(e){}});
+if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){});});}
+
 function loadDashboard(){
   if(!_parkData)return;
   var pid=_parkData.parkId;
@@ -462,6 +511,7 @@ function loadDashboard(){
   var createBtn=document.querySelector('[onclick="goCreate()"]');
   if(createBtn)createBtn.style.display=_isAdmin?'none':'';
   showScreen('s-dashboard');
+  _showA2hsBtn();
   if(!_fs){$('mem-list').innerHTML='<div class="empty-msg">서버 연결 오류</div>';return;}
   /* 실시간 연동: 개설·삭제가 즉시 반영됨 */
   if(_dashUnsub){_dashUnsub();_dashUnsub=null;}
