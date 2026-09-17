@@ -666,10 +666,17 @@ async function _fbSave(){
   var fs=firebase.firestore();
   for(var i=0;i<db.groups.length;i++){
     var g=db.groups[i];
+    /* 기존 문서를 먼저 읽어, 메모리 값이 비었을 때 사진 URL·parkId를 보존한다.
+       (전체 그룹 저장 시 stale 캐시가 다른 추모관의 실제 사진/parkId를 null로 덮어써 삭제되는 사고 방지) */
+    var existing={};
+    try{var _ex=await fs.collection('groups').doc(g.id).get();if(_ex.exists)existing=_ex.data()||{};}catch(e){}
+    var existingMembers=existing.members||[];
     var mems=(g.members||[]).map(function(m){
       /* base64 이미지는 Firestore 용량 초과 방지를 위해 저장 안 함 (URL만 저장) */
       var pu=m.portrait||null;
       if(pu&&pu.startsWith('data:'))pu=null;
+      /* 새 사진이 없으면 기존 Firestore 사진 URL을 유지(빈 값으로 덮어쓰기 금지) */
+      if(!pu){var _exm=existingMembers.find(function(x){return x.id===m.id;});if(_exm&&_exm.portraitUrl)pu=_exm.portraitUrl;}
       return{id:m.id,name:m.name||'',birth:m.birth||'',death:m.death||'',bio:m.bio||'',portraitUrl:pu};
     });
     /* merge:true — deleted·createdAt·parkName 등 기존 필드를 지우지 않음
@@ -677,7 +684,7 @@ async function _fbSave(){
     await fs.collection('groups').doc(g.id).set({
       id:g.id,pw:g.pw,adminPw:g.adminPw||'',visits:g.visits||0,
       managementKey:g.managementKey||'',
-      parkId:g.parkId||null,
+      parkId:g.parkId||existing.parkId||null,
       members:mems,contact:g.contact||{},subscription:g.subscription||{},note:g.note||''
     },{merge:true});
   }
