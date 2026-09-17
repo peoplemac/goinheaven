@@ -7,6 +7,9 @@
     "ignore": [
       "firebase.json",
       ".firebaserc",
+      ".gitignore",
+      ".git/**",
+      ".github/**",
       "**/.*",
       "**/node_modules/**",
       "functions/**",
@@ -16,7 +19,8 @@
       "클로드.Zip",
       "사이버추모관.html",
       "CNAME",
-      "README.md"
+      "*.bat",
+      "*.md"
     ],
     "headers": [
       {
